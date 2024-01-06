@@ -15,10 +15,16 @@ Features that I plan to implement in the near future:
 - Refactor: Fix types, new allocator, remove old cruft
 
 - Multi-line editing
-- Multi-line comment syntax hightlighting
 
 - Load and save files
 - Directory tree view
 - Goto file in Ctrl+G mode
 
 - Search and replace
+
+## Bugs
+
+### Syntax highlighting
+- Multi-line comment
+- Octal, Binary, Hex
+- Include <>
