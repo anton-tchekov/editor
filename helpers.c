@@ -34,6 +34,23 @@ static CharType char_type(u32 c)
 	return CT_OTHER;
 }
 
+static u32 conv_lnr_str(const char *s)
+{
+	u32 c;
+	u32 lnr = 0;
+	for(; (c = *s); ++s)
+	{
+		if(!isdigit(c))
+		{
+			return 0;
+		}
+
+		lnr = 10 * lnr + (c - '0');
+	}
+
+	return lnr;
+}
+
 static u32 dec_digit_cnt(u32 n)
 {
 	u32 cnt = 0;

@@ -1,20 +1,3 @@
-/**
- * TODO:
- * - Fix Types and Refactor
- * - Fuzzing Test
- * - Select Text combined with all other editing operations
- * - Select All (Ctrl+A)
- * - Copy (Ctrl+C) Cut (Ctrl+X) Paste (Ctrl+V)
- * - Goto Line
- * - Multi Line Comment Syntax Hightlighting
- * - Own Allocator
- * - Save Files
- * - Multi Line editing
- * - Auto Format
- * - Search/Replace
- * - Typing Suggestions
- */
-
 #include "helpers.c"
 #include "vector.c"
 #include "keyword.c"
@@ -46,9 +29,9 @@ typedef struct
 	u8 ShowWhitespace;
 	u8 TabSize;
 	u8 Mode;
-	u8 Language;
 	const char *FileName;
-	char Search[32];
+	char Search[128];
+	u32 SCursor, SLen;
 } Editor;
 
 typedef void (*EditorFunc)(Editor *);
@@ -72,19 +55,22 @@ static int _current_line_len(Editor *ed)
 static void editor_render_line_numbers(Editor *ed)
 {
 	char lnr_buf[8];
-	u32 x, y, def, cur, color, lnr, lnr_width;
+	u32 x, y, def, cur, color, lnr, lines, lnr_max, lnr_width;
 
 	def = screen_color(COLOR_TABLE_LINE_NUMBER, COLOR_TABLE_BG);
 	cur = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
 
+	lines = ed->Lines.Length;
 	lnr = ed->PageY;
-	lnr_width = dec_digit_cnt(lnr + ed->PageH);
+	lnr_max = lnr + ed->PageH;
+	lnr_max = lnr_max < lines ? lnr_max : lines;
+	lnr_width = dec_digit_cnt(lnr_max);
 
 	for(y = 0; y < ed->PageH; ++y)
 	{
 		color = (lnr == ed->CursorY) ? cur : def;
 		++lnr;
-		if(lnr <= ed->Lines.Length)
+		if(lnr <= lines)
 		{
 			linenr_str(lnr_buf, lnr, lnr_width);
 			for(x = 0; x < lnr_width; ++x)
@@ -350,24 +336,20 @@ static void _render_goto_line(Editor *ed)
 {
 	const char *prompt = "Location: ";
 	const char *s;
-	u32 x, c, color;
+	u32 x, i, c, color;
 
 	color = screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG);
-	s = prompt;
-	for(x = 0; (c = *s); ++x, ++s)
+	for(s = prompt, x = 0; (c = *s); ++x, ++s)
 	{
 		screen_set(x, 0, c, color);
 	}
 
-	s = ed->Search;
-	for(; (c = *s); ++x, ++s)
+	for(s = ed->Search, i = 0; x < ed->FullW; ++x, ++s, ++i)
 	{
-		screen_set(x, 0, c, color);
-	}
-
-	for(; x < ed->FullW; ++x)
-	{
-		screen_set(x, 0, ' ', color);
+		screen_set(x, 0, (i < ed->SLen) ? *s : ' ',
+			(i == ed->SCursor) ?
+			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
+			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG));
 	}
 }
 
@@ -715,6 +697,8 @@ static void editor_init(Editor *ed, int width, int height)
 static void editor_goto(Editor *ed)
 {
 	ed->Mode = EDITOR_MODE_GOTO;
+	ed->SLen = 0;
+	ed->SCursor = 0;
 	editor_render(ed);
 	(void)ed;
 }
@@ -1007,12 +991,93 @@ static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
 {
 	switch(key)
 	{
-	case KEY_ESCAPE:
-		ed->Mode = EDITOR_MODE_DEFAULT;
+	case KEY_LEFT:
+		if(ed->SCursor > 0)
+		{
+			--ed->SCursor;
+		}
+		editor_render(ed);
+		break;
+
+	case KEY_RIGHT:
+		if(ed->SCursor < ed->SLen)
+		{
+			++ed->SCursor;
+		}
+		editor_render(ed);
+		break;
+
+	case KEY_HOME:
+		ed->SCursor = 0;
+		editor_render(ed);
+		break;
+
+	case KEY_END:
+		ed->SCursor = ed->SLen;
+		editor_render(ed);
+		break;
+
+	case KEY_RETURN:
+	{
+		u32 lnr;
+		ed->Search[ed->SLen] = '\0';
+		if((lnr = conv_lnr_str(ed->Search)) > 0)
+		{
+			if(lnr > ed->Lines.Length)
+			{
+				break;
+			}
+
+			ed->CursorY = lnr - 1;
+			ed->CursorX = 0;
+			ed->CursorSaveX = 0;
+			ed->Mode = EDITOR_MODE_DEFAULT;
+			editor_render(ed);
+		}
 		break;
 	}
 
-	(void)cp;
+	case KEY_BACKSPACE:
+		if(ed->SCursor > 0)
+		{
+			char *p = ed->Search + ed->SCursor;
+			memmove(p - 1, p, ed->SLen - ed->SCursor);
+			--ed->SCursor;
+			--ed->SLen;
+			editor_render(ed);
+		}
+		break;
+
+	case KEY_DELETE:
+		if(ed->SCursor < ed->SLen)
+		{
+			char *p = ed->Search + ed->SCursor;
+			memmove(p, p + 1, ed->SLen - ed->SCursor - 1);
+			--ed->SLen;
+			editor_render(ed);
+		}
+		break;
+
+	case KEY_TAB:
+		break;
+
+	case MOD_CTRL | KEY_G:
+	case KEY_ESCAPE:
+		ed->Mode = EDITOR_MODE_DEFAULT;
+		editor_render(ed);
+		break;
+
+	default:
+		if(isprint(cp))
+		{
+			char *p = ed->Search + ed->SCursor;
+			memmove(p + 1, p, ed->SLen - ed->SCursor);
+			ed->Search[ed->SCursor++] = cp;
+			++ed->SLen;
+			editor_render(ed);
+		}
+		break;
+	}
 }
 
 static void editor_key_press_tree(Editor *ed, u32 key, u32 cp)
