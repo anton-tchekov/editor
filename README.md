@@ -24,7 +24,8 @@ Features that I plan to implement in the near future:
 
 ## Bugs
 
+- Tab Up Down Bug
+
 ### Syntax highlighting
 - Multi-line comment
 - Octal, Binary, Hex
-- Include <>

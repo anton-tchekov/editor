@@ -96,6 +96,7 @@ static void editor_render_line_numbers(Editor *ed)
 static int _syntax_highlight(Editor *ed, int len, const char *line, u16 *render)
 {
 	u32 c;
+	int incflag = 0;
 	int i = 0;
 	int x = 0;
 	while(i < len)
@@ -146,6 +147,20 @@ static int _syntax_highlight(Editor *ed, int len, const char *line, u16 *render)
 
 			++i;
 		}
+		else if(incflag && c == '<')
+		{
+			for(; i < len; ++i)
+			{
+				c = line[i];
+				render[x++] = screen_pack(c,
+					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG));
+				if(c == '>')
+				{
+					++i;
+					break;
+				}
+			}
+		}
 		else if(c == '#')
 		{
 			render[x++] = screen_pack(c,
@@ -156,6 +171,8 @@ static int _syntax_highlight(Editor *ed, int len, const char *line, u16 *render)
 				render[x++] = screen_pack(c,
 					screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG));
 			}
+
+			incflag = 1;
 		}
 		else if(c == '\"' || c == '\'')
 		{
@@ -241,14 +258,29 @@ static int _syntax_highlight(Editor *ed, int len, const char *line, u16 *render)
 				if(c == 'x' || c == 'X')
 				{
 					/* Hex */
+					for(; i < len && isxdigit(c = line[i]); ++i)
+					{
+						render[x++] = screen_pack(c,
+							screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+					}
 				}
 				else if(c == 'b' || c == 'B')
 				{
 					/* Binary */
+					for(; i < len && is_bin(c = line[i]); ++i)
+					{
+						render[x++] = screen_pack(c,
+							screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+					}
 				}
 				else
 				{
 					/* Octal */
+					for(; i < len && isdigit(c = line[i]); ++i)
+					{
+						render[x++] = screen_pack(c,
+							screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+					}
 				}
 			}
 			else
@@ -1029,6 +1061,11 @@ static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
 			}
 
 			ed->CursorY = lnr - 1;
+			if(ed->CursorY > ed->PageH / 2)
+			{
+				ed->PageY = ed->CursorY - ed->PageH / 2;
+			}
+
 			ed->CursorX = 0;
 			ed->CursorSaveX = 0;
 			ed->Mode = EDITOR_MODE_DEFAULT;
