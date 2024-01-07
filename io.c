@@ -44,7 +44,7 @@ enum
 	COLOR_TABLE_ARRAY,
 	COLOR_TABLE_VISIBLE_SPACE,
 	COLOR_TABLE_COMMENT_ASM,
-	COLOR_TABLE_REGISTER
+	COLOR_TABLE_ERROR
 };
 
 static const u32 _color_table[] =
@@ -64,7 +64,7 @@ static const u32 _color_table[] =
 	0xFF9CDCFE, /* Array Identifier */
 	0xFF454545, /* Visible Space */
 	0xFFD72424, /* Assembly Comment */
-	0xFFFF8000, /* Register */
+	0xFFFF0000, /* Error */
 };
 
 static u8 _quit;
@@ -379,6 +379,59 @@ static void screen_set_pack(u32 x, u32 y, u32 v)
 	screen_set(x, y, v >> 8, v & 0xFF);
 }
 
+#define READFILE_CHUNK 1024
+
+static char *file_read(const char *filename, size_t *len)
+{
+	/* TODO: This is untested */
+	size_t size, cap, rb;
+	char *buf;
+	FILE *fp;
+	if(!(fp = fopen(filename, "r")))
+	{
+		return NULL;
+	}
+
+	cap = READFILE_CHUNK;
+	if(!(buf = malloc(cap)))
+	{
+		goto cleanup_file;
+	}
+
+	size = 0;
+	while((rb = fread(buf + size, 1, READFILE_CHUNK, fp)) != READFILE_CHUNK)
+	{
+		size += rb;
+		if(size + READFILE_CHUNK > cap)
+		{
+			char *nd;
+			cap <<= 1;
+			if(!(nd = realloc(buf, cap)))
+			{
+				goto cleanup_alloc;
+			}
+
+			buf = nd;
+		}
+	}
+
+	if(ferror(fp))
+	{
+		goto cleanup_alloc;
+	}
+
+	fclose(fp);
+	*len = size;
+	return buf;
+
+cleanup_alloc:
+	free(buf);
+
+cleanup_file:
+	fclose(fp);
+	return NULL;
+}
+
 static int file_write(const char *filename, void *data, size_t len)
 {
 	FILE *fp;
@@ -396,7 +449,8 @@ static int file_write(const char *filename, void *data, size_t len)
 	return 0;
 }
 
-static int dir_iter(const char *path, void (*iter)(const char *, int))
+static int dir_iter(const char *path, void *data,
+	void (*iter)(void *, const char *, int))
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -408,7 +462,7 @@ static int dir_iter(const char *path, void (*iter)(const char *, int))
 
 	while((dp = readdir(dir)))
 	{
-		iter(dp->d_name, dp->d_type == DT_DIR);
+		iter(data, dp->d_name, dp->d_type == DT_DIR);
 	}
 
 	closedir(dir);

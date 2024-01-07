@@ -7,7 +7,7 @@ enum
 {
 	EDITOR_MODE_DEFAULT,
 	EDITOR_MODE_GOTO,
-	EDITOR_MODE_TREE,
+	EDITOR_MODE_ERROR,
 	EDITOR_MODE_COUNT
 };
 
@@ -29,7 +29,8 @@ typedef struct
 	u8 ShowWhitespace;
 	u8 TabSize;
 	u8 Mode;
-	const char *FileName;
+	char Path[128];
+	char FileName[128];
 	char Search[128];
 	u32 SCursor, SLen;
 } Editor;
@@ -364,6 +365,23 @@ static void _render_line(Editor *ed, int y, int cursor_x)
 	}
 }
 
+static void render_error(Editor *ed)
+{
+	u32 x, y, c, color;
+	const char *s;
+	y = ed->PageH - 1;
+	color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_ERROR);
+	for(s = ed->Search, x = 0; (c = *s); ++x, ++s)
+	{
+		screen_set(x, y, c, color);
+	}
+
+	for(; x < ed->FullW; ++x)
+	{
+		screen_set(x, y, ' ', color);
+	}
+}
+
 static void _render_goto_line(Editor *ed)
 {
 	const char *prompt = "Location: ";
@@ -385,19 +403,8 @@ static void _render_goto_line(Editor *ed)
 	}
 }
 
-static void editor_tree_render(Editor *ed)
-{
-
-}
-
 static void editor_render(Editor *ed)
 {
-	if(ed->Mode == EDITOR_MODE_TREE)
-	{
-		editor_tree_render(ed);
-		return;
-	}
-
 	if(ed->CursorY < ed->PageY)
 	{
 		ed->PageY = ed->CursorY;
@@ -437,20 +444,36 @@ static void editor_render(Editor *ed)
 	}
 
 	{
-		int y, cursor_x, start_y;
+		int y, cursor_x, start_y, end_y;
 		start_y = 0;
+		end_y = ed->PageH;
 		if(ed->Mode == EDITOR_MODE_GOTO)
 		{
 			start_y = 1;
 			_render_goto_line(ed);
 		}
+		else if(ed->Mode == EDITOR_MODE_ERROR)
+		{
+			--end_y;
+			render_error(ed);
+		}
 
 		cursor_x = cursor_pos_x(ed);
-		for(y = start_y; y < ed->PageH; ++y)
+		for(y = start_y; y < end_y; ++y)
 		{
 			_render_line(ed, y, cursor_x);
 		}
 	}
+}
+
+static void editor_error(Editor *ed, const char *msg, ...)
+{
+	va_list args;
+	ed->Mode = EDITOR_MODE_ERROR;
+	va_start(args, msg);
+	vsnprintf(ed->Search, sizeof(ed->Search), msg, args);
+	va_end(args);
+	editor_render(ed);
 }
 
 static void editor_backspace(Editor *ed)
@@ -871,7 +894,7 @@ static void editor_whitespace(Editor *ed)
 
 static void editor_load(Editor *ed, const char *filename)
 {
-	Vector line;
+	/*Vector line;
 	FILE *fp;
 	char buf[256], c;
 	int i, len;
@@ -881,7 +904,7 @@ static void editor_load(Editor *ed, const char *filename)
 		return;
 	}
 
-	ed->FileName = filename;
+	strcpy(ed->FileName, filename);
 	vector_clear(&ed->Lines);
 	while(fgets(buf, sizeof(buf), fp))
 	{
@@ -896,7 +919,6 @@ static void editor_load(Editor *ed, const char *filename)
 			}
 			else if(c != '\r' && c != '\n')
 			{
-				printf("Invalid character, binary file?\n");
 				return;
 			}
 		}
@@ -905,12 +927,42 @@ static void editor_load(Editor *ed, const char *filename)
 	}
 
 	fclose(fp);
-	editor_render(ed);
+	editor_render(ed);*/
+
+	size_t len;
+	char *p, *end, *buf;
+	u32 c;
+
+	if(!(buf = file_read(filename, &len)))
+	{
+		editor_error(ed, "Failed to open file");
+		return;
+	}
+
+	for(p = buf, end = buf + len; p < end; ++p)
+	{
+		c = *p;
+		if(c == '\n')
+		{
+
+		}
+		else if(isprint(c) || c == '\t')
+		{
+
+		}
+		else
+		{
+			editor_error(ed, "Invalid character, binary file?");
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	free(buf);
 }
 
 static void editor_save(Editor *ed)
 {
-	/* TODO: Error checking and error handling */
 	size_t i, len;
 	char *buf, *ptr;
 
@@ -920,6 +972,7 @@ static void editor_save(Editor *ed)
 		len += vector_len(vector_get(&ed->Lines, i)) + 1;
 	}
 
+	/* TODO: Check for malloc failure */
 	buf = malloc(len);
 	ptr = buf;
 
@@ -932,6 +985,7 @@ static void editor_save(Editor *ed)
 		*ptr++ = '\n';
 	}
 
+	/* TODO: Check for write failure */
 	file_write(ed->FileName, buf, len);
 }
 
@@ -954,12 +1008,6 @@ static void editor_include_lib(Editor *ed)
 {
 	static const char *ins = "#include <>";
 	_ed_inc(ed, ins);
-}
-
-static void editor_tree(Editor *ed)
-{
-	ed->Mode = EDITOR_MODE_TREE;
-	editor_render(ed);
 }
 
 static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
@@ -992,7 +1040,6 @@ static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
 		{ MOD_CTRL | KEY_X,     editor_cut            },
 		{ MOD_CTRL | KEY_V,     editor_paste          },
 		{ MOD_CTRL | KEY_S,     editor_save           },
-		{ MOD_CTRL | KEY_B,     editor_tree           },
 
 		{ MOD_CTRL | KEY_T,     editor_tab_size       },
 		{ MOD_CTRL | KEY_J,     editor_whitespace     },
@@ -1017,6 +1064,51 @@ static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
 	{
 		editor_char(ed, cp);
 	}
+}
+
+static void getpath(Editor *ed)
+{
+	u32 c;
+	char *p, *q, *slash;
+	slash = q = ed->Path;
+	for(p = ed->FileName; (c = *p); ++p, ++q)
+	{
+		*q = c;
+		if(c == '/')
+		{
+			slash = q;
+		}
+	}
+
+	if(slash == ed->Path)
+	{
+		slash[0] = '.';
+		slash[1] = '\0';
+	}
+	else
+	{
+		slash[1] = '\0';
+	}
+}
+
+static void foreach_dirent(void *data, const char *fname, int is_dir)
+{
+	Editor *ed = data;
+	/*if(starts_with(fname, ))
+	{
+
+	}*/
+}
+
+static void editor_key_press_error(Editor *ed, u32 key, u32 cp)
+{
+	if(key == KEY_RETURN)
+	{
+		ed->Mode = EDITOR_MODE_DEFAULT;
+		editor_render(ed);
+	}
+
+	(void)cp;
 }
 
 static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
@@ -1096,6 +1188,11 @@ static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
 		break;
 
 	case KEY_TAB:
+		getpath(ed);
+		if(dir_iter(ed->Path, ed, foreach_dirent))
+		{
+			editor_error(ed, "Failed to open directory");
+		}
 		break;
 
 	case MOD_CTRL | KEY_G:
@@ -1117,29 +1214,6 @@ static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
 	}
 }
 
-static void editor_key_press_tree(Editor *ed, u32 key, u32 cp)
-{
-	switch(key)
-	{
-	case KEY_UP:
-		break;
-
-	case KEY_DOWN:
-		break;
-
-	case KEY_RETURN:
-		break;
-
-	case MOD_CTRL | KEY_B:
-	case KEY_ESCAPE:
-		ed->Mode = EDITOR_MODE_DEFAULT;
-		editor_render(ed);
-		break;
-	}
-
-	(void)cp;
-}
-
 static void editor_key_press(Editor *ed, u32 key, u32 cp)
 {
 	typedef void (*KeyPressFN)(Editor *, u32, u32);
@@ -1147,7 +1221,7 @@ static void editor_key_press(Editor *ed, u32 key, u32 cp)
 	{
 		editor_key_press_default,
 		editor_key_press_goto,
-		editor_key_press_tree
+		editor_key_press_error
 	};
 
 	fns[ed->Mode](ed, key, cp);
