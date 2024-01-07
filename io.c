@@ -383,7 +383,6 @@ static void screen_set_pack(u32 x, u32 y, u32 v)
 
 static char *file_read(const char *filename, size_t *len)
 {
-	/* TODO: This is untested */
 	size_t size, cap, rb;
 	char *buf;
 	FILE *fp;
@@ -399,7 +398,7 @@ static char *file_read(const char *filename, size_t *len)
 	}
 
 	size = 0;
-	while((rb = fread(buf + size, 1, READFILE_CHUNK, fp)) != READFILE_CHUNK)
+	while((rb = fread(buf + size, 1, READFILE_CHUNK, fp)) == READFILE_CHUNK)
 	{
 		size += rb;
 		if(size + READFILE_CHUNK > cap)
@@ -415,6 +414,7 @@ static char *file_read(const char *filename, size_t *len)
 		}
 	}
 
+	size += rb;
 	if(ferror(fp))
 	{
 		goto cleanup_alloc;

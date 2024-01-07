@@ -892,73 +892,51 @@ static void editor_whitespace(Editor *ed)
 	editor_render(ed);
 }
 
+static void editor_clear(Editor *ed)
+{
+	vector_clear(&ed->Lines); /* TODO: Memory leak */
+	editor_render(ed);
+}
+
 static void editor_load(Editor *ed, const char *filename)
 {
-	/*Vector line;
-	FILE *fp;
-	char buf[256], c;
-	int i, len;
-
-	if(!(fp = fopen(filename, "r")))
-	{
-		return;
-	}
-
-	strcpy(ed->FileName, filename);
-	vector_clear(&ed->Lines);
-	while(fgets(buf, sizeof(buf), fp))
-	{
-		len = strlen(buf);
-		vector_init(&line, sizeof(char), len);
-		for(i = 0; i < len; ++i)
-		{
-			c = buf[i];
-			if(isprint(c) || c == '\t')
-			{
-				vector_push(&line, &c);
-			}
-			else if(c != '\r' && c != '\n')
-			{
-				return;
-			}
-		}
-
-		vector_push(&ed->Lines, &line);
-	}
-
-	fclose(fp);
-	editor_render(ed);*/
-
+	Vector line;
 	size_t len;
 	char *p, *end, *buf;
 	u32 c;
 
+	editor_clear(ed);
+	strcpy(ed->FileName, filename);
 	if(!(buf = file_read(filename, &len)))
 	{
 		editor_error(ed, "Failed to open file");
 		return;
 	}
 
+	vector_init(&line, sizeof(char), 8);
 	for(p = buf, end = buf + len; p < end; ++p)
 	{
 		c = *p;
 		if(c == '\n')
 		{
-
+			vector_push(&ed->Lines, &line);
+			vector_init(&line, sizeof(char), 8);
 		}
 		else if(isprint(c) || c == '\t')
 		{
-
+			vector_push(&line, &c);
 		}
 		else
 		{
 			editor_error(ed, "Invalid character, binary file?");
-			goto cleanup;
+			free(buf);
+			editor_clear(ed);
+			return;
 		}
 	}
 
-cleanup:
-	free(buf);
+	vector_push(&ed->Lines, &line);
+	editor_render(ed);
 }
 
 static void editor_save(Editor *ed)
@@ -985,8 +963,10 @@ static void editor_save(Editor *ed)
 		*ptr++ = '\n';
 	}
 
-	/* TODO: Check for write failure */
-	file_write(ed->FileName, buf, len);
+	if(file_write(ed->FileName, buf, len))
+	{
+		editor_error(ed, "Writing file failed");
+	}
 }
 
 static void _ed_inc(Editor *ed, const char *s)
