@@ -1,4 +1,4 @@
-static const uint8_t terminus16_bold[] =
+static const u8 terminus16_bold[] =
 {
 	0x00,
 	0x00,

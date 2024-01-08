@@ -1,9 +1,9 @@
-typedef enum
+enum
 {
 	CT_SPACE,
 	CT_IDENTIFIER,
 	CT_OTHER
-} CharType;
+};
 
 static u32 is_ident(u32 c)
 {
@@ -20,7 +20,7 @@ static u32 is_oct(u32 c)
 	return c >= '0' && c <= '7';
 }
 
-static CharType char_type(u32 c)
+static u32 char_type(u32 c)
 {
 	if(isspace(c))
 	{

@@ -330,7 +330,7 @@ static u32 cursor_pos_x(Editor *ed)
 static void _render_line(Editor *ed, int y, int cursor_x)
 {
 	int x, line, len, render_len;
-	u16 render[256];
+	u16 render[1024]; /* FIXME: Crash when line is longer than 256 chars */
 	const char *text;
 	u32 pack;
 
@@ -792,7 +792,7 @@ static void editor_prev_word(Editor *ed)
 	i32 i;
 	Vector *line;
 	char *buf;
-	CharType kind;
+	u32 kind;
 
 	ed->CursorSaveX = -1;
 	if(ed->CursorX == 0)
@@ -824,7 +824,7 @@ static void editor_next_word(Editor *ed)
 	i32 i;
 	Vector *line;
 	char *buf;
-	CharType kind;
+	u32 kind;
 	int len;
 
 	ed->CursorSaveX = -1;

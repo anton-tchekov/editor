@@ -13,17 +13,19 @@ Features that I plan to implement in the near future:
 	- Paste (Ctrl+V)
 
 - Refactor: Fix types, new allocator, remove old cruft
+	- Replace "vector" with textbuffer
+	- Replace "int" with specific sized integer
+	- Replace malloc calls with own allocator
 
 - Multi-line editing
 
 - Load and save files
-- Directory tree view
-- Goto file in Ctrl+G mode
+- Goto [file:line] in Ctrl+G mode
 
 - Search and replace
 
 ## Bugs
-
+- A multitude of crashes due to diverse reasons xD
 - Tab Up Down Bug
 
 ### Syntax highlighting
