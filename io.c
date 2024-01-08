@@ -295,7 +295,7 @@ static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
 	}
 }
 
-static u32 glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
+static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 {
 	u32 w0, h0, mask;
 	const u8 *start;
@@ -319,8 +319,6 @@ static u32 glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 
 		line += _gfx_width;
 	}
-
-	return CHAR_WIDTH;
 }
 
 static void clipboard_store(const char *str)

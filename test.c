@@ -1,12 +1,6 @@
-void test(int cond, const char *expr, const char *file, int line);
-void test_all(void (*fn)(void));
-void test_fn(void (*fn)(void), const char *name);
-
 #define TEST(expr)     test((expr), #expr, __FILE__, __LINE__)
 #define TEST_FN(name)  test_fn(name, #name)
 #define TEST_ALL(name) test_all(name)
-
-#include "types.h"
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_RED   "\033[1;31m"
@@ -16,27 +10,6 @@ void test_fn(void (*fn)(void), const char *name);
 
 static i32 _fn_count, _fn_success, _all_count, _all_success;
 
-static void test_register(void)
-{
-	++_fn_count;
-	++_all_count;
-}
-
-static void test_success(void)
-{
-	++_fn_success;
-	++_all_success;
-}
-
-static void test_fn_start(const char *name)
-{
-	printf(COLOR_BLUE "Running:" COLOR_RESET " "
-		COLOR_WHITE "%s" COLOR_RESET "\n", name);
-
-	_fn_count = 0;
-	_fn_success = 0;
-}
-
 static void print_success(i32 success, i32 count)
 {
 	const char *color = (success == count) ? COLOR_GREEN : COLOR_RED;
@@ -45,28 +18,14 @@ static void print_success(i32 success, i32 count)
 		color, success, count);
 }
 
-static void test_fn_finish(void)
-{
-	print_success(_fn_success, _fn_count);
-}
-
-static void test_all_start(void)
-{
-	printf(COLOR_BLUE "--- STARTING ALL TESTS ---" COLOR_RESET "\n\n");
-}
-
-static void test_all_finish(void)
-{
-	printf(COLOR_BLUE "--- ALL TESTS COMPLETED ---" COLOR_RESET "\n");
-	print_success(_all_success, _all_count);
-}
-
 static void test(i32 cond, const char *expr, const char *file, i32 line)
 {
-	test_register();
+	++_fn_count;
+	++_all_count;
 	if(cond)
 	{
-		test_success();
+		++_fn_success;
+		++_all_success;
 	}
 	else
 	{
@@ -76,16 +35,20 @@ static void test(i32 cond, const char *expr, const char *file, i32 line)
 
 static void test_all(void (*fn)(void))
 {
-	test_all_start();
+	printf(COLOR_BLUE "--- STARTING ALL TESTS ---" COLOR_RESET "\n\n");
 	fn();
-	test_all_finish();
+	printf(COLOR_BLUE "--- ALL TESTS COMPLETED ---" COLOR_RESET "\n");
+	print_success(_all_success, _all_count);
 }
 
 static void test_fn(void (*fn)(void), const char *name)
 {
-	test_fn_start(name);
+	printf(COLOR_BLUE "Running:" COLOR_RESET " "
+		COLOR_WHITE "%s" COLOR_RESET "\n", name);
+	_fn_count = 0;
+	_fn_success = 0;
 	fn();
-	test_fn_finish();
+	print_success(_fn_success, _fn_count);
 }
 
 static void test_dec_digit_cnt(void)
@@ -143,4 +106,17 @@ static void test_match_part(void)
 
 	TEST(!match_part("aaa", "bbb", 3));
 	TEST(!match_part("aaafa", "aaaga", 5));
+}
+
+static void test_list(void)
+{
+	TEST_FN(test_dec_digit_cnt);
+	TEST_FN(test_linenr_str);
+	TEST_FN(test_starts_with);
+	TEST_FN(test_match_part);
+}
+
+static void test_run_all(void)
+{
+	TEST_ALL(test_list);
 }

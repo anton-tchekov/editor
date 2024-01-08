@@ -1,6 +1,7 @@
 #include "helpers.c"
 #include "vector.c"
 #include "keyword.c"
+#include "test.c"
 #include <string.h>
 
 enum
@@ -1228,6 +1229,10 @@ static void event_resize(u32 w, u32 h)
 
 static void event_init(int argc, char *argv[], u32 w, u32 h)
 {
+#ifndef NDEBUG
+	test_run_all();
+#endif
+
 	keyword_init();
 	editor_init(&editor, w, h);
 
