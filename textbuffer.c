@@ -23,20 +23,21 @@ typedef struct TEXTBUFFER
 	TextLine **Lines;
 } TextBuffer;
 
-void textbuffer_init(TextBuffer *tb);
+static void *_malloc(size_t size)
+{
+	void *p = malloc(size);
+	if(!p) { exit(1); }
+	return p;
+}
 
-TextBuffer *textbuffer_create(void);
+static void *_realloc(void *p, size_t size)
+{
+	p = realloc(p, size);
+	if(!p) { exit(1); }
+	return p;
+}
 
-void textbuffer_print(TextBuffer *tb);
-
-void textbuffer_destroy(TextBuffer *tb);
-
-void textbuffer_replace(TextBuffer *tb, const Selection *sel,
-	const char *text, size_t len);
-
-char *textbuffer_get(TextBuffer *tb, const Selection *sel, size_t *len);
-
-static inline const char *textbuffer_get_line(TextBuffer *tb,
+static const char *textbuffer_get_line(TextBuffer *tb,
 	size_t y, size_t *len)
 {
 	TextLine *line;
@@ -50,19 +51,18 @@ static inline const char *textbuffer_get_line(TextBuffer *tb,
 	return line->Buffer;
 }
 
-static inline size_t textbuffer_line_length(TextBuffer *tb, size_t y)
+static size_t textbuffer_line_length(TextBuffer *tb, size_t y)
 {
 	assert(tb);
 	assert(y < tb->Count);
 	return tb->Lines[y]->Length;
 }
 
-static inline size_t textbuffer_lines_count(TextBuffer *tb)
+static size_t textbuffer_lines_count(TextBuffer *tb)
 {
 	assert(tb);
 	return tb->Count;
 }
-
 
 static void cursor_normalize(TextBuffer *tb, Cursor *cursor)
 {
@@ -137,7 +137,7 @@ static void textbuffer_require(TextBuffer *tb, size_t capacity)
 	}
 }
 
-void textbuffer_init(TextBuffer *tb)
+static void textbuffer_init(TextBuffer *tb)
 {
 	tb->Capacity = 3;
 	tb->Count = 3;
@@ -147,14 +147,14 @@ void textbuffer_init(TextBuffer *tb)
 	tb->Lines[2] = textline_create("Third Line", 10);
 }
 
-TextBuffer *textbuffer_create(void)
+static TextBuffer *textbuffer_create(void)
 {
 	TextBuffer *tb = _malloc(sizeof(*tb));
 	textbuffer_init(tb);
 	return tb;
 }
 
-void textbuffer_print(TextBuffer *tb)
+static void textbuffer_print(TextBuffer *tb)
 {
 	size_t i;
 	for(i = 0; i < tb->Count; ++i)
@@ -166,18 +166,18 @@ void textbuffer_print(TextBuffer *tb)
 	printf("\nPrinted %d lines total.\n", (int)(tb->Count));
 }
 
-void textbuffer_destroy(TextBuffer *tb)
+static void textbuffer_destroy(TextBuffer *tb)
 {
 	TextLine **start = tb->Lines;
 	TextLine **end = start + tb->Count;
 	while(start < end)
 	{
-		_free(*start);
+		free(*start);
 		++start;
 	}
 
-	_free(tb->Lines);
-	_free(tb);
+	free(tb->Lines);
+	free(tb);
 }
 
 static size_t count_char(const char *text, size_t len, int c)
@@ -195,7 +195,7 @@ static size_t count_char(const char *text, size_t len, int c)
 	return count;
 }
 
-void textbuffer_replace(TextBuffer *tb, const Selection *sel,
+static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 	const char *text, size_t len)
 {
 	Selection nsel = *sel;
@@ -255,7 +255,7 @@ static size_t count_bytes(TextBuffer *tb, const Selection *sel)
 	return length;
 }
 
-char *textbuffer_get(TextBuffer *tb, const Selection *sel, size_t *len)
+static char *textbuffer_get(TextBuffer *tb, const Selection *sel, size_t *len)
 {
 	TextLine **lines, **cur, **end;
 	Selection nsel = *sel;
@@ -316,90 +316,7 @@ char *textbuffer_get(TextBuffer *tb, const Selection *sel, size_t *len)
 	return output;
 }
 
-typedef struct LINE
-{
-	char *Buffer;
-	u32 Capacity;
-	u32 Length;
-	u32 Cursor;
-} Line;
-
-void line_init(Line *line, char *buffer, u32 capacity)
-{
-	line->Buffer = buffer;
-	line->Capacity = capacity;
-	line_clear(line);
-}
-
-void line_clear(Line *line)
-{
-	line->Length = 0;
-	line->Cursor = 0;
-}
-
-void line_char(Line *line, u32 c)
-{
-	if(line->Length < line->Capacity)
-	{
-		//memmove(line->Buffer + line->Cursor, );
-		line->Buffer[line->Cursor] = c;
-		++line->Cursor;
-		++line->Length;
-	}
-}
-
-void line_left(Line *line)
-{
-	if(line->Cursor > 0)
-	{
-		--line->Cursor;
-	}
-}
-
-void line_right(Line *line)
-{
-	if(line->Cursor < line->Length)
-	{
-		++line->Cursor;
-	}
-}
-
-void line_backspace(Line *line)
-{
-	if(line->Cursor > 0)
-	{
-		char *p = line->Buffer + line->Cursor;
-		size_t len = line->Length - line->Cursor;
-		memmove(p - 1, p, len);
-		--line->Cursor;
-		--line->Length;
-	}
-}
-
-void line_delete(Line *line)
-{
-	if(line->Cursor < line->Length)
-	{
-
-	}
-}
-
-void line_home(Line *line)
-{
-	line->Cursor = 0;
-}
-
-void line_end(Line *line)
-{
-	line->Cursor = line->Length;
-}
-
-void line_key(Line *line, u32 key)
-{
-
-}
-
-int main(void)
+void test_textbuffer(void)
 {
 	char *copy = NULL;
 	size_t len = 0;
@@ -413,10 +330,9 @@ int main(void)
 	printf("Length of selection: %d\n", len);
 	printf("Copy of selection: %s\n", copy);
 
-	_free(copy);
+	free(copy);
 
 	textbuffer_replace(tb, &test, "a\nq\nqq\naaa", 10);
 
 	textbuffer_destroy(tb);
-	return 0;
 }

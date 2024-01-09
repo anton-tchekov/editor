@@ -9,8 +9,7 @@
 #include <assert.h>
 #include "types.h"
 #include "keys.h"
-#include "Terminus16.c"
-#include "Terminus16_Bold.c"
+#include "terminus16.c"
 
 #define CHAR_WIDTH              8
 #define CHAR_HEIGHT            16

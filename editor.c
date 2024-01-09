@@ -2,6 +2,7 @@
 #include "vector.c"
 #include "keyword.c"
 #include "test.c"
+#include "textbuffer.c"
 #include <string.h>
 
 enum
