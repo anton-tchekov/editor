@@ -1,8 +1,8 @@
 #include "helpers.c"
 #include "vector.c"
 #include "keyword.c"
-#include "test.c"
 #include "textbuffer.c"
+#include "test.c"
 #include <string.h>
 
 enum
@@ -900,7 +900,7 @@ static void editor_clear(Editor *ed)
 	editor_render(ed);
 }
 
-static void editor_load(Editor *ed, const char *filename)
+static u32 load_internal(Editor *ed, const char *filename)
 {
 	Vector line;
 	size_t len;
@@ -911,8 +911,7 @@ static void editor_load(Editor *ed, const char *filename)
 	strcpy(ed->FileName, filename);
 	if(!(buf = file_read(filename, &len)))
 	{
-		editor_error(ed, "Failed to open file");
-		return;
+		return 1;
 	}
 
 	vector_init(&line, sizeof(char), 8);
@@ -930,14 +929,29 @@ static void editor_load(Editor *ed, const char *filename)
 		}
 		else
 		{
-			editor_error(ed, "Invalid character, binary file?");
 			free(buf);
 			editor_clear(ed);
-			return;
+			return 2;
 		}
 	}
 
 	vector_push(&ed->Lines, &line);
+	return 0;
+}
+
+static void editor_load(Editor *ed, const char *filename)
+{
+	switch(load_internal(ed, filename))
+	{
+	case 1:
+		editor_error(ed, "Failed to open file");
+		return;
+
+	case 2:
+		editor_error(ed, "Invalid character, binary file?");
+		return;
+	}
+
 	editor_render(ed);
 }
 
@@ -1048,40 +1062,6 @@ static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
 	}
 }
 
-static void getpath(Editor *ed)
-{
-	u32 c;
-	char *p, *q, *slash;
-	slash = q = ed->Path;
-	for(p = ed->FileName; (c = *p); ++p, ++q)
-	{
-		*q = c;
-		if(c == '/')
-		{
-			slash = q;
-		}
-	}
-
-	if(slash == ed->Path)
-	{
-		slash[0] = '.';
-		slash[1] = '\0';
-	}
-	else
-	{
-		slash[1] = '\0';
-	}
-}
-
-static void foreach_dirent(void *data, const char *fname, int is_dir)
-{
-	Editor *ed = data;
-	/*if(starts_with(fname, ))
-	{
-
-	}*/
-}
-
 static void editor_key_press_error(Editor *ed, u32 key, u32 cp)
 {
 	if(key == KEY_RETURN)
@@ -1093,108 +1073,8 @@ static void editor_key_press_error(Editor *ed, u32 key, u32 cp)
 	(void)cp;
 }
 
-static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
-{
-	switch(key)
-	{
-	case KEY_LEFT:
-		if(ed->SCursor > 0)
-		{
-			--ed->SCursor;
-		}
-		editor_render(ed);
-		break;
 
-	case KEY_RIGHT:
-		if(ed->SCursor < ed->SLen)
-		{
-			++ed->SCursor;
-		}
-		editor_render(ed);
-		break;
-
-	case KEY_HOME:
-		ed->SCursor = 0;
-		editor_render(ed);
-		break;
-
-	case KEY_END:
-		ed->SCursor = ed->SLen;
-		editor_render(ed);
-		break;
-
-	case KEY_RETURN:
-	{
-		u32 lnr;
-		ed->Search[ed->SLen] = '\0';
-		if((lnr = conv_lnr_str(ed->Search)) > 0)
-		{
-			if(lnr > ed->Lines.Length)
-			{
-				break;
-			}
-
-			ed->CursorY = lnr - 1;
-			if(ed->CursorY > ed->PageH / 2)
-			{
-				ed->PageY = ed->CursorY - ed->PageH / 2;
-			}
-
-			ed->CursorX = 0;
-			ed->CursorSaveX = 0;
-			ed->Mode = EDITOR_MODE_DEFAULT;
-			editor_render(ed);
-		}
-		break;
-	}
-
-	case KEY_BACKSPACE:
-		if(ed->SCursor > 0)
-		{
-			char *p = ed->Search + ed->SCursor;
-			memmove(p - 1, p, ed->SLen - ed->SCursor);
-			--ed->SCursor;
-			--ed->SLen;
-			editor_render(ed);
-		}
-		break;
-
-	case KEY_DELETE:
-		if(ed->SCursor < ed->SLen)
-		{
-			char *p = ed->Search + ed->SCursor;
-			memmove(p, p + 1, ed->SLen - ed->SCursor - 1);
-			--ed->SLen;
-			editor_render(ed);
-		}
-		break;
-
-	case KEY_TAB:
-		getpath(ed);
-		if(dir_iter(ed->Path, ed, foreach_dirent))
-		{
-			editor_error(ed, "Failed to open directory");
-		}
-		break;
-
-	case MOD_CTRL | KEY_G:
-	case KEY_ESCAPE:
-		ed->Mode = EDITOR_MODE_DEFAULT;
-		editor_render(ed);
-		break;
-
-	default:
-		if(isprint(cp))
-		{
-			char *p = ed->Search + ed->SCursor;
-			memmove(p + 1, p, ed->SLen - ed->SCursor);
-			ed->Search[ed->SCursor++] = cp;
-			++ed->SLen;
-			editor_render(ed);
-		}
-		break;
-	}
-}
+#include "nav.c"
 
 static void editor_key_press(Editor *ed, u32 key, u32 cp)
 {
@@ -1208,6 +1088,7 @@ static void editor_key_press(Editor *ed, u32 key, u32 cp)
 
 	fns[ed->Mode](ed, key, cp);
 }
+
 
 static Editor editor;
 
@@ -1225,6 +1106,7 @@ static void event_resize(u32 w, u32 h)
 {
 	editor.FullW = w;
 	editor.PageH = h;
+	strcpy(editor.Path, "./");
 	editor_render(&editor);
 }
 

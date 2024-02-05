@@ -93,12 +93,46 @@ static void linenr_str(char *s, u32 n, u32 width)
 	reverse(s, width);
 }
 
+static void path_dir(char *s)
+{
+	u32 c;
+	char *slash = s;
+	for(; (c = *s); ++s)
+	{
+		if(c == '/')
+		{
+			slash = s;
+		}
+	}
+
+	if(slash == s)
+	{
+		slash[0] = '.';
+	}
+
+	slash[1] = '\0';
+}
+
+static char *path_file(char *s)
+{
+	u32 c;
+	char *slash = s;
+	for(; (c = *s); ++s)
+	{
+		if(c == '/')
+		{
+			slash = s + 1;
+		}
+	}
+
+	return slash;
+}
+
 static u32 starts_with(const char *str, const char *prefix)
 {
-	u32 c, p;
-	while((p = *prefix++) && (c = *str++))
+	while(*prefix)
 	{
-		if(c != p)
+		if(*prefix++ != *str++)
 		{
 			return 0;
 		}

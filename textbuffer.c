@@ -1,25 +1,24 @@
-typedef struct CURSOR
+typedef struct
 {
-	size_t X;
-	size_t Y;
+	size_t X, Y;
 } Cursor;
 
-typedef struct SELECTION
+typedef struct
 {
 	Cursor Limits[2];
 } Selection;
 
-typedef struct TEXTLINE
+typedef struct
 {
-	size_t Length;
-	size_t Capacity;
+	size_t Length, Capacity;
 	char Buffer[];
 } TextLine;
 
-typedef struct TEXTBUFFER
+typedef struct
 {
-	size_t Count;
-	size_t Capacity;
+	size_t Col;
+	Selection Sel;
+	size_t Count, Capacity;
 	TextLine **Lines;
 } TextBuffer;
 
@@ -100,7 +99,7 @@ static size_t double_until(size_t v, size_t limit)
 {
 	while(v < limit)
 	{
-		v *= 2;
+		v <<= 1;
 	}
 
 	return v;
@@ -124,6 +123,135 @@ static TextLine *textline_create(const char *content, size_t len)
 	tl->Capacity = len;
 	tl->Length = len;
 	memcpy(tl->Buffer, content, len);
+	return tl;
+}
+
+static size_t textline_col(const TextLine *tl, size_t col, size_t tabsize)
+{
+	size_t x;
+	const char *p, *e;
+	p = tl->Buffer;
+	e = p + tl->Length;
+	for(; p < e; ++p)
+	{
+		if(*p == '\t')
+		{
+			x = x + tabsize - (x & (tabsize - 1));
+		}
+		else
+		{
+			++x;
+		}
+	}
+
+	return x;
+}
+
+static TextLine *cur_line(TextBuffer *tb)
+{
+	return tb->Lines[tb->Sel.Limits[0].Y];
+}
+
+static size_t cur_line_len(TextBuffer *tb)
+{
+	return cur_line(tb)->Length;
+}
+
+static void cursor_left(TextBuffer *tb)
+{
+	size_t *x = &tb->Sel.Limits[0].X;
+	size_t *y = &tb->Sel.Limits[0].Y;
+	if(*x > 0)
+	{
+		--(*x);
+	}
+	else
+	{
+		if(*y > 0)
+		{
+			--(*y);
+			*x = 0;
+		}
+	}
+}
+
+static void cursor_right(TextBuffer *tb)
+{
+	size_t *x = &tb->Sel.Limits[0].X;
+	size_t *y = &tb->Sel.Limits[0].Y;
+	if(*x < cur_line_len(tb))
+	{
+		++(*x);
+	}
+	else
+	{
+		if(*y < tb->Count)
+		{
+			++(*y);
+			*x = 0;
+		}
+	}
+}
+
+static void cursor_end(TextBuffer *tb)
+{
+	tb->Sel.Limits[0].X = cur_line_len(tb);
+}
+
+static void cursor_home(TextBuffer *tb)
+{
+	size_t *x = &tb->Sel.Limits[0].X;
+	size_t i = 0;
+	if(*x == 0)
+	{
+		TextLine *line = cur_line(tb);
+		const char *buf = line->Buffer;
+		size_t len = line->Length;
+		for(; i < len && isspace(buf[i]); ++i) {}
+	}
+
+	*x = i;
+}
+
+static void cursor_up(TextBuffer *tb)
+{
+
+}
+
+static void cursor_down(TextBuffer *tb)
+{
+
+}
+
+static void cursor_ctrl_uo(TextBuffer *tb)
+{
+
+}
+
+static void ctrl_down(TextBuffer *tb)
+{
+
+}
+
+static void textbuffer_delete(TextBuffer *tb)
+{
+
+}
+
+static void textbuffer_insert(TextBuffer *tb)
+{
+
+}
+
+static TextLine *textline_replace(TextLine *tl, const char *text, size_t len,
+	size_t x1, size_t x2)
+{
+	size_t diff = x2 - x1;
+	size_t new_len = tl->Length - diff + len;
+	tl = textline_require(tl, new_len);
+	memmove(tl->Buffer + x1 + diff, tl->Buffer + x2, tl->Length - x2);
+	memcpy(tl->Buffer + x1, text, len);
+	tl->Length = new_len;
 	return tl;
 }
 
@@ -195,14 +323,26 @@ static size_t count_char(const char *text, size_t len, int c)
 	return count;
 }
 
+static void textbuffer_insert_lines(TextBuffer *tb, size_t y1, size_t y2,
+	size_t ins_lines)
+{
+	size_t rem_lines = y2 - y1;
+	if(ins_lines != rem_lines)
+	{
+		textbuffer_require(tb, tb->Capacity + ins_lines - rem_lines);
+		/* MEMORY LEAK !!! */
+		memmove(tb->Lines + y1 + ins_lines, tb->Lines + y2,
+			(tb->Count - y2) * sizeof(TextLine *));
+	}
+}
+
 static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 	const char *text, size_t len)
 {
 	Selection nsel = *sel;
-	size_t old_lines;
-	size_t new_lines;
-	size_t new_capacity;
+	size_t ins_lines;
 	size_t x1, y1, x2, y2;
+	TextLine **lines;
 
 	x1 = nsel.Limits[0].X;
 	y1 = nsel.Limits[0].Y;
@@ -211,17 +351,68 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 
 	selection_normalize(tb, &nsel);
 
-	old_lines = y2 - y1;
-	new_lines = count_char(text, len, '\n');
-	new_capacity = tb->Capacity + new_lines - old_lines;
-	if(new_lines != old_lines)
+	ins_lines = count_char(text, len, '\n');
+
+	textbuffer_insert_lines(tb, y1, y2, ins_lines);
+
+	const char *p = text;
+	const char *end = text + len;
+	int i;
+	size_t idx = y1;
+	lines = tb->Lines;
+	for(i = 0; i <= ins_lines; ++i, ++idx)
 	{
-		textbuffer_require(tb, new_capacity);
+		p = memchr(text, '\n', len);
+		if(idx > y2)
+		{
+			lines[idx] = textline_create("", 0);
+		}
+
+		/*if(idx == y1 && idx == y2)
+		{
+			lines[idx] = textline_replace();
+		}
+		else if(idx == y1)
+		{
+		}
+		else if(idx == y2)
+		{
+
+		}
+		else
+		{
+
+		}*/
+
+		printf("%d -> %.*s\n", i, p - text, text);
+		++p;
+		len = end - p;
+		text = p;
 	}
 
+/*
+	lines = tb->Lines;
+	cur = lines + y1;
+	end = lines + y2;
 
+	while(cur < end)
+	{
+		tb->Lines[y2] = textline_create(line, line_len);
+	}
+*/
+/*	if(ins_lines == 1)
+	{
+		textline_replace(tl, text, len, x1, );
+	}
+	else
+	{
 
-	printf("REPLACE: NL's = %d\n", new_lines);
+	}
+
+	while()
+	{
+		const char *p = memchr(text, len, '\n');
+	}*/
 }
 
 static size_t count_bytes(TextBuffer *tb, const Selection *sel)
