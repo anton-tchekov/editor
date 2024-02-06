@@ -42,7 +42,7 @@ enum
 	COLOR_TABLE_FN,
 	COLOR_TABLE_ARRAY,
 	COLOR_TABLE_VISIBLE_SPACE,
-	COLOR_TABLE_COMMENT_ASM,
+	COLOR_TABLE_INFO,
 	COLOR_TABLE_ERROR
 };
 
@@ -62,7 +62,7 @@ static const u32 _color_table[] =
 	0xFFDCDCAA, /* Function Identifier */
 	0xFF9CDCFE, /* Array Identifier */
 	0xFF454545, /* Visible Space */
-	0xFFD72424, /* Assembly Comment */
+	0xFF3C88CF, /* Info */
 	0xFFFF0000, /* Error */
 };
 
@@ -376,7 +376,7 @@ static void screen_set_pack(u32 x, u32 y, u32 v)
 	screen_set(x, y, v >> 8, v & 0xFF);
 }
 
-#define READFILE_CHUNK 1024
+#define READFILE_CHUNK (32 * 1024)
 
 static char *file_read(const char *filename, size_t *len)
 {
@@ -429,7 +429,7 @@ cleanup_file:
 	return NULL;
 }
 
-static int file_write(const char *filename, void *data, size_t len)
+static u32 file_write(const char *filename, void *data, size_t len)
 {
 	FILE *fp;
 	if(!(fp = fopen(filename, "w")))
@@ -446,7 +446,7 @@ static int file_write(const char *filename, void *data, size_t len)
 	return 0;
 }
 
-static int dir_iter(const char *path, void *data,
+static u32 dir_iter(const char *path, void *data,
 	void (*iter)(void *, const char *, int))
 {
 	DIR *dir;

@@ -9,9 +9,17 @@ enum
 {
 	EDITOR_MODE_DEFAULT,
 	EDITOR_MODE_GOTO,
-	EDITOR_MODE_ERROR,
+	EDITOR_MODE_MSG,
 	EDITOR_MODE_COUNT
 };
+
+enum
+{
+	EDITOR_INFO,
+	EDITOR_ERROR
+};
+
+#define MAX_SEARCH_LEN 256
 
 typedef struct
 {
@@ -31,9 +39,10 @@ typedef struct
 	u8 ShowWhitespace;
 	u8 TabSize;
 	u8 Mode;
+	u8 MsgType;
 	char Path[128];
 	char FileName[128];
-	char Search[128];
+	char Search[MAX_SEARCH_LEN];
 	u32 SCursor, SLen;
 } Editor;
 
@@ -48,6 +57,11 @@ typedef struct
 static int _num_lines(Editor *ed)
 {
 	return (i32)vector_len(&ed->Lines);
+}
+
+static Vector *line_get(Editor *ed, size_t i)
+{
+	return (Vector *)vector_get(&ed->Lines, i);
 }
 
 static int _current_line_len(Editor *ed)
@@ -367,12 +381,14 @@ static void _render_line(Editor *ed, int y, int cursor_x)
 	}
 }
 
-static void render_error(Editor *ed)
+static void render_msg(Editor *ed)
 {
 	u32 x, y, c, color;
 	const char *s;
 	y = ed->PageH - 1;
-	color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_ERROR);
+	color = screen_color(COLOR_TABLE_FG,
+		ed->MsgType ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO);
+
 	for(s = ed->Search, x = 0; (c = *s); ++x, ++s)
 	{
 		screen_set(x, y, c, color);
@@ -454,10 +470,10 @@ static void editor_render(Editor *ed)
 			start_y = 1;
 			_render_goto_line(ed);
 		}
-		else if(ed->Mode == EDITOR_MODE_ERROR)
+		else if(ed->Mode == EDITOR_MODE_MSG)
 		{
 			--end_y;
-			render_error(ed);
+			render_msg(ed);
 		}
 
 		cursor_x = cursor_pos_x(ed);
@@ -468,10 +484,11 @@ static void editor_render(Editor *ed)
 	}
 }
 
-static void editor_error(Editor *ed, const char *msg, ...)
+static void editor_msg(Editor *ed, u32 msg_type, const char *msg, ...)
 {
 	va_list args;
-	ed->Mode = EDITOR_MODE_ERROR;
+	ed->Mode = EDITOR_MODE_MSG;
+	ed->MsgType = msg_type;
 	va_start(args, msg);
 	vsnprintf(ed->Search, sizeof(ed->Search), msg, args);
 	va_end(args);
@@ -726,24 +743,27 @@ static void editor_bottom(Editor *ed)
 	editor_render(ed);
 }
 
-static void editor_init(Editor *ed, int width, int height)
+static void editor_reset_cursor(Editor *ed)
 {
-	Vector first_line;
-
-	vector_init(&ed->Lines, sizeof(Vector), 128);
-
-	vector_init(&first_line, sizeof(char), 8);
-	vector_push(&ed->Lines, &first_line);
+	ed->PageY = 0;
+	ed->PageX = 0;
 
 	ed->CursorX = 0;
 	ed->CursorSaveX = -1;
 	ed->CursorY = 0;
+}
+
+static void editor_init(Editor *ed, int width, int height)
+{
+	Vector first_line;
+	vector_init(&ed->Lines, sizeof(Vector), 128);
+	vector_init(&first_line, sizeof(char), 8);
+	vector_push(&ed->Lines, &first_line);
+
+	editor_reset_cursor(ed);
 
 	ed->TabSize = 4;
 	ed->ShowWhitespace = 1;
-
-	ed->PageY = 0;
-	ed->PageX = 0;
 
 	ed->FullW = width;
 	ed->PageH = height;
@@ -896,24 +916,23 @@ static void editor_whitespace(Editor *ed)
 
 static void editor_clear(Editor *ed)
 {
-	vector_clear(&ed->Lines); /* TODO: Memory leak */
-	editor_render(ed);
-}
-
-static u32 load_internal(Editor *ed, const char *filename)
-{
-	Vector line;
-	size_t len;
-	char *p, *end, *buf;
-	u32 c;
-
-	editor_clear(ed);
-	strcpy(ed->FileName, filename);
-	if(!(buf = file_read(filename, &len)))
+	size_t i;
+	for(i = 0; i < ed->Lines.Length; ++i)
 	{
-		return 1;
+		vector_destroy(line_get(ed, i));
 	}
 
+	vector_clear(&ed->Lines);
+}
+
+static void editor_load_text(Editor *ed, const char *buf, size_t len)
+{
+	u32 c;
+	Vector line;
+	const char *p, *end;
+
+	editor_clear(ed);
+	editor_reset_cursor(ed);
 	vector_init(&line, sizeof(char), 8);
 	for(p = buf, end = buf + len; p < end; ++p)
 	{
@@ -927,62 +946,80 @@ static u32 load_internal(Editor *ed, const char *filename)
 		{
 			vector_push(&line, &c);
 		}
-		else
-		{
-			free(buf);
-			editor_clear(ed);
-			return 2;
-		}
 	}
 
 	vector_push(&ed->Lines, &line);
-	return 0;
 }
 
 static void editor_load(Editor *ed, const char *filename)
 {
-	switch(load_internal(ed, filename))
-	{
-	case 1:
-		editor_error(ed, "Failed to open file");
-		return;
+	size_t len;
+	char *buf;
 
-	case 2:
-		editor_error(ed, "Invalid character, binary file?");
+	if(!(buf = file_read(filename, &len)))
+	{
+		editor_msg(ed, EDITOR_ERROR, "Failed to open file");
 		return;
 	}
 
+	if(is_text(buf, len))
+	{
+		free(buf);
+		editor_msg(ed, EDITOR_ERROR, "Invalid character, binary file?");
+		return;
+	}
+
+	ed->Mode = EDITOR_MODE_DEFAULT;
+	strcpy(ed->FileName, filename);
+	editor_load_text(ed, buf, len);
+	free(buf);
 	editor_render(ed);
 }
 
-static void editor_save(Editor *ed)
+static size_t editor_count_bytes(Editor *ed)
 {
 	size_t i, len;
-	char *buf, *ptr;
 
-	len = 0;
-	for(i = 0; i < ed->Lines.Length; ++i)
+	assert(ed->Lines.Length >= 1);
+
+	for(i = 0, len = 0; i < ed->Lines.Length; ++i)
 	{
 		len += vector_len(vector_get(&ed->Lines, i)) + 1;
 	}
 
-	/* TODO: Check for malloc failure */
-	buf = malloc(len);
-	ptr = buf;
+	return len - 1;
+}
 
+static void editor_save(Editor *ed)
+{
+	size_t i, len, line_len;
+	char *buf, *p;
+	Vector *cur;
+
+	len = editor_count_bytes(ed);
+	p = buf = _malloc(len);
 	for(i = 0; i < ed->Lines.Length; ++i)
 	{
-		Vector *cur = vector_get(&ed->Lines, i);
-		size_t line_len = vector_len(cur);
-		memcpy(ptr, vector_data(cur), line_len);
-		ptr += line_len;
-		*ptr++ = '\n';
+		cur = vector_get(&ed->Lines, i);
+		line_len = vector_len(cur);
+		memcpy(p, vector_data(cur), line_len);
+		p += line_len;
+		if(i < ed->Lines.Length - 1)
+		{
+			*p++ = '\n';
+		}
 	}
 
 	if(file_write(ed->FileName, buf, len))
 	{
-		editor_error(ed, "Writing file failed");
+		editor_msg(ed, EDITOR_ERROR, "Writing file failed");
 	}
+	else
+	{
+		editor_msg(ed, EDITOR_INFO, "File saved");
+	}
+
+	free(buf);
 }
 
 static void _ed_inc(Editor *ed, const char *s)
@@ -1062,9 +1099,10 @@ static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
 	}
 }
 
-static void editor_key_press_error(Editor *ed, u32 key, u32 cp)
+static void editor_key_press_msg(Editor *ed, u32 key, u32 cp)
 {
-	if(key == KEY_RETURN)
+	if((ed->MsgType == EDITOR_ERROR && key == KEY_RETURN) ||
+		(ed->MsgType == EDITOR_INFO))
 	{
 		ed->Mode = EDITOR_MODE_DEFAULT;
 		editor_render(ed);
@@ -1072,7 +1110,6 @@ static void editor_key_press_error(Editor *ed, u32 key, u32 cp)
 
 	(void)cp;
 }
-
 
 #include "nav.c"
 
@@ -1082,8 +1119,8 @@ static void editor_key_press(Editor *ed, u32 key, u32 cp)
 	static const KeyPressFN fns[EDITOR_MODE_COUNT] =
 	{
 		editor_key_press_default,
-		editor_key_press_goto,
-		editor_key_press_error
+		editor_key_press_nav,
+		editor_key_press_msg
 	};
 
 	fns[ed->Mode](ed, key, cp);
@@ -1127,4 +1164,6 @@ static void event_init(int argc, char *argv[], u32 w, u32 h)
 
 static void event_exit(void)
 {
+	editor_clear(&editor);
+	vector_destroy(&editor.Lines);
 }

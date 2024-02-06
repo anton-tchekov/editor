@@ -5,6 +5,26 @@ enum
 	CT_OTHER
 };
 
+static void allocfail(void)
+{
+	fprintf(stderr, "Memory allocation failure\n");
+	exit(1);
+}
+
+static void *_malloc(size_t size)
+{
+	void *p = malloc(size);
+	if(!p) { allocfail(); }
+	return p;
+}
+
+static void *_realloc(void *p, size_t size)
+{
+	p = realloc(p, size);
+	if(!p) { allocfail(); }
+	return p;
+}
+
 static u32 is_ident(u32 c)
 {
 	return c == '_' || isalnum(c);
@@ -144,4 +164,20 @@ static u32 starts_with(const char *str, const char *prefix)
 static u32 match_part(const char *str, const char *cmp, u32 len)
 {
 	return len == strlen(cmp) && !strncmp(str, cmp, len);
+}
+
+static u32 is_text(const char *s, size_t len)
+{
+	u32 c;
+	const char *end;
+	for(end = s + len; s < end; ++s)
+	{
+		c = *s;
+		if(!isprint(c) && c != '\n' && c != '\t')
+		{
+			return 1;
+		}
+	}
+
+	return 0;
 }

@@ -114,7 +114,6 @@ static void test_list(void)
 	TEST_FN(test_linenr_str);
 	TEST_FN(test_starts_with);
 	TEST_FN(test_match_part);
-	TEST_FN(test_textbuffer);
 }
 
 static void test_run_all(void)

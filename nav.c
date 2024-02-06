@@ -1,7 +1,7 @@
 /* FIXME: Search bar max capacity */
 
 static char *search_file;
-static int first_compare;
+static u8 first_compare;
 static char same[64];
 
 static void foreach_dirent(void *data, const char *fname, int is_dir)
@@ -36,7 +36,7 @@ static void foreach_dirent(void *data, const char *fname, int is_dir)
 	}
 }
 
-static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
+static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 {
 	switch(key)
 	{
@@ -88,13 +88,9 @@ static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
 			ed->Mode = EDITOR_MODE_DEFAULT;
 			editor_render(ed);
 		}
-		else
+		else if(ed->SLen != 0)
 		{
-			if(!load_internal(ed, ed->Search))
-			{
-				ed->Mode = EDITOR_MODE_DEFAULT;
-				editor_render(ed);
-			}
+			editor_load(ed, ed->Search);
 		}
 		break;
 	}
@@ -131,7 +127,7 @@ static void editor_key_press_goto(Editor *ed, u32 key, u32 cp)
 		search_file = path_file(ed->Search);
 		if(dir_iter(buf, ed, foreach_dirent))
 		{
-			editor_error(ed, "Failed to open directory");
+			editor_msg(ed, EDITOR_ERROR, "Failed to open directory");
 		}
 
 		if(!first_compare)

@@ -22,19 +22,7 @@ typedef struct
 	TextLine **Lines;
 } TextBuffer;
 
-static void *_malloc(size_t size)
-{
-	void *p = malloc(size);
-	if(!p) { exit(1); }
-	return p;
-}
-
-static void *_realloc(void *p, size_t size)
-{
-	p = realloc(p, size);
-	if(!p) { exit(1); }
-	return p;
-}
+#if 0
 
 static const char *textbuffer_get_line(TextBuffer *tb,
 	size_t y, size_t *len)
@@ -330,7 +318,7 @@ static void textbuffer_insert_lines(TextBuffer *tb, size_t y1, size_t y2,
 	if(ins_lines != rem_lines)
 	{
 		textbuffer_require(tb, tb->Capacity + ins_lines - rem_lines);
-		/* MEMORY LEAK !!! */
+		/* FIXME: MEMORY LEAK !!! */
 		memmove(tb->Lines + y1 + ins_lines, tb->Lines + y2,
 			(tb->Count - y2) * sizeof(TextLine *));
 	}
@@ -355,6 +343,7 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 
 	textbuffer_insert_lines(tb, y1, y2, ins_lines);
 
+/*
 	const char *p = text;
 	const char *end = text + len;
 	int i;
@@ -368,7 +357,7 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 			lines[idx] = textline_create("", 0);
 		}
 
-		/*if(idx == y1 && idx == y2)
+		if(idx == y1 && idx == y2)
 		{
 			lines[idx] = textline_replace();
 		}
@@ -382,7 +371,7 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 		else
 		{
 
-		}*/
+		}
 
 		printf("%d -> %.*s\n", i, p - text, text);
 		++p;
@@ -390,7 +379,6 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 		text = p;
 	}
 
-/*
 	lines = tb->Lines;
 	cur = lines + y1;
 	end = lines + y2;
@@ -399,8 +387,8 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 	{
 		tb->Lines[y2] = textline_create(line, line_len);
 	}
-*/
-/*	if(ins_lines == 1)
+
+	if(ins_lines == 1)
 	{
 		textline_replace(tl, text, len, x1, );
 	}
@@ -412,7 +400,8 @@ static void textbuffer_replace(TextBuffer *tb, const Selection *sel,
 	while()
 	{
 		const char *p = memchr(text, len, '\n');
-	}*/
+	}
+*/
 }
 
 static size_t count_bytes(TextBuffer *tb, const Selection *sel)
@@ -527,3 +516,5 @@ void test_textbuffer(void)
 
 	textbuffer_destroy(tb);
 }
+
+#endif
