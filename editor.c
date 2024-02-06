@@ -24,20 +24,18 @@ enum
 typedef struct
 {
 	Vector Lines;
-	i32 SelectionX;
-	i32 SelectionY;
-	i32 CursorX;
-	i32 CursorSaveX;
-	i32 CursorY;
-	i32 PageW;
-	i32 FullW;
-	i32 OffsetX;
-	i32 PageH;
-	i32 PageX;
-	i32 PageY;
+	u32 CursorX;
+	u32 CursorSaveX;
+	u32 CursorY;
+	u32 PageW;
+	u32 FullW;
+	u32 OffsetX;
+	u32 PageH;
+	u32 PageX;
+	u32 PageY;
+	u32 TabSize;
 	u8 ShowLineNr;
 	u8 ShowWhitespace;
-	u8 TabSize;
 	u8 Mode;
 	u8 MsgType;
 	char Path[128];
@@ -54,9 +52,9 @@ typedef struct
 	EditorFunc Event;
 } EditorKeyBind;
 
-static int _num_lines(Editor *ed)
+static u32 editor_num_lines(Editor *ed)
 {
-	return (i32)vector_len(&ed->Lines);
+	return vector_len(&ed->Lines);
 }
 
 static Vector *line_get(Editor *ed, size_t i)
@@ -64,9 +62,14 @@ static Vector *line_get(Editor *ed, size_t i)
 	return (Vector *)vector_get(&ed->Lines, i);
 }
 
-static int _current_line_len(Editor *ed)
+static Vector *current_line(Editor *ed)
 {
-	return vector_len(vector_get(&ed->Lines, ed->CursorY));
+	return line_get(ed, ed->CursorY);
+}
+
+static u32 current_line_len(Editor *ed)
+{
+	return vector_len(current_line(ed));
 }
 
 static void editor_render_line_numbers(Editor *ed)
@@ -110,12 +113,12 @@ static void editor_render_line_numbers(Editor *ed)
 	ed->OffsetX = lnr_width + 1;
 }
 
-static int _syntax_highlight(Editor *ed, int len, const char *line, u16 *render)
+static u32 _syntax_highlight(Editor *ed, u32 len, const char *line, u16 *render)
 {
 	u32 c;
-	int incflag = 0;
-	int i = 0;
-	int x = 0;
+	u32 incflag = 0;
+	u32 i = 0;
+	u32 x = 0;
 	while(i < len)
 	{
 		c = line[i];
@@ -239,15 +242,13 @@ static int _syntax_highlight(Editor *ed, int len, const char *line, u16 *render)
 		}
 		else if(isalpha(c) || c == '_')
 		{
-			u32 color;
-			int end, start;
-
+			u32 color, end, start;
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
 			end = i;
 			color = screen_color(
 				keyword_detect(line + start, end - start), COLOR_TABLE_BG);
 
-			if(color == 1)
+			if(color == COLOR_TABLE_FG)
 			{
 				if(c == '(')
 				{
@@ -343,15 +344,14 @@ static u32 cursor_pos_x(Editor *ed)
 	return r;
 }
 
-static void _render_line(Editor *ed, int y, int cursor_x)
+static void _render_line(Editor *ed, u32 y, u32 cursor_x)
 {
-	int x, line, len, render_len;
+	u32 x, line, len, render_len, pack;
 	u16 render[1024]; /* FIXME: Crash when line is longer than 256 chars */
 	const char *text;
-	u32 pack;
 
 	line = ed->PageY + y;
-	if(line >= _num_lines(ed))
+	if(line >= editor_num_lines(ed))
 	{
 		len = 0;
 	}
@@ -434,7 +434,7 @@ static void editor_render(Editor *ed)
 	}
 
 	{
-		int lines = _num_lines(ed);
+		u32 lines = editor_num_lines(ed);
 		if(lines > ed->PageH && ed->PageY + ed->PageH >= lines)
 		{
 			ed->PageY = lines - ed->PageH;
@@ -462,7 +462,7 @@ static void editor_render(Editor *ed)
 	}
 
 	{
-		int y, cursor_x, start_y, end_y;
+		u32 y, cursor_x, start_y, end_y;
 		start_y = 0;
 		end_y = ed->PageH;
 		if(ed->Mode == EDITOR_MODE_GOTO)
@@ -500,15 +500,12 @@ static void editor_backspace(Editor *ed)
 	Vector *line;
 
 	line = vector_get(&ed->Lines, ed->CursorY);
-	ed->CursorSaveX = -1;
 	if(ed->CursorX == 0)
 	{
 		if(ed->CursorY > 0)
 		{
-			Vector *prev;
-
 			/* merge with previous line */
-			prev = vector_get(&ed->Lines, --ed->CursorY);
+			Vector *prev = vector_get(&ed->Lines, --ed->CursorY);
 			ed->CursorX = vector_len(prev);
 			vector_push_range(prev, vector_len(line), line->Data);
 			vector_destroy(line);
@@ -521,26 +518,22 @@ static void editor_backspace(Editor *ed)
 		vector_remove(line, --ed->CursorX);
 	}
 
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
 static void editor_delete(Editor *ed)
 {
-	Vector *line;
-	i32 line_len;
+	Vector *line = current_line(ed);
+	u32 line_len = vector_len(line);
 
-	line = vector_get(&ed->Lines, ed->CursorY);
-	line_len = (i32)vector_len(line);
-	ed->CursorSaveX = -1;
 	if(ed->CursorX >= line_len)
 	{
-		i32 num_lines;
-
-		num_lines = (i32)vector_len(&ed->Lines);
+		u32 num_lines = editor_num_lines(ed);
 		ed->CursorX = line_len;
 		if(ed->CursorY < num_lines - 1)
 		{
-			i32 next_idx = ed->CursorY + 1;
+			u32 next_idx = ed->CursorY + 1;
 			Vector *next = vector_get(&ed->Lines, next_idx);
 
 			/* merge with next line */
@@ -555,6 +548,7 @@ static void editor_delete(Editor *ed)
 		vector_remove(line, ed->CursorX);
 	}
 
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
@@ -563,19 +557,16 @@ static void editor_char(Editor *ed, u32 chr)
 	char c = chr;
 	vector_insert(vector_get(&ed->Lines, ed->CursorY), ed->CursorX, &c);
 	++ed->CursorX;
-	ed->CursorSaveX = -1;
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
 static void editor_enter(Editor *ed)
 {
-	Vector new, *cur;
-	char *str;
-	i32 len;
-
-	cur = vector_get(&ed->Lines, ed->CursorY);
-	str = (char *)cur->Data + ed->CursorX;
-	len = vector_len(cur) - ed->CursorX;
+	Vector new;
+	Vector *cur = current_line(ed);
+	char *str = (char *)cur->Data + ed->CursorX;
+	u32 len = vector_len(cur) - ed->CursorX;
 
 	/* Copy characters after cursor on current line to new line */
 	vector_init(&new, sizeof(char), len);
@@ -589,38 +580,30 @@ static void editor_enter(Editor *ed)
 
 	++ed->CursorY;
 	ed->CursorX = 0;
-	ed->CursorSaveX = -1;
+	ed->CursorSaveX = 0;
 	editor_render(ed);
 }
 
 static void editor_home(Editor *ed)
 {
-	i32 i = 0;
-	Vector *line = vector_get(&ed->Lines, ed->CursorY);
-	char *buf = line->Data;
+	u32 i = 0;
+	char *buf = current_line(ed)->Data;
 	while(isspace(buf[i])) { ++i; }
 	ed->CursorX = (ed->CursorX == i) ? 0 : i;
-	ed->CursorSaveX = -1;
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
 static void editor_end(Editor *ed)
 {
 	ed->CursorX = vector_len(vector_get(&ed->Lines, ed->CursorY));
-	ed->CursorSaveX = -1;
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
-static void _move_vertical(Editor *ed)
+static void move_vertical(Editor *ed)
 {
-	int len;
-
-	if(ed->CursorSaveX < 0)
-	{
-		ed->CursorSaveX = ed->CursorX;
-	}
-
-	len = _current_line_len(ed);
+	u32 len = current_line_len(ed);
 	ed->CursorX = ed->CursorSaveX;
 	if(ed->CursorX > len)
 	{
@@ -630,42 +613,44 @@ static void _move_vertical(Editor *ed)
 
 static void editor_page_up(Editor *ed)
 {
-	ed->CursorY -= ed->PageH;
-	if(ed->CursorY < 0)
+	if(ed->CursorY >= ed->PageH)
+	{
+		ed->CursorY -= ed->PageH;
+	}
+	else
 	{
 		ed->CursorY = 0;
 		ed->CursorX = 0;
 		ed->CursorSaveX = 0;
 	}
 
-	_move_vertical(ed);
+	move_vertical(ed);
 	editor_render(ed);
 }
 
 static void editor_page_down(Editor *ed)
 {
-	i32 num_lines = (i32)vector_len(&ed->Lines);
+	u32 num_lines = editor_num_lines(ed);
 	ed->CursorY += ed->PageH;
 	if(ed->CursorY >= num_lines)
 	{
 		ed->CursorY = num_lines - 1;
-		ed->CursorX = vector_len(vector_get(&ed->Lines, ed->CursorY));
+		ed->CursorX = current_line_len(ed);
 		ed->CursorSaveX = ed->CursorX;
 	}
 
-	_move_vertical(ed);
+	move_vertical(ed);
 	editor_render(ed);
 }
 
 static void editor_left(Editor *ed)
 {
-	ed->CursorSaveX = -1;
 	if(ed->CursorX == 0)
 	{
 		if(ed->CursorY > 0)
 		{
 			--ed->CursorY;
-			ed->CursorX = vector_len(vector_get(&ed->Lines, ed->CursorY));
+			ed->CursorX = current_line_len(ed);
 		}
 	}
 	else
@@ -673,15 +658,15 @@ static void editor_left(Editor *ed)
 		--ed->CursorX;
 	}
 
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
 static void editor_right(Editor *ed)
 {
-	ed->CursorSaveX = -1;
-	if(ed->CursorX == (i32)vector_len(vector_get(&ed->Lines, ed->CursorY)))
+	if(ed->CursorX == current_line_len(ed))
 	{
-		if(ed->CursorY < (i32)vector_len(&ed->Lines) - 1)
+		if(ed->CursorY < editor_num_lines(ed) - 1)
 		{
 			++ed->CursorY;
 			ed->CursorX = 0;
@@ -692,6 +677,7 @@ static void editor_right(Editor *ed)
 		++ed->CursorX;
 	}
 
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
@@ -705,7 +691,7 @@ static void editor_up(Editor *ed)
 	else
 	{
 		--ed->CursorY;
-		_move_vertical(ed);
+		move_vertical(ed);
 	}
 
 	editor_render(ed);
@@ -713,15 +699,15 @@ static void editor_up(Editor *ed)
 
 static void editor_down(Editor *ed)
 {
-	if(ed->CursorY >= _num_lines(ed) - 1)
+	if(ed->CursorY >= editor_num_lines(ed) - 1)
 	{
-		ed->CursorX = _current_line_len(ed);
+		ed->CursorX = current_line_len(ed);
 		ed->CursorSaveX = ed->CursorX;
 	}
 	else
 	{
 		++ed->CursorY;
-		_move_vertical(ed);
+		move_vertical(ed);
 	}
 
 	editor_render(ed);
@@ -737,8 +723,8 @@ static void editor_top(Editor *ed)
 
 static void editor_bottom(Editor *ed)
 {
-	ed->CursorY = _num_lines(ed) - 1;
-	ed->CursorX = _current_line_len(ed);
+	ed->CursorY = editor_num_lines(ed) - 1;
+	ed->CursorX = current_line_len(ed);
 	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
@@ -749,11 +735,11 @@ static void editor_reset_cursor(Editor *ed)
 	ed->PageX = 0;
 
 	ed->CursorX = 0;
-	ed->CursorSaveX = -1;
+	ed->CursorSaveX = 0;
 	ed->CursorY = 0;
 }
 
-static void editor_init(Editor *ed, int width, int height)
+static void editor_init(Editor *ed, u32 width, u32 height)
 {
 	Vector first_line;
 	vector_init(&ed->Lines, sizeof(Vector), 128);
@@ -811,49 +797,36 @@ static void editor_paste(Editor *ed)
 
 static void editor_prev_word(Editor *ed)
 {
-	i32 i;
-	Vector *line;
-	char *buf;
-	u32 kind;
-
-	ed->CursorSaveX = -1;
 	if(ed->CursorX == 0)
 	{
 		if(ed->CursorY > 0)
 		{
 			--ed->CursorY;
-			ed->CursorX = _current_line_len(ed);
+			ed->CursorX = current_line_len(ed);
 		}
 	}
 	else
 	{
-		line = vector_get(&ed->Lines, ed->CursorY);
-		buf = line->Data;
 		if(ed->CursorX > 0)
 		{
-			i = ed->CursorX - 1;
-			kind = char_type(buf[i]);
+			char *buf = current_line(ed)->Data;
+			u32 i = ed->CursorX - 1;
+			u32 kind = char_type(buf[i]);
 			while(i > 0 && char_type(buf[i - 1]) == kind) { --i; }
 			ed->CursorX = i;
 		}
 	}
 
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
 static void editor_next_word(Editor *ed)
 {
-	i32 i;
-	Vector *line;
-	char *buf;
-	u32 kind;
-	int len;
-
-	ed->CursorSaveX = -1;
-	len = _current_line_len(ed);
+	u32 len = current_line_len(ed);
 	if(ed->CursorX == len)
 	{
-		if(ed->CursorY < _num_lines(ed) - 1)
+		if(ed->CursorY < editor_num_lines(ed) - 1)
 		{
 			++ed->CursorY;
 			ed->CursorX = 0;
@@ -861,17 +834,17 @@ static void editor_next_word(Editor *ed)
 	}
 	else
 	{
-		line = vector_get(&ed->Lines, ed->CursorY);
-		buf = line->Data;
 		if(ed->CursorX < len)
 		{
-			i = ed->CursorX;
-			kind = char_type(buf[i]);
+			char *buf = current_line(ed)->Data;
+			u32 i = ed->CursorX;
+			u32 kind = char_type(buf[i]);
 			while(i < len && char_type(buf[i]) == kind) { ++i; }
 			ed->CursorX = i;
 		}
 	}
 
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
@@ -1019,7 +992,7 @@ static void editor_save(Editor *ed)
 		editor_msg(ed, EDITOR_INFO, "File saved");
 	}
 
-	free(buf);
+	_free(buf);
 }
 
 static void _ed_inc(Editor *ed, const char *s)
@@ -1027,7 +1000,7 @@ static void _ed_inc(Editor *ed, const char *s)
 	vector_insert_range(vector_get(&ed->Lines, ed->CursorY),
 		ed->CursorX, 11, s);
 	ed->CursorX += 10;
-	ed->CursorSaveX = -1;
+	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
 
@@ -1126,7 +1099,6 @@ static void editor_key_press(Editor *ed, u32 key, u32 cp)
 	fns[ed->Mode](ed, key, cp);
 }
 
-
 static Editor editor;
 
 static void event_keyboard(u32 key, u32 cp, u32 state)
@@ -1166,4 +1138,5 @@ static void event_exit(void)
 {
 	editor_clear(&editor);
 	vector_destroy(&editor.Lines);
+	print_mem();
 }

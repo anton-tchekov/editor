@@ -8,9 +8,9 @@
 #define COLOR_BLUE  "\033[1;34m"
 #define COLOR_WHITE "\033[1;37m"
 
-static i32 _fn_count, _fn_success, _all_count, _all_success;
+static u32 _fn_count, _fn_success, _all_count, _all_success;
 
-static void print_success(i32 success, i32 count)
+static void print_success(u32 success, u32 count)
 {
 	const char *color = (success == count) ? COLOR_GREEN : COLOR_RED;
 
@@ -18,7 +18,7 @@ static void print_success(i32 success, i32 count)
 		color, success, count);
 }
 
-static void test(i32 cond, const char *expr, const char *file, i32 line)
+static void test(u32 cond, const char *expr, const char *file, u32 line)
 {
 	++_fn_count;
 	++_all_count;

@@ -65,7 +65,7 @@ static void vector_replace(
 			last_bytes);
 
 		/* Replace with new buffer */
-		free(vector->Data);
+		_free(vector->Data);
 		vector->Data = new_data;
 	}
 	else
@@ -96,7 +96,7 @@ static void vector_clear(Vector *vector)
 
 static void vector_destroy(Vector *vector)
 {
-	free(vector->Data);
+	_free(vector->Data);
 }
 
 static void vector_set(Vector *vector, const void *elems, u32 count)

@@ -447,7 +447,7 @@ static u32 file_write(const char *filename, void *data, size_t len)
 }
 
 static u32 dir_iter(const char *path, void *data,
-	void (*iter)(void *, const char *, int))
+	void (*iter)(void *, const char *, u32))
 {
 	DIR *dir;
 	struct dirent *dp;

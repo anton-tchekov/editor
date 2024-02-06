@@ -4,7 +4,7 @@ static char *search_file;
 static u8 first_compare;
 static char same[64];
 
-static void foreach_dirent(void *data, const char *fname, int is_dir)
+static void foreach_dirent(void *data, const char *fname, u32 is_dir)
 {
 	Editor *ed = data;
 

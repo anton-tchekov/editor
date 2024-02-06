@@ -64,9 +64,7 @@ static i32 _hashmap[HASHMAP_SIZE];
 
 static u32 _keyword_hash(const char *word, u32 len)
 {
-	u32 i, hash;
-	i32 c;
-
+	u32 i, hash, c;
 	hash = 5381;
 	for(i = 0; i < len && (c = word[i]); ++i)
 	{

@@ -11,10 +11,13 @@ static void allocfail(void)
 	exit(1);
 }
 
+static u32 alloc_cnt, free_cnt;
+
 static void *_malloc(size_t size)
 {
 	void *p = malloc(size);
 	if(!p) { allocfail(); }
+	++alloc_cnt;
 	return p;
 }
 
@@ -23,6 +26,17 @@ static void *_realloc(void *p, size_t size)
 	p = realloc(p, size);
 	if(!p) { allocfail(); }
 	return p;
+}
+
+static void _free(void *p)
+{
+	free(p);
+	++free_cnt;
+}
+
+static void print_mem(void)
+{
+	printf("%"PRIu32" allocs, %"PRIu32" frees\n", alloc_cnt, free_cnt);
 }
 
 static u32 is_ident(u32 c)

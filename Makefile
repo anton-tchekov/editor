@@ -5,8 +5,5 @@ all:
 run:
 	./editor
 
-valgrind:
-	valgrind --leak-check=full --suppressions=memcheck.log ./editor
-
 clean:
 	rm -f editor
