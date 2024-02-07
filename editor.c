@@ -20,6 +20,7 @@ enum
 };
 
 #define MAX_SEARCH_LEN 256
+#define MAX_MSG_LEN     80
 
 typedef struct
 {
@@ -38,9 +39,10 @@ typedef struct
 	u8 ShowWhitespace;
 	u8 Mode;
 	u8 MsgType;
-	char Path[128];
+	char Msg[MAX_MSG_LEN];
 	char FileName[128];
-	char Search[MAX_SEARCH_LEN];
+	char SBuf[MAX_SEARCH_LEN];
+	char *Search;
 	u32 SCursor, SLen;
 } Editor;
 
@@ -57,7 +59,7 @@ static u32 editor_num_lines(Editor *ed)
 	return vector_len(&ed->Lines);
 }
 
-static Vector *line_get(Editor *ed, size_t i)
+static Vector *line_get(Editor *ed, u32 i)
 {
 	return (Vector *)vector_get(&ed->Lines, i);
 }
@@ -267,48 +269,39 @@ static u32 _syntax_highlight(Editor *ed, u32 len, const char *line, u16 *render)
 		}
 		else if(isdigit(c))
 		{
+			u32 e = i + 1;
 			if(c == '0')
 			{
-				render[x++] = screen_pack(c,
-					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
-				++i;
-				c = line[i];
-				if(c == 'x' || c == 'X')
+				if(e < len)
 				{
-					/* Hex */
-					for(; i < len && isxdigit(c = line[i]); ++i)
+					c = line[e];
+					if(c == 'x' || c == 'X')
 					{
-						render[x++] = screen_pack(c,
-							screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+						/* Hex */
+						for(++e; e < len && isxdigit(line[e]); ++e) {}
 					}
-				}
-				else if(c == 'b' || c == 'B')
-				{
-					/* Binary */
-					for(; i < len && is_bin(c = line[i]); ++i)
+					else if(c == 'b' || c == 'B')
 					{
-						render[x++] = screen_pack(c,
-							screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+						/* Binary */
+						for(++e; e < len && is_bin(line[e]); ++e) {}
 					}
-				}
-				else
-				{
-					/* Octal */
-					for(; i < len && isdigit(c = line[i]); ++i)
+					else
 					{
-						render[x++] = screen_pack(c,
-							screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+						/* Octal */
+						for(++e; e < len && is_oct(line[e]); ++e) {}
 					}
 				}
 			}
 			else
 			{
 				/* Decimal */
-				for(; i < len && isdigit(c = line[i]); ++i)
-				{
-					render[x++] = screen_pack(c,
-						screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
-				}
+				for(; e < len && isdigit(line[e]); ++e) {}
+			}
+
+			for(; i < e; ++x, ++i)
+			{
+				render[x] = screen_pack(line[i],
+					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
 			}
 		}
 		else
@@ -327,7 +320,7 @@ static u32 cursor_pos_x(Editor *ed)
 	u32 i;
 	u32 r = 0;
 	u32 x = ed->CursorX - ed->PageX;
-	const char *line = vector_data(vector_get(&ed->Lines, ed->CursorY));
+	const char *line = vector_data(current_line(ed));
 
 	for(i = 0; i < x; ++i)
 	{
@@ -389,7 +382,7 @@ static void render_msg(Editor *ed)
 	color = screen_color(COLOR_TABLE_FG,
 		ed->MsgType ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO);
 
-	for(s = ed->Search, x = 0; (c = *s); ++x, ++s)
+	for(s = ed->Msg, x = 0; (c = *s); ++x, ++s)
 	{
 		screen_set(x, y, c, color);
 	}
@@ -490,16 +483,14 @@ static void editor_msg(Editor *ed, u32 msg_type, const char *msg, ...)
 	ed->Mode = EDITOR_MODE_MSG;
 	ed->MsgType = msg_type;
 	va_start(args, msg);
-	vsnprintf(ed->Search, sizeof(ed->Search), msg, args);
+	vsnprintf(ed->Msg, MAX_MSG_LEN, msg, args);
 	va_end(args);
 	editor_render(ed);
 }
 
 static void editor_backspace(Editor *ed)
 {
-	Vector *line;
-
-	line = vector_get(&ed->Lines, ed->CursorY);
+	Vector *line = current_line(ed);
 	if(ed->CursorX == 0)
 	{
 		if(ed->CursorY > 0)
@@ -555,7 +546,7 @@ static void editor_delete(Editor *ed)
 static void editor_char(Editor *ed, u32 chr)
 {
 	char c = chr;
-	vector_insert(vector_get(&ed->Lines, ed->CursorY), ed->CursorX, &c);
+	vector_insert(current_line(ed), ed->CursorX, &c);
 	++ed->CursorX;
 	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
@@ -596,7 +587,7 @@ static void editor_home(Editor *ed)
 
 static void editor_end(Editor *ed)
 {
-	ed->CursorX = vector_len(vector_get(&ed->Lines, ed->CursorY));
+	ed->CursorX = current_line_len(ed);
 	ed->CursorSaveX = ed->CursorX;
 	editor_render(ed);
 }
@@ -739,6 +730,68 @@ static void editor_reset_cursor(Editor *ed)
 	ed->CursorY = 0;
 }
 
+static void ed_gotoxy(Editor *ed, u32 x, u32 y)
+{
+	if(y >= ed->Lines.Length)
+	{
+		y = ed->Lines.Length - 1;
+	}
+
+	ed->CursorY = y;
+	if(ed->CursorY > ed->PageH / 2)
+	{
+		ed->PageY = ed->CursorY - ed->PageH / 2;
+	}
+
+	ed->CursorSaveX = ed->CursorX = x;
+}
+
+static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
+{
+	u32 i;
+	if(len < sl)
+	{
+		return -1;
+	}
+
+	for(i = 0; i < len - sl; ++i)
+	{
+		if(!memcmp(haystack + i, needle, sl))
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+static void ed_goto_def(Editor *ed, const char *s)
+{
+	u32 i, len, sl;
+	len = editor_num_lines(ed);
+	sl = strlen(s);
+	for(i = 0; i < len; ++i)
+	{
+		Vector *line = line_get(ed, i);
+		u32 ll = vector_len(line);
+		const char *buf = vector_data(line);
+		i32 offset;
+
+		if(ll == 0 || isspace(buf[0]))
+		{
+			continue;
+		}
+
+		if((offset = str_find(buf, ll, s, sl)) < 0)
+		{
+			continue;
+		}
+
+		ed_gotoxy(ed, offset, i);
+		return;
+	}
+}
+
 static void editor_init(Editor *ed, u32 width, u32 height)
 {
 	Vector first_line;
@@ -755,6 +808,9 @@ static void editor_init(Editor *ed, u32 width, u32 height)
 	ed->PageH = height;
 
 	ed->ShowLineNr = 1;
+
+	strcpy(ed->SBuf, "./");
+	ed->Search = ed->SBuf + 2;
 }
 
 static void editor_goto(Editor *ed)
@@ -946,7 +1002,6 @@ static void editor_load(Editor *ed, const char *filename)
 	strcpy(ed->FileName, filename);
 	editor_load_text(ed, buf, len);
 	free(buf);
-	editor_render(ed);
 }
 
 static size_t editor_count_bytes(Editor *ed)
@@ -997,7 +1052,7 @@ static void editor_save(Editor *ed)
 
 static void _ed_inc(Editor *ed, const char *s)
 {
-	vector_insert_range(vector_get(&ed->Lines, ed->CursorY),
+	vector_insert_range(current_line(ed),
 		ed->CursorX, 11, s);
 	ed->CursorX += 10;
 	ed->CursorSaveX = ed->CursorX;
@@ -1115,7 +1170,6 @@ static void event_resize(u32 w, u32 h)
 {
 	editor.FullW = w;
 	editor.PageH = h;
-	strcpy(editor.Path, "./");
 	editor_render(&editor);
 }
 
@@ -1132,6 +1186,8 @@ static void event_init(int argc, char *argv[], u32 w, u32 h)
 	{
 		editor_load(&editor, argv[1]);
 	}
+
+	editor_render(&editor);
 }
 
 static void event_exit(void)

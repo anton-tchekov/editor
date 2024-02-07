@@ -14,7 +14,6 @@ Features that I plan to implement in the near future:
 
 - Refactor: Fix types, new allocator, remove old cruft
 	- Replace "vector" with textbuffer
-	- Replace "int" with specific sized integer
 	- Replace malloc calls with own allocator
 
 - Multi-line editing

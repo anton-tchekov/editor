@@ -48,11 +48,11 @@ enum
 
 static const u32 _color_table[] =
 {
-	0xFF000000, /* Background */
+	0xFF040404, /* Background */
 	0xFFFFFFFF, /* Foreground */
 	0xFF777777, /* Line Number */
 	0xFF6A9955, /* Comment */
-	0xFFB5CEA8, /* Number */
+	0xFF9DFE88, /* Number */
 	0xFFCE9178, /* String */
 	0xFF569CD6, /* Type */
 	0xFFC586C0, /* Keyword */

@@ -13,10 +13,8 @@ static void foreach_dirent(void *data, const char *fname, u32 is_dir)
 		return;
 	}
 
-	printf("Compare with: %s\n", fname);
 	if(starts_with(fname, search_file))
 	{
-		printf("%s starts with %s\n", fname, search_file);
 		if(first_compare)
 		{
 			first_compare = 0;
@@ -34,6 +32,24 @@ static void foreach_dirent(void *data, const char *fname, u32 is_dir)
 			*p = '\0';
 		}
 	}
+}
+
+static void close_nav(Editor *ed)
+{
+	ed->Mode = EDITOR_MODE_DEFAULT;
+	editor_render(ed);
+}
+
+static u32 ed_set_lnr(Editor *ed, const char *s)
+{
+	u32 lnr = conv_lnr_str(s);
+	if(!lnr)
+	{
+		return 1;
+	}
+
+	ed_gotoxy(ed, 0, lnr - 1);
+	return 0;
 }
 
 static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
@@ -68,30 +84,37 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 
 	case KEY_RETURN:
 	{
-		u32 lnr;
-		ed->Search[ed->SLen] = '\0';
-		if((lnr = conv_lnr_str(ed->Search)) > 0)
+		char *p;
+		if(!ed->SLen)
 		{
-			if(lnr > ed->Lines.Length)
-			{
-				break;
-			}
-
-			ed->CursorY = lnr - 1;
-			if(ed->CursorY > ed->PageH / 2)
-			{
-				ed->PageY = ed->CursorY - ed->PageH / 2;
-			}
-
-			ed->CursorX = 0;
-			ed->CursorSaveX = 0;
-			ed->Mode = EDITOR_MODE_DEFAULT;
-			editor_render(ed);
+			close_nav(ed);
+			break;
 		}
-		else if(ed->SLen != 0)
+
+		ed->Search[ed->SLen] = '\0';
+		p = memchr(ed->Search, ':', ed->SLen);
+		if(p)
+		{
+			*p = '\0';
+			if(p != ed->Search)
+			{
+				editor_load(ed, ed->Search);
+			}
+
+			++p;
+			if(ed_set_lnr(ed, p))
+			{
+				ed_goto_def(ed, p);
+			}
+
+			ed->Mode = EDITOR_MODE_DEFAULT;
+		}
+		else
 		{
 			editor_load(ed, ed->Search);
 		}
+
+		editor_render(ed);
 		break;
 	}
 
@@ -120,14 +143,14 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 	{
 		char buf[256]; /* FIXME: POTENTIAL OVERFLOW HAZARD */
 		ed->Search[ed->SLen] = '\0';
-		strcpy(buf, ed->Path);
-		strcat(buf, ed->Search);
+		strcpy(buf, ed->SBuf);
 		path_dir(buf);
 		first_compare = 1;
 		search_file = path_file(ed->Search);
 		if(dir_iter(buf, ed, foreach_dirent))
 		{
 			editor_msg(ed, EDITOR_ERROR, "Failed to open directory");
+			break;
 		}
 
 		if(!first_compare)
@@ -141,11 +164,15 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 
 	case MOD_CTRL | KEY_G:
 	case KEY_ESCAPE:
-		ed->Mode = EDITOR_MODE_DEFAULT;
-		editor_render(ed);
+		close_nav(ed);
 		break;
 
 	default:
+		if(ed->SLen >= MAX_SEARCH_LEN - 1)
+		{
+			break;
+		}
+
 		if(isprint(cp))
 		{
 			char *p = ed->Search + ed->SCursor;
