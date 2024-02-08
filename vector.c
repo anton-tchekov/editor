@@ -25,6 +25,21 @@ static void vector_init(Vector *vector, u32 element_size, u32 initial_capacity)
 	vector->Data = _malloc(element_size * initial_capacity);
 }
 
+static void *mallocopy(const void *buf, size_t size)
+{
+	char *p = _malloc(size);
+	memcpy(p, buf, size);
+	return p;
+}
+
+static void vector_from(Vector *vector, const char *buf, u32 count)
+{
+	vector->ElementSize = 1;
+	vector->Capacity = _next_pot(count);
+	vector->Length = count;
+	vector->Data = mallocopy(buf, count);
+}
+
 static void vector_replace(
 	Vector *vector, u32 index, u32 count, const void *elems, u32 new_count)
 {
@@ -97,11 +112,6 @@ static void vector_clear(Vector *vector)
 static void vector_destroy(Vector *vector)
 {
 	_free(vector->Data);
-}
-
-static void vector_set(Vector *vector, const void *elems, u32 count)
-{
-	vector_replace(vector, 0, vector->Length, elems, count);
 }
 
 static void *vector_get(Vector *vector, u32 index)

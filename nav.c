@@ -1,8 +1,74 @@
 /* FIXME: Search bar max capacity */
 
+/* TODO: Move Vars into editor struct */
 static char *search_file;
 static u8 first_compare;
 static char same[64];
+
+static void ed_dir_load_callback(void *data, const char *fname, u32 is_dir)
+{
+	Editor *ed = data;
+	if(ed->DirIdx < ED_DIR_BUF_SIZE)
+	{
+		++ed->DirEntries;
+		for(; *fname; ++fname)
+		{
+			ed->DirBuf[ed->DirIdx++] = *fname;
+		}
+
+		if(is_dir)
+		{
+			ed->DirBuf[ed->DirIdx++] = '/';
+		}
+
+		ed->DirBuf[ed->DirIdx++] = '\0';
+	}
+	else
+	{
+		++ed->DirOverflow;
+	}
+}
+
+static void ed_dir_load(Editor *ed)
+{
+	char buf[256]; /* FIXME: POTENTIAL OVERFLOW HAZARD */
+
+	ed->DirPos = 0;
+	ed->DirOffset = 0;
+	ed->DirEntries = 0;
+	ed->DirOverflow = 0;
+	ed->DirIdx = 0;
+
+	ed->Search[ed->SLen] = '\0';
+	strcpy(buf, ed->SBuf);
+	path_dir(buf);
+
+	dir_iter(buf, ed, ed_dir_load_callback);
+
+	ed->DirIdx = 0;
+}
+
+static void ed_nav_open(Editor *ed)
+{
+	ed->Mode = EDITOR_MODE_GOTO;
+	ed_dir_load(ed);
+	editor_render(ed);
+}
+
+static void editor_goto(Editor *ed)
+{
+	ed->Search[0] = ':';
+	ed->SCursor = 1;
+	ed->SLen = 1;
+	ed_nav_open(ed);
+}
+
+static void editor_open(Editor *ed)
+{
+	ed->SLen = 0;
+	ed->SCursor = 0;
+	ed_nav_open(ed);
+}
 
 static void foreach_dirent(void *data, const char *fname, u32 is_dir)
 {
@@ -52,10 +118,50 @@ static u32 ed_set_lnr(Editor *ed, const char *s)
 	return 0;
 }
 
+static size_t revstrlen(const char *p)
+{
+	size_t cnt = 0;
+	--p;
+	do
+	{
+		--p;
+		++cnt;
+	}
+	while(*p);
+
+	return cnt;
+}
+
 static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 {
 	switch(key)
 	{
+	case KEY_UP:
+		if(ed->DirPos > 0)
+		{
+			--ed->DirPos;
+			if(ed->DirPos < ed->DirOffset)
+			{
+				--ed->DirOffset;
+				ed->DirIdx -= revstrlen(ed->DirBuf + ed->DirIdx);
+			}
+			editor_render(ed);
+		}
+		break;
+
+	case KEY_DOWN:
+		if(ed->DirPos < ed->DirEntries - 1)
+		{
+			++ed->DirPos;
+			if(ed->DirPos >= ed->DirOffset + ED_DIR_PAGE)
+			{
+				++ed->DirOffset;
+				ed->DirIdx += strlen(ed->DirBuf + ed->DirIdx) + 1;
+			}
+			editor_render(ed);
+		}
+		break;
+
 	case KEY_LEFT:
 		if(ed->SCursor > 0)
 		{

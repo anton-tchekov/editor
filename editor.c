@@ -19,8 +19,10 @@ enum
 	EDITOR_ERROR
 };
 
-#define MAX_SEARCH_LEN 256
-#define MAX_MSG_LEN     80
+#define MAX_SEARCH_LEN    256
+#define MAX_MSG_LEN        80
+#define ED_DIR_BUF_SIZE  8192
+#define ED_DIR_PAGE        12
 
 typedef struct
 {
@@ -44,6 +46,9 @@ typedef struct
 	char SBuf[MAX_SEARCH_LEN];
 	char *Search;
 	u32 SCursor, SLen;
+
+	char DirBuf[ED_DIR_BUF_SIZE];
+	u32 DirOverflow, DirEntries, DirIdx, DirOffset, DirPos;
 } Editor;
 
 typedef void (*EditorFunc)(Editor *);
@@ -288,7 +293,7 @@ static u32 _syntax_highlight(Editor *ed, u32 len, const char *line, u16 *render)
 					else
 					{
 						/* Octal */
-						for(++e; e < len && is_oct(line[e]); ++e) {}
+						for(; e < len && is_oct(line[e]); ++e) {}
 					}
 				}
 			}
@@ -393,7 +398,39 @@ static void render_msg(Editor *ed)
 	}
 }
 
-static void _render_goto_line(Editor *ed)
+static u32 ed_render_dir(Editor *ed)
+{
+	u32 i, x;
+	u32 y = 1;
+	const char *p = ed->DirBuf + ed->DirIdx;
+	u32 end = ed->DirOffset + ED_DIR_PAGE;
+	if(end > ed->DirEntries)
+	{
+		end = ed->DirEntries;
+	}
+
+	for(i = ed->DirOffset; i < end; ++i, ++p, ++y)
+	{
+		u32 color = (i == ed->DirPos) ?
+			screen_color(COLOR_TABLE_INFO, COLOR_TABLE_VISIBLE_SPACE) :
+			screen_color(COLOR_TABLE_FG, COLOR_TABLE_VISIBLE_SPACE);
+
+		x = 0;
+		for(; *p && x < ed->FullW; ++p, ++x)
+		{
+			screen_set(x, y, *p, color);
+		}
+
+		for(; x < ed->FullW; ++x)
+		{
+			screen_set(x, y, ' ', color);
+		}
+	}
+
+	return y;
+}
+
+static u32 ed_render_goto_line(Editor *ed)
 {
 	const char *prompt = "Location: ";
 	const char *s;
@@ -412,6 +449,8 @@ static void _render_goto_line(Editor *ed)
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
 			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG));
 	}
+
+	return ed_render_dir(ed);
 }
 
 static void editor_render(Editor *ed)
@@ -460,8 +499,7 @@ static void editor_render(Editor *ed)
 		end_y = ed->PageH;
 		if(ed->Mode == EDITOR_MODE_GOTO)
 		{
-			start_y = 1;
-			_render_goto_line(ed);
+			start_y = ed_render_goto_line(ed);
 		}
 		else if(ed->Mode == EDITOR_MODE_MSG)
 		{
@@ -813,15 +851,6 @@ static void editor_init(Editor *ed, u32 width, u32 height)
 	ed->Search = ed->SBuf + 2;
 }
 
-static void editor_goto(Editor *ed)
-{
-	ed->Mode = EDITOR_MODE_GOTO;
-	ed->SLen = 0;
-	ed->SCursor = 0;
-	editor_render(ed);
-	(void)ed;
-}
-
 static void selection_store(Editor *ed)
 {
 	(void)ed;
@@ -958,25 +987,23 @@ static void editor_load_text(Editor *ed, const char *buf, size_t len)
 {
 	u32 c;
 	Vector line;
-	const char *p, *end;
+	const char *linestart, *p, *end;
 
 	editor_clear(ed);
 	editor_reset_cursor(ed);
-	vector_init(&line, sizeof(char), 8);
+	linestart = buf;
 	for(p = buf, end = buf + len; p < end; ++p)
 	{
 		c = *p;
 		if(c == '\n')
 		{
+			vector_from(&line, linestart, p - linestart);
 			vector_push(&ed->Lines, &line);
-			vector_init(&line, sizeof(char), 8);
-		}
-		else if(isprint(c) || c == '\t')
-		{
-			vector_push(&line, &c);
+			linestart = p + 1;
 		}
 	}
 
+	vector_from(&line, linestart, p - linestart);
 	vector_push(&ed->Lines, &line);
 }
 
@@ -1071,6 +1098,8 @@ static void editor_include_lib(Editor *ed)
 	_ed_inc(ed, ins);
 }
 
+#include "nav.c"
+
 static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
 {
 	static EditorKeyBind key_events[] =
@@ -1097,6 +1126,7 @@ static void editor_key_press_default(Editor *ed, u32 key, u32 cp)
 
 		{ MOD_CTRL | KEY_L,     editor_toggle_line_nr },
 		{ MOD_CTRL | KEY_G,     editor_goto           },
+		{ MOD_CTRL | KEY_O,     editor_open           },
 		{ MOD_CTRL | KEY_C,     editor_copy           },
 		{ MOD_CTRL | KEY_X,     editor_cut            },
 		{ MOD_CTRL | KEY_V,     editor_paste          },
@@ -1138,8 +1168,6 @@ static void editor_key_press_msg(Editor *ed, u32 key, u32 cp)
 
 	(void)cp;
 }
-
-#include "nav.c"
 
 static void editor_key_press(Editor *ed, u32 key, u32 cp)
 {
