@@ -1,10 +1,5 @@
 /* FIXME: Search bar max capacity */
 
-/* TODO: Move Vars into editor struct */
-static char *search_file;
-static u8 first_compare;
-static char same[64];
-
 static void ed_dir_load_callback(void *data, const char *fname, u32 is_dir)
 {
 	Editor *ed = data;
@@ -52,10 +47,16 @@ static void ed_nav_open(Editor *ed)
 {
 	ed->Mode = EDITOR_MODE_GOTO;
 	ed_dir_load(ed);
-	editor_render(ed);
+	ed_render(ed);
 }
 
-static void editor_goto(Editor *ed)
+static void ed_nav_close(Editor *ed)
+{
+	ed->Mode = EDITOR_MODE_DEFAULT;
+	ed_render(ed);
+}
+
+static void ed_goto(Editor *ed)
 {
 	ed->Search[0] = ':';
 	ed->SCursor = 1;
@@ -63,47 +64,40 @@ static void editor_goto(Editor *ed)
 	ed_nav_open(ed);
 }
 
-static void editor_open(Editor *ed)
+static void ed_open(Editor *ed)
 {
 	ed->SLen = 0;
 	ed->SCursor = 0;
 	ed_nav_open(ed);
 }
 
-static void foreach_dirent(void *data, const char *fname, u32 is_dir)
+static void ed_tab_cmpl_callback(void *data, const char *fname, u32 is_dir)
 {
 	Editor *ed = data;
-
 	if(!strcmp(fname, ".") || !strcmp(fname, ".."))
 	{
 		return;
 	}
 
-	if(starts_with(fname, search_file))
+	if(starts_with(fname, ed->SearchFile))
 	{
-		if(first_compare)
+		if(ed->FirstCompare)
 		{
-			first_compare = 0;
-			strcpy(same, fname);
+			ed->FirstCompare = 0;
+			strcpy(ed->Same, fname);
 			if(is_dir)
 			{
-				strcat(same, "/");
+				strcat(ed->Same, "/");
 			}
 		}
 		else
 		{
 			const char *q = fname;
-			char *p = same;
+			char *p = ed->Same;
 			while(*p == *q) { ++p; ++q; }
 			*p = '\0';
 		}
 	}
-}
-
-static void close_nav(Editor *ed)
-{
-	ed->Mode = EDITOR_MODE_DEFAULT;
-	editor_render(ed);
 }
 
 static u32 ed_set_lnr(Editor *ed, const char *s)
@@ -128,11 +122,10 @@ static size_t revstrlen(const char *p)
 		++cnt;
 	}
 	while(*p);
-
 	return cnt;
 }
 
-static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
+static void ed_key_press_nav(Editor *ed, u32 key, u32 cp)
 {
 	switch(key)
 	{
@@ -145,7 +138,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 				--ed->DirOffset;
 				ed->DirIdx -= revstrlen(ed->DirBuf + ed->DirIdx);
 			}
-			editor_render(ed);
+			ed_render(ed);
 		}
 		break;
 
@@ -158,7 +151,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 				++ed->DirOffset;
 				ed->DirIdx += strlen(ed->DirBuf + ed->DirIdx) + 1;
 			}
-			editor_render(ed);
+			ed_render(ed);
 		}
 		break;
 
@@ -167,7 +160,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 		{
 			--ed->SCursor;
 		}
-		editor_render(ed);
+		ed_render(ed);
 		break;
 
 	case KEY_RIGHT:
@@ -175,17 +168,17 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 		{
 			++ed->SCursor;
 		}
-		editor_render(ed);
+		ed_render(ed);
 		break;
 
 	case KEY_HOME:
 		ed->SCursor = 0;
-		editor_render(ed);
+		ed_render(ed);
 		break;
 
 	case KEY_END:
 		ed->SCursor = ed->SLen;
-		editor_render(ed);
+		ed_render(ed);
 		break;
 
 	case KEY_RETURN:
@@ -193,7 +186,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 		char *p;
 		if(!ed->SLen)
 		{
-			close_nav(ed);
+			ed_nav_close(ed);
 			break;
 		}
 
@@ -204,7 +197,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 			*p = '\0';
 			if(p != ed->Search)
 			{
-				editor_load(ed, ed->Search);
+				ed_load(ed, ed->Search);
 			}
 
 			++p;
@@ -217,10 +210,10 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 		}
 		else
 		{
-			editor_load(ed, ed->Search);
+			ed_load(ed, ed->Search);
 		}
 
-		editor_render(ed);
+		ed_render(ed);
 		break;
 	}
 
@@ -231,7 +224,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 			memmove(p - 1, p, ed->SLen - ed->SCursor);
 			--ed->SCursor;
 			--ed->SLen;
-			editor_render(ed);
+			ed_render(ed);
 		}
 		break;
 
@@ -241,7 +234,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 			char *p = ed->Search + ed->SCursor;
 			memmove(p, p + 1, ed->SLen - ed->SCursor - 1);
 			--ed->SLen;
-			editor_render(ed);
+			ed_render(ed);
 		}
 		break;
 
@@ -251,26 +244,26 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 		ed->Search[ed->SLen] = '\0';
 		strcpy(buf, ed->SBuf);
 		path_dir(buf);
-		first_compare = 1;
-		search_file = path_file(ed->Search);
-		if(dir_iter(buf, ed, foreach_dirent))
+		ed->FirstCompare = 1;
+		ed->SearchFile = path_file(ed->Search);
+		if(dir_iter(buf, ed, ed_tab_cmpl_callback))
 		{
-			editor_msg(ed, EDITOR_ERROR, "Failed to open directory");
+			ed_msg(ed, EDITOR_ERROR, "Failed to open directory");
 			break;
 		}
 
-		if(!first_compare)
+		if(!ed->FirstCompare)
 		{
-			strcpy(search_file, same);
+			strcpy(ed->SearchFile, ed->Same);
 			ed->SCursor = ed->SLen = strlen(ed->Search);
-			editor_render(ed);
+			ed_render(ed);
 		}
 		break;
 	}
 
 	case MOD_CTRL | KEY_G:
 	case KEY_ESCAPE:
-		close_nav(ed);
+		ed_nav_close(ed);
 		break;
 
 	default:
@@ -285,7 +278,7 @@ static void editor_key_press_nav(Editor *ed, u32 key, u32 cp)
 			memmove(p + 1, p, ed->SLen - ed->SCursor);
 			ed->Search[ed->SCursor++] = cp;
 			++ed->SLen;
-			editor_render(ed);
+			ed_render(ed);
 		}
 		break;
 	}
