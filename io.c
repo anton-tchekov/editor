@@ -378,6 +378,13 @@ static void screen_set_pack(u32 x, u32 y, u32 v)
 
 #define READFILE_CHUNK (32 * 1024)
 
+enum
+{
+	FILE_READ_OK,
+	FILE_READ_FAIL,
+	FILE_READ_NOT_TEXT
+};
+
 static char *file_read(const char *filename, size_t *len)
 {
 	size_t size, cap, rb;

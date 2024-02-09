@@ -8,16 +8,12 @@ that is optimized for C projects, is performant, and productive.
 ### High Priority
 
 - Refactor
-	- Replace vector with textbuffer
-	- Consistent naming
-	- Performance improvements (rendering, allocation, ..)
-	- Remove global variables
-
 - Bugs
 	- Multi-line comment `/* */`
 	- When using the up and down arrow keys, cursor does not always line up
 		on the same collumn due to tabs being wider than other characters
 	- When opening file check for valid text during loading, not after
+	- FIXMEs in code
 
 - Text Selection
 	- Select All (Ctrl+A)
