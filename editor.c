@@ -24,6 +24,16 @@ enum
 
 typedef struct
 {
+	u32 X, Y;
+} Cursor;
+
+typedef struct
+{
+	Cursor Limits[2];
+} Selection;
+
+typedef struct
+{
 	Vector Lines;
 	u32 CursorX;
 	u32 CursorSaveX;
@@ -32,7 +42,6 @@ typedef struct
 	u32 FullW;
 	u32 OffsetX;
 	u32 PageH;
-	u32 PageX;
 	u32 PageY;
 	u32 TabSize;
 	u8 ShowLineNr;
@@ -64,24 +73,6 @@ typedef struct
 	EditorFunc Event;
 } EditorKeyBind;
 
-#if 0
-
-typedef struct
-{
-	size_t X, Y;
-} Cursor;
-
-typedef struct
-{
-	Cursor Limits[2];
-} Selection;
-
-static void cursor_normalize(TextBuffer *tb, Cursor *cursor)
-{
-	size_t length = tb->Lines[cursor->Y]->Length;
-	cursor->X = (cursor->X < length) ? cursor->X : length;
-}
-
 static void cursor_swap(Cursor *a, Cursor *b)
 {
 	Cursor temp = *a;
@@ -89,9 +80,17 @@ static void cursor_swap(Cursor *a, Cursor *b)
 	*b = temp;
 }
 
-static int cursor_unordered(Cursor *a, Cursor *b)
+static u32 cursor_unordered(Cursor *a, Cursor *b)
 {
 	return (b->Y < a->Y) || (a->Y == b->Y && b->X < a->X);
+}
+
+#if 0
+
+static void cursor_normalize(TextBuffer *tb, Cursor *cursor)
+{
+	size_t length = tb->Lines[cursor->Y]->Length;
+	cursor->X = (cursor->X < length) ? cursor->X : length;
 }
 
 static void selection_normalize(TextBuffer *tb, Selection *sel)
@@ -105,55 +104,6 @@ static void selection_normalize(TextBuffer *tb, Selection *sel)
 	if(cursor_unordered(first, second))
 	{
 		cursor_swap(first, second);
-	}
-}
-
-static size_t textline_col(const TextLine *tl, size_t col, size_t tabsize)
-{
-	size_t x;
-	const char *p, *e;
-	p = tl->Buffer;
-	e = p + tl->Length;
-	for(; p < e; ++p)
-	{
-		if(*p == '\t')
-		{
-			x = x + tabsize - (x & (tabsize - 1));
-		}
-		else
-		{
-			++x;
-		}
-	}
-
-	return x;
-}
-
-static size_t count_char(const char *text, size_t len, int c)
-{
-	size_t count = 0;
-	const char *p = text;
-	const char *end = text + len;
-	while((p = memchr(p, c, len)))
-	{
-		++p;
-		len = end - p;
-		++count;
-	}
-
-	return count;
-}
-
-static void textbuffer_insert_lines(TextBuffer *tb, size_t y1, size_t y2,
-	size_t ins_lines)
-{
-	size_t rem_lines = y2 - y1;
-	if(ins_lines != rem_lines)
-	{
-		textbuffer_require(tb, tb->Capacity + ins_lines - rem_lines);
-		/* FIXME: MEMORY LEAK !!! */
-		memmove(tb->Lines + y1 + ins_lines, tb->Lines + y2,
-			(tb->Count - y2) * sizeof(TextLine *));
 	}
 }
 
@@ -302,7 +252,7 @@ static void ed_render_linenr(Editor *ed)
 		++lnr;
 		if(lnr <= lines)
 		{
-			char lnr_buf[8];
+			char lnr_buf[16];
 			linenr_str(lnr_buf, lnr, lnr_width);
 			for(x = 0; x < lnr_width; ++x)
 			{
@@ -324,27 +274,41 @@ static void ed_render_linenr(Editor *ed)
 	ed->OffsetX = lnr_width + 1;
 }
 
-static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
+static void ed_put(Editor *ed, u32 x, u32 y, u32 cursor_x, u32 c)
 {
-	u32 c;
+	if(y == ed->CursorY && x == cursor_x)
+	{
+		c = screen_pack_color_swap(c);
+	}
+
+	screen_set_pack(x + ed->OffsetX, y - ed->PageY, c);
+}
+
+static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
+{
+	Vector *lv = ed_line_get(ed, y);
+	u32 len = vector_len(lv);
+	const char *line = vector_data(lv);
 	u32 incflag = 0;
 	u32 i = 0;
 	u32 x = 0;
 	while(i < len)
 	{
-		c = line[i];
+		u32 c = line[i];
 		if((c == '/') && (i + 1 < len) && (line[i + 1] == '/'))
 		{
 			for(; i < len; ++i)
 			{
-				render[x++] = screen_pack(line[i],
-					screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG));
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x, screen_pack(line[i],
+					screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
 			}
 		}
 		else if(c == ' ' && ed->ShowWhitespace)
 		{
-			render[x++] = screen_pack(CHAR_VISIBLE_SPACE,
-				screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG));
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(CHAR_VISIBLE_SPACE,
+				screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG)));
 			++i;
 		}
 		else if(c == '\t')
@@ -352,19 +316,28 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 			u32 n = x & (ed->TabSize - 1);
 			if(ed->ShowWhitespace)
 			{
-				u32 color = screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG);
+				u32 color =
+					screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG);
 				if(n == ed->TabSize - 1)
 				{
-					render[x++] = screen_pack(CHAR_TAB_BOTH, color);
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x,
+						screen_pack(CHAR_TAB_BOTH, color));
 				}
 				else
 				{
-					render[x++] = screen_pack(CHAR_TAB_START, color);
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x,
+						screen_pack(CHAR_TAB_START, color));
 					for(++n; n < ed->TabSize - 1; ++n)
 					{
-						render[x++] = screen_pack(CHAR_TAB_MIDDLE, color);
+						if(x >= ed->PageW) { return x; }
+						ed_put(ed, x++, y, cursor_x,
+							screen_pack(CHAR_TAB_MIDDLE, color));
 					}
-					render[x++] = screen_pack(CHAR_TAB_END, color);
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x,
+						screen_pack(CHAR_TAB_END, color));
 				}
 			}
 			else
@@ -372,10 +345,10 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 				u32 color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
 				for(; n < ed->TabSize; ++n)
 				{
-					render[x++] = screen_pack(' ', color);
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x, screen_pack(' ', color));
 				}
 			}
-
 			++i;
 		}
 		else if(incflag && c == '<')
@@ -383,8 +356,9 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 			for(; i < len; ++i)
 			{
 				c = line[i];
-				render[x++] = screen_pack(c,
-					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG));
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x, screen_pack(c,
+					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
 				if(c == '>')
 				{
 					++i;
@@ -394,30 +368,30 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 		}
 		else if(c == '#')
 		{
-			render[x++] = screen_pack(c,
-				screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG));
-
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(c,
+				screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
 			for(++i; i < len && isalnum(c = line[i]); ++i)
 			{
-				render[x++] = screen_pack(c,
-					screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG));
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x, screen_pack(c,
+					screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
 			}
-
 			incflag = 1;
 		}
 		else if(c == '\"' || c == '\'')
 		{
 			u32 save = c;
 			u32 esc = 0;
-			render[x++] = screen_pack(c,
-				screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG));
-
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(c,
+				screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				render[x++] = screen_pack(c,
-					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG));
-
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x, screen_pack(c,
+					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
 				if(esc)
 				{
 					esc = 0;
@@ -435,20 +409,23 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 		}
 		else if(c == '(' || c == ')')
 		{
-			render[x++] = screen_pack(c,
-				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG));
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(c,
+				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
 			++i;
 		}
 		else if(c == '[' || c == ']')
 		{
-			render[x++] = screen_pack(c,
-				screen_color(COLOR_TABLE_BRACKET, COLOR_TABLE_BG));
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(c,
+				screen_color(COLOR_TABLE_BRACKET, COLOR_TABLE_BG)));
 			++i;
 		}
 		else if(c == '{' || c == '}')
 		{
-			render[x++] = screen_pack(c,
-				screen_color(COLOR_TABLE_BRACE, COLOR_TABLE_BG));
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(c,
+				screen_color(COLOR_TABLE_BRACE, COLOR_TABLE_BG)));
 			++i;
 		}
 		else if(isalpha(c) || c == '_')
@@ -458,7 +435,6 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 			end = i;
 			color = screen_color(
 				keyword_detect(line + start, end - start), COLOR_TABLE_BG);
-
 			if(color == COLOR_TABLE_FG)
 			{
 				if(c == '(')
@@ -473,7 +449,8 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 
 			for(i = start; i < end; ++i)
 			{
-				render[x++] = screen_pack(line[i], color);
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x, screen_pack(line[i], color));
 			}
 		}
 		else if(isdigit(c))
@@ -486,37 +463,35 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 					c = line[e];
 					if(c == 'x' || c == 'X')
 					{
-						/* Hex */
 						for(++e; e < len && isxdigit(line[e]); ++e) {}
 					}
 					else if(c == 'b' || c == 'B')
 					{
-						/* Binary */
 						for(++e; e < len && is_bin(line[e]); ++e) {}
 					}
 					else
 					{
-						/* Octal */
 						for(; e < len && is_oct(line[e]); ++e) {}
 					}
 				}
 			}
 			else
 			{
-				/* Decimal */
 				for(; e < len && isdigit(line[e]); ++e) {}
 			}
 
 			for(; i < e; ++x, ++i)
 			{
-				render[x] = screen_pack(line[i],
-					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG));
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x, y, cursor_x, screen_pack(line[i],
+					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
 			}
 		}
 		else
 		{
-			render[x++] = screen_pack(c,
-				screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG));
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(c,
+				screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
 			++i;
 		}
 	}
@@ -524,61 +499,19 @@ static u32 ed_syntax(Editor *ed, u32 len, const char *line, u16 *render)
 	return x;
 }
 
-static u32 cursor_pos_x(Editor *ed)
-{
-	u32 i;
-	u32 r = 0;
-	u32 x = ed->CursorX - ed->PageX;
-	const char *line = vector_data(ed_cur_line(ed));
-	for(i = 0; i < x; ++i)
-	{
-		if(line[i] == '\t')
-		{
-			r = (r + ed->TabSize) / ed->TabSize * ed->TabSize;
-		}
-		else
-		{
-			++r;
-		}
-	}
-
-	return r;
-}
-
 static void ed_render_line(Editor *ed, u32 y, u32 cursor_x)
 {
-	u32 x, line, len, render_len, pack;
-	u16 render[1024]; /* FIXME: Crash when line is longer than 256 chars */
-	const char *text;
-
-	line = ed->PageY + y;
-	if(line >= ed_num_lines(ed))
+	u32 x = 0;
+	u32 line = ed->PageY + y;
+	if(line < ed_num_lines(ed))
 	{
-		len = 0;
-	}
-	else
-	{
-		Vector *lv = ed_line_get(ed, line);
-		len = vector_len(lv);
-		text = vector_data(lv);
-	}
-
-	pack = screen_pack(' ', screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG));
-	render_len = ed_syntax(ed, len, text, render);
-	render[render_len++] = pack;
-	if(line == ed->CursorY)
-	{
-		render[cursor_x] = screen_pack_color_swap(render[cursor_x]);
-	}
-
-	for(x = 0; x < ed->PageW && x < render_len; ++x)
-	{
-		screen_set_pack(x + ed->OffsetX, y, render[x]);
+		x = ed_syntax(ed, line, cursor_x);
 	}
 
 	for(; x < ed->PageW; ++x)
 	{
-		screen_set_pack(x + ed->OffsetX, y, pack);
+		ed_put(ed, x, line, cursor_x, screen_pack(' ',
+			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
 	}
 }
 
@@ -656,8 +589,34 @@ static u32 ed_render_goto_line(Editor *ed)
 	return ed_render_dir(ed);
 }
 
+static u32 ed_cursor_pos_x(Editor *ed)
+{
+	u32 i;
+	u32 r = 0;
+	const char *line = vector_data(ed_cur_line(ed));
+	for(i = 0; i < ed->CursorX; ++i)
+	{
+		if(line[i] == '\t')
+		{
+			r = (r + ed->TabSize) / ed->TabSize * ed->TabSize;
+		}
+		else
+		{
+			++r;
+		}
+	}
+
+	return r;
+}
+
 static void ed_render(Editor *ed)
 {
+	u32 y;
+	u32 cursor_x;
+	u32 start_y = 0;
+	u32 end_y = ed->PageH;
+	u32 lines = ed_num_lines(ed);
+
 	if(ed->CursorY < ed->PageY)
 	{
 		ed->PageY = ed->CursorY;
@@ -668,12 +627,9 @@ static void ed_render(Editor *ed)
 		ed->PageY = ed->CursorY - ed->PageH + 1;
 	}
 
+	if(lines > ed->PageH && ed->PageY + ed->PageH >= lines)
 	{
-		u32 lines = ed_num_lines(ed);
-		if(lines > ed->PageH && ed->PageY + ed->PageH >= lines)
-		{
-			ed->PageY = lines - ed->PageH;
-		}
+		ed->PageY = lines - ed->PageH;
 	}
 
 	if(ed->ShowLineNr)
@@ -686,35 +642,20 @@ static void ed_render(Editor *ed)
 		ed->OffsetX = 0;
 	}
 
-	if(ed->CursorX < ed->PageX)
+	if(ed->Mode == EDITOR_MODE_GOTO)
 	{
-		ed->PageX = ed->CursorX;
+		start_y = ed_render_goto_line(ed);
+	}
+	else if(ed->Mode == EDITOR_MODE_MSG)
+	{
+		--end_y;
+		ed_render_msg(ed);
 	}
 
-	if(ed->CursorX >= ed->PageX + ed->PageW)
+	cursor_x = ed_cursor_pos_x(ed);
+	for(y = start_y; y < end_y; ++y)
 	{
-		ed->PageX = ed->CursorX - ed->PageW + 1;
-	}
-
-	{
-		u32 y, cursor_x, start_y, end_y;
-		start_y = 0;
-		end_y = ed->PageH;
-		if(ed->Mode == EDITOR_MODE_GOTO)
-		{
-			start_y = ed_render_goto_line(ed);
-		}
-		else if(ed->Mode == EDITOR_MODE_MSG)
-		{
-			--end_y;
-			ed_render_msg(ed);
-		}
-
-		cursor_x = cursor_pos_x(ed);
-		for(y = start_y; y < end_y; ++y)
-		{
-			ed_render_line(ed, y, cursor_x);
-		}
+		ed_render_line(ed, y, cursor_x);
 	}
 }
 
@@ -965,8 +906,6 @@ static void ed_bottom(Editor *ed)
 static void ed_reset_cursor(Editor *ed)
 {
 	ed->PageY = 0;
-	ed->PageX = 0;
-
 	ed->CursorX = 0;
 	ed->CursorSaveX = 0;
 	ed->CursorY = 0;

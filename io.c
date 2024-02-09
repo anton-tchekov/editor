@@ -23,7 +23,8 @@ enum
 	CHAR_TAB_START     = 129,
 	CHAR_TAB_MIDDLE    = 130,
 	CHAR_TAB_END       = 131,
-	CHAR_TAB_BOTH      = 132
+	CHAR_TAB_BOTH      = 132,
+	CHAR_MAX
 };
 
 enum
@@ -51,7 +52,7 @@ static const u32 _color_table[] =
 	0xFF040404, /* Background */
 	0xFFFFFFFF, /* Foreground */
 	0xFF777777, /* Line Number */
-	0xFF6A9955, /* Comment */
+	0xFFFF6A55, /* Comment */
 	0xFF9DFE88, /* Number */
 	0xFFCE9178, /* String */
 	0xFF569CD6, /* Type */
@@ -358,6 +359,7 @@ static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 	assert(y < _gfx_height);
 	assert((x + CHAR_WIDTH) <= _gfx_width);
 	assert((y + CHAR_HEIGHT) <= _gfx_height);
+	assert(c >= 32 && c <= CHAR_MAX);
 
 	start = terminus16 + (c - 32) * CHAR_HEIGHT;
 	line = _pixels + y * _gfx_width + x;
@@ -542,10 +544,77 @@ static u32 dir_iter(const char *path, void *data,
 	return 0;
 }
 
+#include <time.h>
+
+static int evilmain(int argc, char *argv[])
+{
+	static u32 rmods[] = { 0, KMOD_LSHIFT };
+	static u32 quit;
+	SDL_Event e;
+	init();
+	event_init(argc, argv, _screen_width, _screen_height);
+	srand(time(NULL));
+	while(!quit)
+	{
+		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
+			_gfx_width * sizeof(u32));
+
+		SDL_RenderClear(_renderer);
+		SDL_RenderCopy(_renderer, _framebuffer, NULL, NULL);
+		SDL_RenderPresent(_renderer);
+
+		if(!SDL_PollEvent(&e))
+		{
+			e.type = SDL_KEYDOWN;
+			e.key.keysym.scancode = rand() % KEY_COUNT;
+			e.key.keysym.mod = rmods[rand() % (sizeof(rmods) / sizeof(*rmods))];
+			e.key.repeat = 0;
+		}
+
+		switch(e.type)
+		{
+		case SDL_WINDOWEVENT:
+			if(e.window.event == SDL_WINDOWEVENT_RESIZED)
+			{
+				resize(e.window.data1, e.window.data2);
+			}
+			break;
+
+		case SDL_QUIT:
+			quit = event_exit();
+			break;
+
+		case SDL_KEYDOWN:
+			{
+				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
+				event_keyboard(key, key_to_chr(key),
+					e.key.repeat ? KEYSTATE_REPEAT : KEYSTATE_PRESSED);
+			}
+			break;
+
+		case SDL_KEYUP:
+			{
+				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
+				event_keyboard(key, key_to_chr(key), KEYSTATE_RELEASED);
+			}
+			break;
+		}
+	}
+
+	destroy();
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	static u32 quit;
 	SDL_Event e;
+
+	if(argc == 2 && !strcmp(argv[1], "evil"))
+	{
+		return evilmain(1, argv);
+	}
+
 	init();
 	event_init(argc, argv, _screen_width, _screen_height);
 	while(!quit)

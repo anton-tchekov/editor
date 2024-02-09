@@ -5,16 +5,18 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-### High Priority
-
-- Platform/IO
-	- Sorted Directory Scan
+### Very High Priority
 
 - Bugs
 	- Multi-line comment `/* */`
 	- When using the up and down arrow keys, cursor does not always line up
 		on the same collumn due to tabs being wider than other characters
 	- FIXMEs and TODOs in code
+
+- Platform/IO
+	- Sorted Directory Scan
+
+### High Priority
 
 - Text Selection
 	- Select All (Ctrl+A)
