@@ -16,18 +16,20 @@ static u32 _next_pot(u32 n)
 	return power;
 }
 
-static void *_mallocopy(const void *buf, size_t size)
-{
-	char *p = _malloc(size);
-	memcpy(p, buf, size);
-	return p;
-}
-
 static void vector_init(Vector *vector, u32 capacity)
 {
 	vector->Capacity = capacity;
 	vector->Length = 0;
 	vector->Data = _malloc(capacity);
+}
+
+static void vector_reserve(Vector *vector, u32 capacity)
+{
+	if(vector->Capacity < capacity)
+	{
+		vector->Capacity = _next_pot(capacity);
+		vector->Data = _realloc(vector->Data, vector->Capacity);
+	}
 }
 
 static void vector_from(Vector *vector, const void *buf, u32 bytes)
@@ -40,6 +42,7 @@ static void vector_from(Vector *vector, const void *buf, u32 bytes)
 static void vector_replace(
 	Vector *vector, u32 index, u32 count, const void *elems, u32 new_count)
 {
+	/* TODO: This could be more simple (use realloc) */
 	u32 new_length;
 
 	assert(index + count <= vector->Length);

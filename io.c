@@ -66,7 +66,6 @@ static const u32 _color_table[] =
 	0xFFFF0000, /* Error */
 };
 
-static u8 _quit;
 static u32 *_pixels;
 static u32 _gfx_width, _gfx_height;
 
@@ -80,7 +79,56 @@ static SDL_Renderer *_renderer;
 static void event_init(int argc, char **argv, u32 w, u32 h);
 static void event_keyboard(u32 key, u32 chr, u32 state);
 static void event_resize(u32 w, u32 h);
-static void event_exit(void);
+static u32 event_exit(void);
+
+static void allocfail(void)
+{
+	fprintf(stderr, "Memory allocation failure\n");
+	exit(1);
+}
+
+static u32 alloc_cnt, free_cnt;
+
+static void *_malloc(size_t size)
+{
+	void *p = malloc(size);
+	if(!p) { allocfail(); }
+	++alloc_cnt;
+	return p;
+}
+
+static void *_calloc(size_t num, size_t size)
+{
+	void *p = calloc(num, size);
+	if(!p) { allocfail(); }
+	++alloc_cnt;
+	return p;
+}
+
+static void *_realloc(void *p, size_t size)
+{
+	p = realloc(p, size);
+	if(!p) { allocfail(); }
+	return p;
+}
+
+static void _free(void *p)
+{
+	free(p);
+	++free_cnt;
+}
+
+static void print_mem(void)
+{
+	printf("%"PRIu32" allocs, %"PRIu32" frees\n", alloc_cnt, free_cnt);
+}
+
+static void *_mallocopy(const void *buf, size_t size)
+{
+	char *p = _malloc(size);
+	memcpy(p, buf, size);
+	return p;
+}
 
 static void resize_internal(u32 w, u32 h)
 {
@@ -88,10 +136,10 @@ static void resize_internal(u32 w, u32 h)
 	_gfx_height = h;
 	if(_pixels)
 	{
-		free(_pixels);
+		_free(_pixels);
 	}
 
-	_pixels = calloc(w * h, sizeof(*_pixels));
+	_pixels = _calloc(w * h, sizeof(*_pixels));
 	if(_framebuffer)
 	{
 		SDL_DestroyTexture(_framebuffer);
@@ -106,10 +154,10 @@ static void resize_internal(u32 w, u32 h)
 	_screen_height = h / CHAR_HEIGHT;
 	if(_screen)
 	{
-		free(_screen);
+		_free(_screen);
 	}
 
-	_screen = calloc(_screen_width * _screen_height, sizeof(*_screen));
+	_screen = _calloc(_screen_width * _screen_height, sizeof(*_screen));
 }
 
 static void resize(u32 w, u32 h)
@@ -154,13 +202,15 @@ static void init(void)
 
 static void destroy(void)
 {
-	event_exit();
-	free(_screen);
-	free(_pixels);
+	_free(_screen);
+	_free(_pixels);
 	SDL_DestroyTexture(_framebuffer);
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
 	SDL_Quit();
+#ifndef NDEBUG
+	print_mem();
+#endif
 }
 
 static u32 convert_key(i32 scancode, i32 mod)
@@ -197,7 +247,6 @@ static u32 convert_key(i32 scancode, i32 mod)
 static u32 key_to_chr(u32 k)
 {
 	u32 nomods = k & 0xFF;
-
 	if(nomods == KEY_TAB)                             { return '\t'; }
 	else if(nomods == KEY_BACKSPACE)                  { return '\b'; }
 	else if(nomods == KEY_RETURN)                     { return '\n'; }
@@ -251,7 +300,6 @@ static u32 key_to_chr(u32 k)
 			{ 0, 0, 0, 0, 0, 0, '{', '[', ']', '}' };
 
 		u32 idx = nomods - KEY_1;
-
 		if(k & MOD_SHIFT)
 		{
 			return numbers_shift[idx];
@@ -269,6 +317,10 @@ static u32 key_to_chr(u32 k)
 	return 0;
 }
 
+#if 0
+
+/* Fill Rectangle Function is currently unused, but
+ * will very likely be needed in the future */
 static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
 {
 	u32 x0;
@@ -293,6 +345,8 @@ static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
 		--h;
 	}
 }
+
+#endif
 
 static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 {
@@ -376,7 +430,9 @@ static void screen_set_pack(u32 x, u32 y, u32 v)
 	screen_set(x, y, v >> 8, v & 0xFF);
 }
 
-#define READFILE_CHUNK (32 * 1024)
+#include "vector.c"
+
+#define FILE_CHUNK (1024)
 
 enum
 {
@@ -385,55 +441,68 @@ enum
 	FILE_READ_NOT_TEXT
 };
 
-static char *file_read(const char *filename, size_t *len)
+static u32 is_text(const u8 *s, size_t len)
 {
-	size_t size, cap, rb;
-	char *buf;
-	FILE *fp;
-	if(!(fp = fopen(filename, "r")))
+	u32 c;
+	const u8 *end;
+	for(end = s + len; s < end; ++s)
 	{
-		return NULL;
-	}
-
-	cap = READFILE_CHUNK;
-	if(!(buf = malloc(cap)))
-	{
-		goto cleanup_file;
-	}
-
-	size = 0;
-	while((rb = fread(buf + size, 1, READFILE_CHUNK, fp)) == READFILE_CHUNK)
-	{
-		size += rb;
-		if(size + READFILE_CHUNK > cap)
+		c = *s;
+		if(!isprint(c) && c != '\n' && c != '\t')
 		{
-			char *nd;
-			cap <<= 1;
-			if(!(nd = realloc(buf, cap)))
-			{
-				goto cleanup_alloc;
-			}
-
-			buf = nd;
+			return 0;
 		}
 	}
 
-	size += rb;
-	if(ferror(fp))
+	return 1;
+}
+
+static u32 textfile_read(const char *filename, char **out)
+{
+	Vector v;
+	u32 rb;
+	FILE *fp;
+	if(!(fp = fopen(filename, "r")))
 	{
-		goto cleanup_alloc;
+		return FILE_READ_FAIL;
 	}
 
-	fclose(fp);
-	*len = size;
-	return buf;
+	vector_init(&v, FILE_CHUNK);
+	for(;;)
+	{
+		rb = fread((u8 *)v.Data + v.Length, 1, FILE_CHUNK, fp);
+		if(!is_text((u8 *)v.Data + v.Length, rb))
+		{
+			vector_destroy(&v);
+			fclose(fp);
+			return FILE_READ_NOT_TEXT;
+		}
 
-cleanup_alloc:
-	free(buf);
+		v.Length += rb;
+		if(rb < FILE_CHUNK)
+		{
+			break;
+		}
 
-cleanup_file:
+		vector_reserve(&v, v.Length + FILE_CHUNK);
+	}
+
+	if(ferror(fp))
+	{
+		vector_destroy(&v);
+		fclose(fp);
+		return FILE_READ_FAIL;
+	}
+
+	{
+		u8 nt[1];
+		nt[0] = '\0';
+		vector_push(&v, 1, nt);
+	}
+
+	*out = v.Data;
 	fclose(fp);
-	return NULL;
+	return FILE_READ_OK;
 }
 
 static u32 file_write(const char *filename, void *data, size_t len)
@@ -475,10 +544,11 @@ static u32 dir_iter(const char *path, void *data,
 
 int main(int argc, char *argv[])
 {
+	static u32 quit;
 	SDL_Event e;
 	init();
 	event_init(argc, argv, _screen_width, _screen_height);
-	while(!_quit)
+	while(!quit)
 	{
 		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
 			_gfx_width * sizeof(u32));
@@ -502,7 +572,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case SDL_QUIT:
-			_quit = 1;
+			quit = event_exit();
 			break;
 
 		case SDL_KEYDOWN:

@@ -7,13 +7,14 @@ that is optimized for C projects, is performant, and productive.
 
 ### High Priority
 
-- Refactor
+- Platform/IO
+	- Sorted Directory Scan
+
 - Bugs
 	- Multi-line comment `/* */`
 	- When using the up and down arrow keys, cursor does not always line up
 		on the same collumn due to tabs being wider than other characters
-	- When opening file check for valid text during loading, not after
-	- FIXMEs in code
+	- FIXMEs and TODOs in code
 
 - Text Selection
 	- Select All (Ctrl+A)
@@ -28,12 +29,12 @@ that is optimized for C projects, is performant, and productive.
 
 - Multiple files open at the same time
 - Ask to save when exiting
-	- You have the following unsaved files: Display List with discard option
-		next to every file
+	- You have the following unsaved files: Display List with
+		discard and save option next to every file
 	- Save all, Discard All, Cancel
-	- Modified flag for each open file
+	- Modified flag for each open file needed
 
-- Search and replace in file / folder
+- Search and replace in file / whole folder
 
 ### Low Priority
 

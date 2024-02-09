@@ -1,5 +1,4 @@
 #include "helpers.c"
-#include "vector.c"
 #include "keyword.c"
 #include "test.c"
 #include <string.h>
@@ -1189,49 +1188,48 @@ static void ed_clear(Editor *ed)
 	vector_clear(&ed->Lines);
 }
 
-static void ed_load_text(Editor *ed, const char *buf, size_t len)
+static void ed_load_text(Editor *ed, const char *buf)
 {
+	u32 c;
 	Vector line;
-	const char *linestart, *p, *end;
+	const char *linestart, *p;
 	ed_clear(ed);
 	ed_reset_cursor(ed);
+	p = buf;
 	linestart = buf;
-	for(p = buf, end = buf + len; p < end; ++p)
+	do
 	{
-		u32 c = *p;
-		if(c == '\n')
+		c = *p;
+		if(c == '\0' || c == '\n')
 		{
 			vector_from(&line, linestart, p - linestart);
 			vector_push(&ed->Lines, sizeof(line), &line);
 			linestart = p + 1;
 		}
+		++p;
 	}
-
-	vector_from(&line, linestart, p - linestart);
-	vector_push(&ed->Lines, sizeof(line), &line);
+	while(c != '\0');
 }
 
 static void ed_load(Editor *ed, const char *filename)
 {
-	size_t len;
 	char *buf;
-	if(!(buf = file_read(filename, &len)))
+	u32 status = textfile_read(filename, &buf);
+	switch(status)
 	{
+	case FILE_READ_FAIL:
 		ed_msg(ed, EDITOR_ERROR, "Failed to open file");
 		return;
-	}
 
-	if(is_text(buf, len))
-	{
-		free(buf);
+	case FILE_READ_NOT_TEXT:
 		ed_msg(ed, EDITOR_ERROR, "Invalid character, binary file?");
 		return;
 	}
 
 	ed->Mode = EDITOR_MODE_DEFAULT;
 	strcpy(ed->FileName, filename);
-	ed_load_text(ed, buf, len);
-	free(buf);
+	ed_load_text(ed, buf);
+	_free(buf);
 }
 
 static u32 ed_count_bytes(Editor *ed)
@@ -1416,9 +1414,9 @@ static void event_init(int argc, char *argv[], u32 w, u32 h)
 	ed_render(&editor);
 }
 
-static void event_exit(void)
+static u32 event_exit(void)
 {
 	ed_clear(&editor);
 	vector_destroy(&editor.Lines);
-	print_mem();
+	return 1;
 }
