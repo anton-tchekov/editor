@@ -1349,19 +1349,15 @@ static void event_resize(u32 w, u32 h)
 
 static void event_init(int argc, char *argv[], u32 w, u32 h)
 {
-#if 0
 	u32 i;
 	u32 len;
-	char **first = dir_sorted("/home/files/schule/", &len);
-	char **list = first + 1;
+	char **list = dir_sorted("/home/files/schule/", &len);
 	for(i = 0; i < len; ++i)
 	{
 		printf("%s\n", list[i]);
 	}
 
-	_free(*first);
-	_free(first);
-#endif
+	_free(list);
 
 #ifndef NDEBUG
 	test_run_all();

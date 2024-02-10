@@ -23,6 +23,23 @@ static void vector_init(Vector *vector, u32 capacity)
 	vector->Data = _malloc(capacity);
 }
 
+static void vector_makespace(Vector *vector, u32 pos, u32 bytes)
+{
+	u32 nl;
+	u8 *offset;
+	assert(pos <= vector->Length);
+	nl = vector->Length + bytes;
+	if(nl > vector->Capacity)
+	{
+		vector->Capacity = _next_pot(nl);
+		vector->Data = _realloc(vector->Data, vector->Capacity);
+	}
+
+	offset = (u8 *)vector->Data + pos;
+	memmove(offset + bytes, offset, vector->Length - pos);
+	vector->Length = nl;
+}
+
 static void vector_reserve(Vector *vector, u32 capacity)
 {
 	if(vector->Capacity < capacity)

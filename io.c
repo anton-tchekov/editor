@@ -552,35 +552,23 @@ static int dir_sort_callback(const void *a, const void *b)
 
 static char **dir_sorted(const char *path, u32 *len)
 {
-	/* This is absolutely convoluted, but was super fun to write.
-		The benefit is that it only requires two frees by the caller
-		TODO: Change it so that only one free is neccessary by using only
-		one buffer */
-	Vector p;
 	Vector v;
 	DIR *dir;
 	struct dirent *dp;
 	u32 i, count;
 	char c[1];
+	char *strs;
 	char **ptrs;
-	char *offset = 0;
 
-	vector_init(&p, 128 * sizeof(char *));
 	vector_init(&v, 128);
 	if(!(dir = opendir(path)))
 	{
 		return NULL;
 	}
 
-	/* Zeroth element points to underlying buffer */
-	vector_push(&p, sizeof(char *), &offset);
 	count = 0;
 	while((dp = readdir(dir)))
 	{
-		/* Taking a pointer to contents directly would be
-			invalid because of possible reallocation */
-		offset = (char *)(uintptr_t)v.Length;
-		vector_push(&p, sizeof(char *), &offset);
 		vector_push(&v, strlen(dp->d_name), dp->d_name);
 		if(dp->d_type == DT_DIR)
 		{
@@ -594,15 +582,16 @@ static char **dir_sorted(const char *path, u32 *len)
 	}
 
 	closedir(dir);
-
-	/* Fixup pointers */
-	ptrs = p.Data;
-	for(i = 0; i < count + 1; ++i)
+	vector_makespace(&v, 0, count * sizeof(char *));
+	strs = (char *)v.Data + count * sizeof(char *);
+	ptrs = v.Data;
+	for(i = 0; i < count; ++i)
 	{
-		ptrs[i] += (uintptr_t)v.Data;
+		ptrs[i] = strs;
+		strs += strlen(strs) + 1;
 	}
 
-	qsort(ptrs + 1, count, sizeof(char *), dir_sort_callback);
+	qsort(ptrs, count, sizeof(char *), dir_sort_callback);
 	*len = count;
 	return ptrs;
 }
