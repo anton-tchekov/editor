@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#include <time.h>
 #include "types.h"
 #include "keys.h"
 #include "terminus16.c"
@@ -544,7 +545,67 @@ static u32 dir_iter(const char *path, void *data,
 	return 0;
 }
 
-#include <time.h>
+static int dir_sort_callback(const void *a, const void *b)
+{
+	return strcmp(*(const char **)a, *(const char **)b);
+}
+
+static char **dir_sorted(const char *path, u32 *len)
+{
+	/* This is absolutely convoluted, but was super fun to write.
+		The benefit is that it only requires two frees by the caller
+		TODO: Change it so that only one free is neccessary by using only
+		one buffer */
+	Vector p;
+	Vector v;
+	DIR *dir;
+	struct dirent *dp;
+	u32 i, count;
+	char c[1];
+	char **ptrs;
+	char *offset = 0;
+
+	vector_init(&p, 128 * sizeof(char *));
+	vector_init(&v, 128);
+	if(!(dir = opendir(path)))
+	{
+		return NULL;
+	}
+
+	/* Zeroth element points to underlying buffer */
+	vector_push(&p, sizeof(char *), &offset);
+	count = 0;
+	while((dp = readdir(dir)))
+	{
+		/* Taking a pointer to contents directly would be
+			invalid because of possible reallocation */
+		offset = (char *)(uintptr_t)v.Length;
+		vector_push(&p, sizeof(char *), &offset);
+		vector_push(&v, strlen(dp->d_name), dp->d_name);
+		if(dp->d_type == DT_DIR)
+		{
+			c[0] = '/';
+			vector_push(&v, 1, c);
+		}
+
+		c[0] = '\0';
+		vector_push(&v, 1, c);
+		++count;
+	}
+
+	closedir(dir);
+
+	/* Fixup pointers */
+	ptrs = p.Data;
+	for(i = 0; i < count + 1; ++i)
+	{
+		ptrs[i] += (uintptr_t)v.Data;
+	}
+
+	qsort(ptrs + 1, count, sizeof(char *), dir_sort_callback);
+	*len = count;
+	return ptrs;
+}
 
 static int evilmain(int argc, char *argv[])
 {
