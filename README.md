@@ -9,17 +9,16 @@ that is optimized for C projects, is performant, and productive.
 
 - Refactor
 	- Vector simplify code with realloc
+	- Navbar autocomplete ugliness
 
 - Bugs
 	- Multi-line comment `/* */`
 	- When using the up and down arrow keys, cursor does not always line up
 		on the same collumn due to tabs being wider than other characters
-	- TODOs in code
-
-- Platform/IO
-	- Sorted Directory Scan
 
 ### High Priority
+
+- Add UTF-8 german umlaut support and maybe cyrillic?
 
 - Text Selection
 	- Select All (Ctrl+A)

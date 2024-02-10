@@ -61,8 +61,8 @@ typedef struct
 	char *SearchFile;
 	char Same[64];
 
-	char DirBuf[ED_DIR_BUF_SIZE];
-	u32 DirOverflow, DirEntries, DirIdx, DirOffset, DirPos;
+	char **DirList;
+	u32 DirEntries, DirOffset, DirPos;
 } Editor;
 
 typedef void (*EditorFunc)(Editor *);
@@ -547,22 +547,22 @@ static void ed_render_msg(Editor *ed)
 
 static u32 ed_render_dir(Editor *ed)
 {
-	u32 i, x;
+	u32 i;
 	u32 y = 1;
-	const char *p = ed->DirBuf + ed->DirIdx;
 	u32 end = ed->DirOffset + ED_DIR_PAGE;
 	if(end > ed->DirEntries)
 	{
 		end = ed->DirEntries;
 	}
 
-	for(i = ed->DirOffset; i < end; ++i, ++p, ++y)
+	for(i = ed->DirOffset; i < end; ++i, ++y)
 	{
 		u32 color = (i == ed->DirPos) ?
 			screen_color(COLOR_TABLE_INFO, COLOR_TABLE_VISIBLE_SPACE) :
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_VISIBLE_SPACE);
 
-		x = 0;
+		u32 x = 0;
+		const char *p = ed->DirList[i];
 		for(; *p && x < ed->FullW; ++p, ++x)
 		{
 			screen_set(x, y, *p, color);
@@ -1349,16 +1349,6 @@ static void event_resize(u32 w, u32 h)
 
 static void event_init(int argc, char *argv[], u32 w, u32 h)
 {
-	u32 i;
-	u32 len;
-	char **list = dir_sorted("/home/files/schule/", &len);
-	for(i = 0; i < len; ++i)
-	{
-		printf("%s\n", list[i]);
-	}
-
-	_free(list);
-
 #ifndef NDEBUG
 	test_run_all();
 #endif
@@ -1378,5 +1368,6 @@ static u32 event_exit(void)
 {
 	ed_clear(&editor);
 	vector_destroy(&editor.Lines);
+	_free(editor.DirList);
 	return 1;
 }

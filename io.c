@@ -109,6 +109,11 @@ static void *_calloc(size_t num, size_t size)
 
 static void *_realloc(void *p, size_t size)
 {
+	if(!p)
+	{
+		++alloc_cnt;
+	}
+
 	p = realloc(p, size);
 	if(!p) { allocfail(); }
 	return p;
@@ -116,8 +121,11 @@ static void *_realloc(void *p, size_t size)
 
 static void _free(void *p)
 {
-	free(p);
-	++free_cnt;
+	if(p)
+	{
+		free(p);
+		++free_cnt;
+	}
 }
 
 static void print_mem(void)
@@ -136,11 +144,7 @@ static void resize_internal(u32 w, u32 h)
 {
 	_gfx_width = w;
 	_gfx_height = h;
-	if(_pixels)
-	{
-		_free(_pixels);
-	}
-
+	_free(_pixels);
 	_pixels = _calloc(w * h, sizeof(*_pixels));
 	if(_framebuffer)
 	{
@@ -154,11 +158,7 @@ static void resize_internal(u32 w, u32 h)
 
 	_screen_width = w / CHAR_WIDTH;
 	_screen_height = h / CHAR_HEIGHT;
-	if(_screen)
-	{
-		_free(_screen);
-	}
-
+	_free(_screen);
 	_screen = _calloc(_screen_width * _screen_height, sizeof(*_screen));
 }
 
@@ -560,7 +560,7 @@ static char **dir_sorted(const char *path, u32 *len)
 	char *strs;
 	char **ptrs;
 
-	vector_init(&v, 128);
+	vector_init(&v, 1024);
 	if(!(dir = opendir(path)))
 	{
 		return NULL;

@@ -1,29 +1,5 @@
 /* TODO: Search bar max capacity */
 
-static void ed_dir_load_callback(void *data, const char *fname, u32 is_dir)
-{
-	Editor *ed = data;
-	if(ed->DirIdx < ED_DIR_BUF_SIZE)
-	{
-		++ed->DirEntries;
-		for(; *fname; ++fname)
-		{
-			ed->DirBuf[ed->DirIdx++] = *fname;
-		}
-
-		if(is_dir)
-		{
-			ed->DirBuf[ed->DirIdx++] = '/';
-		}
-
-		ed->DirBuf[ed->DirIdx++] = '\0';
-	}
-	else
-	{
-		++ed->DirOverflow;
-	}
-}
-
 static void ed_dir_load(Editor *ed)
 {
 	char buf[256]; /* TODO: POTENTIAL OVERFLOW HAZARD */
@@ -31,16 +7,12 @@ static void ed_dir_load(Editor *ed)
 	ed->DirPos = 0;
 	ed->DirOffset = 0;
 	ed->DirEntries = 0;
-	ed->DirOverflow = 0;
-	ed->DirIdx = 0;
 
 	ed->Search[ed->SLen] = '\0';
 	strcpy(buf, ed->SBuf);
 	path_dir(buf);
 
-	dir_iter(buf, ed, ed_dir_load_callback);
-
-	ed->DirIdx = 0;
+	ed->DirList = dir_sorted(buf, &ed->DirEntries);
 }
 
 static void ed_nav_open(Editor *ed)
@@ -53,6 +25,8 @@ static void ed_nav_open(Editor *ed)
 static void ed_nav_close(Editor *ed)
 {
 	ed->Mode = EDITOR_MODE_DEFAULT;
+	_free(ed->DirList);
+	ed->DirList = NULL;
 	ed_render(ed);
 }
 
@@ -112,6 +86,8 @@ static u32 ed_set_lnr(Editor *ed, const char *s)
 	return 0;
 }
 
+#if 0
+
 static size_t revstrlen(const char *p)
 {
 	size_t cnt = 0;
@@ -125,6 +101,8 @@ static size_t revstrlen(const char *p)
 	return cnt;
 }
 
+#endif
+
 static void ed_key_press_nav(Editor *ed, u32 key, u32 cp)
 {
 	switch(key)
@@ -136,7 +114,6 @@ static void ed_key_press_nav(Editor *ed, u32 key, u32 cp)
 			if(ed->DirPos < ed->DirOffset)
 			{
 				--ed->DirOffset;
-				ed->DirIdx -= revstrlen(ed->DirBuf + ed->DirIdx);
 			}
 			ed_render(ed);
 		}
@@ -149,7 +126,6 @@ static void ed_key_press_nav(Editor *ed, u32 key, u32 cp)
 			if(ed->DirPos >= ed->DirOffset + ED_DIR_PAGE)
 			{
 				++ed->DirOffset;
-				ed->DirIdx += strlen(ed->DirBuf + ed->DirIdx) + 1;
 			}
 			ed_render(ed);
 		}
