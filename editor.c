@@ -284,6 +284,48 @@ static void ed_put(Editor *ed, u32 x, u32 y, u32 cursor_x, u32 c)
 	screen_set_pack(x + ed->OffsetX, y - ed->PageY, c);
 }
 
+static u32 ed_syntax_tab(Editor *ed, u32 y, u32 x, u32 cursor_x)
+{
+	u32 n = x & (ed->TabSize - 1);
+	if(ed->ShowWhitespace)
+	{
+		u32 color =
+			screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG);
+		if(n == ed->TabSize - 1)
+		{
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x,
+				screen_pack(CHAR_TAB_BOTH, color));
+		}
+		else
+		{
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x,
+				screen_pack(CHAR_TAB_START, color));
+			for(++n; n < ed->TabSize - 1; ++n)
+			{
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x,
+					screen_pack(CHAR_TAB_MIDDLE, color));
+			}
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x,
+				screen_pack(CHAR_TAB_END, color));
+		}
+	}
+	else
+	{
+		u32 color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
+		for(; n < ed->TabSize; ++n)
+		{
+			if(x >= ed->PageW) { return x; }
+			ed_put(ed, x++, y, cursor_x, screen_pack(' ', color));
+		}
+	}
+
+	return x;
+}
+
 static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 {
 	Vector *lv = ed_line_get(ed, y);
@@ -299,9 +341,18 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 		{
 			for(; i < len; ++i)
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, cursor_x, screen_pack(line[i],
-					screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
+				c = line[i];
+				if(c == '\t')
+				{
+					x = ed_syntax_tab(ed, y, x, cursor_x);
+					if(x >= ed->PageW) { return x; }
+				}
+				else
+				{
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x, screen_pack(c,
+						screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
+				}
 			}
 		}
 		else if(c == ' ' && ed->ShowWhitespace)
@@ -313,58 +364,9 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 		}
 		else if(c == '\t')
 		{
-			u32 n = x & (ed->TabSize - 1);
-			if(ed->ShowWhitespace)
-			{
-				u32 color =
-					screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG);
-				if(n == ed->TabSize - 1)
-				{
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, cursor_x,
-						screen_pack(CHAR_TAB_BOTH, color));
-				}
-				else
-				{
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, cursor_x,
-						screen_pack(CHAR_TAB_START, color));
-					for(++n; n < ed->TabSize - 1; ++n)
-					{
-						if(x >= ed->PageW) { return x; }
-						ed_put(ed, x++, y, cursor_x,
-							screen_pack(CHAR_TAB_MIDDLE, color));
-					}
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, cursor_x,
-						screen_pack(CHAR_TAB_END, color));
-				}
-			}
-			else
-			{
-				u32 color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
-				for(; n < ed->TabSize; ++n)
-				{
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, cursor_x, screen_pack(' ', color));
-				}
-			}
+			x = ed_syntax_tab(ed, y, x, cursor_x);
+			if(x >= ed->PageW) { return x; }
 			++i;
-		}
-		else if(incflag && c == '<')
-		{
-			for(; i < len; ++i)
-			{
-				c = line[i];
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, cursor_x, screen_pack(c,
-					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
-				if(c == '>')
-				{
-					++i;
-					break;
-				}
-			}
 		}
 		else if(c == '#')
 		{
@@ -379,9 +381,9 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 			}
 			incflag = 1;
 		}
-		else if(c == '\"' || c == '\'')
+		else if(c == '\"' || c == '\'' || (c == '<' && incflag))
 		{
-			u32 save = c;
+			u32 save = c == '<' ? '>' : c;
 			u32 esc = 0;
 			if(x >= ed->PageW) { return x; }
 			ed_put(ed, x++, y, cursor_x, screen_pack(c,
@@ -389,9 +391,18 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, cursor_x, screen_pack(c,
-					screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
+				if(c == '\t')
+				{
+					x = ed_syntax_tab(ed, y, x, cursor_x);
+					if(x >= ed->PageW) { return x; }
+				}
+				else
+				{
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x, screen_pack(c,
+						screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
+				}
+
 				if(esc)
 				{
 					esc = 0;

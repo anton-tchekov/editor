@@ -7,11 +7,14 @@ that is optimized for C projects, is performant, and productive.
 
 ### Very High Priority
 
+- Refactor
+	- Vector simplify code with realloc
+
 - Bugs
 	- Multi-line comment `/* */`
 	- When using the up and down arrow keys, cursor does not always line up
 		on the same collumn due to tabs being wider than other characters
-	- FIXMEs and TODOs in code
+	- TODOs in code
 
 - Platform/IO
 	- Sorted Directory Scan
@@ -30,6 +33,7 @@ that is optimized for C projects, is performant, and productive.
 ### Medium Priority
 
 - Multiple files open at the same time
+- Create New File (Ctrl+N)
 - Ask to save when exiting
 	- You have the following unsaved files: Display List with
 		discard and save option next to every file

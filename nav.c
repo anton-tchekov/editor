@@ -1,4 +1,4 @@
-/* FIXME: Search bar max capacity */
+/* TODO: Search bar max capacity */
 
 static void ed_dir_load_callback(void *data, const char *fname, u32 is_dir)
 {
@@ -26,7 +26,7 @@ static void ed_dir_load_callback(void *data, const char *fname, u32 is_dir)
 
 static void ed_dir_load(Editor *ed)
 {
-	char buf[256]; /* FIXME: POTENTIAL OVERFLOW HAZARD */
+	char buf[256]; /* TODO: POTENTIAL OVERFLOW HAZARD */
 
 	ed->DirPos = 0;
 	ed->DirOffset = 0;
@@ -240,7 +240,7 @@ static void ed_key_press_nav(Editor *ed, u32 key, u32 cp)
 
 	case KEY_TAB:
 	{
-		char buf[256]; /* FIXME: POTENTIAL OVERFLOW HAZARD */
+		char buf[256]; /* TODO: POTENTIAL OVERFLOW HAZARD */
 		ed->Search[ed->SLen] = '\0';
 		strcpy(buf, ed->SBuf);
 		path_dir(buf);
