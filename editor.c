@@ -284,43 +284,57 @@ static void ed_put(Editor *ed, u32 x, u32 y, u32 cursor_x, u32 c)
 	screen_set_pack(x + ed->OffsetX, y - ed->PageY, c);
 }
 
-static u32 ed_syntax_tab(Editor *ed, u32 y, u32 x, u32 cursor_x)
+static u32 ed_syntax_sub(Editor *ed,
+	u32 c, u32 color, u32 y, u32 x, u32 cursor_x)
 {
-	u32 n = x & (ed->TabSize - 1);
-	if(ed->ShowWhitespace)
+	if(c == '\t')
 	{
-		u32 color =
-			screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG);
-		if(n == ed->TabSize - 1)
+		u32 n = x & (ed->TabSize - 1);
+		if(ed->ShowWhitespace)
 		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, cursor_x,
-				screen_pack(CHAR_TAB_BOTH, color));
-		}
-		else
-		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, cursor_x,
-				screen_pack(CHAR_TAB_START, color));
-			for(++n; n < ed->TabSize - 1; ++n)
+			color = screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG);
+			if(n == ed->TabSize - 1)
 			{
 				if(x >= ed->PageW) { return x; }
 				ed_put(ed, x++, y, cursor_x,
-					screen_pack(CHAR_TAB_MIDDLE, color));
+					screen_pack(CHAR_TAB_BOTH, color));
 			}
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, cursor_x,
-				screen_pack(CHAR_TAB_END, color));
+			else
+			{
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x,
+					screen_pack(CHAR_TAB_START, color));
+				for(++n; n < ed->TabSize - 1; ++n)
+				{
+					if(x >= ed->PageW) { return x; }
+					ed_put(ed, x++, y, cursor_x,
+						screen_pack(CHAR_TAB_MIDDLE, color));
+				}
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x,
+					screen_pack(CHAR_TAB_END, color));
+			}
+		}
+		else
+		{
+			for(; n < ed->TabSize; ++n)
+			{
+				if(x >= ed->PageW) { return x; }
+				ed_put(ed, x++, y, cursor_x, screen_pack(' ', color));
+			}
 		}
 	}
 	else
 	{
-		u32 color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
-		for(; n < ed->TabSize; ++n)
+		if(c == ' ' && ed->ShowWhitespace)
 		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, cursor_x, screen_pack(' ', color));
+			c = CHAR_VISIBLE_SPACE;
+			color = COLOR_TABLE_VISIBLE_SPACE;
 		}
+
+		if(x >= ed->PageW) { return x; }
+		ed_put(ed, x++, y, cursor_x, screen_pack(c,
+			screen_color(color, COLOR_TABLE_BG)));
 	}
 
 	return x;
@@ -341,32 +355,9 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 		{
 			for(; i < len; ++i)
 			{
-				c = line[i];
-				if(c == '\t')
-				{
-					x = ed_syntax_tab(ed, y, x, cursor_x);
-					if(x >= ed->PageW) { return x; }
-				}
-				else
-				{
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, cursor_x, screen_pack(c,
-						screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
-				}
+				x = ed_syntax_sub(ed, line[i], COLOR_TABLE_COMMENT, y, x, cursor_x);
+				if(x >= ed->PageW) { return x; }
 			}
-		}
-		else if(c == ' ' && ed->ShowWhitespace)
-		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, cursor_x, screen_pack(CHAR_VISIBLE_SPACE,
-				screen_color(COLOR_TABLE_VISIBLE_SPACE, COLOR_TABLE_BG)));
-			++i;
-		}
-		else if(c == '\t')
-		{
-			x = ed_syntax_tab(ed, y, x, cursor_x);
-			if(x >= ed->PageW) { return x; }
-			++i;
 		}
 		else if(c == '#')
 		{
@@ -391,17 +382,8 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				if(c == '\t')
-				{
-					x = ed_syntax_tab(ed, y, x, cursor_x);
-					if(x >= ed->PageW) { return x; }
-				}
-				else
-				{
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, cursor_x, screen_pack(c,
-						screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
-				}
+				x = ed_syntax_sub(ed, c, COLOR_TABLE_STRING, y, x, cursor_x);
+				if(x >= ed->PageW) { return x; }
 
 				if(esc)
 				{
@@ -500,9 +482,8 @@ static u32 ed_syntax(Editor *ed, u32 y, u32 cursor_x)
 		}
 		else
 		{
+			x = ed_syntax_sub(ed, c, COLOR_TABLE_FG, y, x, cursor_x);
 			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, cursor_x, screen_pack(c,
-				screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
 			++i;
 		}
 	}

@@ -12,6 +12,7 @@ static void ed_dir_load(Editor *ed)
 	strcpy(buf, ed->SBuf);
 	path_dir(buf);
 
+	_free(ed->DirList);
 	ed->DirList = dir_sorted(buf, &ed->DirEntries);
 }
 
@@ -25,8 +26,6 @@ static void ed_nav_open(Editor *ed)
 static void ed_nav_close(Editor *ed)
 {
 	ed->Mode = EDITOR_MODE_DEFAULT;
-	_free(ed->DirList);
-	ed->DirList = NULL;
 	ed_render(ed);
 }
 
