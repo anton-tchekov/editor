@@ -1,12 +1,12 @@
-#define TEST(expr)     test((expr), #expr, __FILE__, __LINE__)
-#define TEST_FN(name)  test_fn(name, #name)
-#define TEST_ALL(name) test_all(name)
+#define TEST(expr)      test((expr), #expr, __FILE__, __LINE__)
+#define TEST_FN(name)   test_fn(name, #name)
+#define TEST_ALL(name)  test_all(name)
 
-#define COLOR_RESET "\033[0m"
-#define COLOR_RED   "\033[1;31m"
-#define COLOR_GREEN "\033[1;32m"
-#define COLOR_BLUE  "\033[1;34m"
-#define COLOR_WHITE "\033[1;37m"
+#define COLOR_RESET     "\033[0m"
+#define COLOR_RED       "\033[1;31m"
+#define COLOR_GREEN     "\033[1;32m"
+#define COLOR_BLUE      "\033[1;34m"
+#define COLOR_WHITE     "\033[1;37m"
 
 static u32 _fn_count, _fn_success, _all_count, _all_success;
 

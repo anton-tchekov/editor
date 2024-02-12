@@ -76,7 +76,7 @@ static u32 _keyword_hash(const char *word, u32 len)
 
 static void keyword_init(void)
 {
-	u32 i, hash, steps;
+	u32 i, hash;
 
 	for(i = 0; i < HASHMAP_SIZE; ++i)
 	{
@@ -85,7 +85,9 @@ static void keyword_init(void)
 
 	for(i = 0; i < ARRLEN(_keywords); ++i)
 	{
-		steps = 0;
+#ifndef NDEBUG
+		u32 steps = 0;
+#endif
 		hash = _keyword_hash(_keywords[i].Name, UINT32_MAX);
 		while(_hashmap[hash % HASHMAP_SIZE] != -1)
 		{

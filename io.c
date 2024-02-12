@@ -7,7 +7,17 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+
+#ifndef NDEBUG
 #include <time.h>
+#endif
+
+#define TIMEKEY
+
+#ifdef TIMEKEY
+#include <sys/time.h>
+#endif
+
 #include "types.h"
 #include "keys.h"
 #include "terminus16.c"
@@ -589,6 +599,8 @@ static char **dir_sorted(const char *path, u32 *len)
 	return ptrs;
 }
 
+#ifndef NDEBUG
+
 static int evilmain(int argc, char *argv[])
 {
 	/* CTRL is not included in modifiers to avoid file system corruption */
@@ -649,15 +661,19 @@ static int evilmain(int argc, char *argv[])
 	return 0;
 }
 
+#endif
+
 int main(int argc, char *argv[])
 {
 	static u32 quit;
 	SDL_Event e;
 
+#ifndef NDEBUG
 	if(argc == 2 && !strcmp(argv[1], "evil"))
 	{
 		return evilmain(1, argv);
 	}
+#endif
 
 	init();
 	event_init(argc, argv, _screen_width, _screen_height);
@@ -690,9 +706,21 @@ int main(int argc, char *argv[])
 
 		case SDL_KEYDOWN:
 			{
-				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
+				u32 key;
+#ifdef TIMEKEY
+				struct timeval tv;
+				u64 t0, t1;
+				gettimeofday(&tv, NULL);
+				t0 = (u64)1000000 * (u64)tv.tv_sec + (u64)tv.tv_usec;
+#endif
+				key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
 				event_keyboard(key, key_to_chr(key),
 					e.key.repeat ? KEYSTATE_REPEAT : KEYSTATE_PRESSED);
+#ifdef TIMEKEY
+				gettimeofday(&tv, NULL);
+				t1 = (u64)1000000 * (u64)tv.tv_sec + (u64)tv.tv_usec;
+				printf("delta_t = %"PRIu64"\n", t1 - t0);
+#endif
 			}
 			break;
 

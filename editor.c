@@ -19,7 +19,6 @@ enum
 
 #define MAX_SEARCH_LEN    256
 #define MAX_MSG_LEN        80
-#define ED_DIR_BUF_SIZE  8192
 #define ED_DIR_PAGE        12
 
 typedef struct

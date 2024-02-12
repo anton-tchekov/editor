@@ -5,12 +5,12 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-- Bugs
-	- Multi-line comment `/* */`
-	- When using the up and down arrow keys, cursor does not always line up
-		on the same collumn due to tabs being wider than other characters
+- Syntax Hightligher Multi-line comment `/* */`
 
-- Add UTF-8 german umlaut support and maybe cyrillic?
+- BUG: When using the up and down arrow keys, cursor does not always line
+	up on the same collumn due to tabs being wider than other characters
+
+- Add UTF-8 german umlaut and cyrillic support
 
 - Text Selection
 	- Select All (Ctrl+A)
