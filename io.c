@@ -133,13 +133,6 @@ static void print_mem(void)
 	printf("%"PRIu32" allocs, %"PRIu32" frees\n", alloc_cnt, free_cnt);
 }
 
-static void *_mallocopy(const void *buf, size_t size)
-{
-	char *p = _malloc(size);
-	memcpy(p, buf, size);
-	return p;
-}
-
 static void resize_internal(u32 w, u32 h)
 {
 	_gfx_width = w;
@@ -598,6 +591,7 @@ static char **dir_sorted(const char *path, u32 *len)
 
 static int evilmain(int argc, char *argv[])
 {
+	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
 	static u32 quit;
 	SDL_Event e;

@@ -5,18 +5,10 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-### Very High Priority
-
-- Refactor
-	- Vector simplify code with realloc
-	- Navbar autocomplete ugliness
-
 - Bugs
 	- Multi-line comment `/* */`
 	- When using the up and down arrow keys, cursor does not always line up
 		on the same collumn due to tabs being wider than other characters
-
-### High Priority
 
 - Add UTF-8 german umlaut support and maybe cyrillic?
 
@@ -28,8 +20,7 @@ that is optimized for C projects, is performant, and productive.
 
 - Finish Navigation bar
 	- Select file
-
-### Medium Priority
+	- Refactor navbar autocomplete ugliness
 
 - Multiple files open at the same time
 - Create New File (Ctrl+N)
@@ -41,6 +32,6 @@ that is optimized for C projects, is performant, and productive.
 
 - Search and replace in file / whole folder
 
-### Low Priority
-
 - Multi-line editing
+
+- Undo / Redo

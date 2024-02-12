@@ -23,21 +23,29 @@ static void vector_init(Vector *vector, u32 capacity)
 	vector->Data = _malloc(capacity);
 }
 
+static void vector_from(Vector *vector, const void *buf, u32 bytes)
+{
+	vector->Capacity = bytes;
+	vector->Length = bytes;
+	vector->Data = _malloc(vector->Capacity);
+	memcpy(vector->Data, buf, bytes);
+}
+
 static void vector_makespace(Vector *vector, u32 pos, u32 bytes)
 {
-	u32 nl;
+	u32 new_length;
 	u8 *offset;
 	assert(pos <= vector->Length);
-	nl = vector->Length + bytes;
-	if(nl > vector->Capacity)
+	new_length = vector->Length + bytes;
+	if(new_length > vector->Capacity)
 	{
-		vector->Capacity = _next_pot(nl);
+		vector->Capacity = _next_pot(new_length);
 		vector->Data = _realloc(vector->Data, vector->Capacity);
 	}
 
 	offset = (u8 *)vector->Data + pos;
 	memmove(offset + bytes, offset, vector->Length - pos);
-	vector->Length = nl;
+	vector->Length = new_length;
 }
 
 static void vector_reserve(Vector *vector, u32 capacity)
@@ -49,74 +57,27 @@ static void vector_reserve(Vector *vector, u32 capacity)
 	}
 }
 
-static void vector_from(Vector *vector, const void *buf, u32 bytes)
-{
-	vector->Capacity = _next_pot(bytes);
-	vector->Length = bytes;
-	vector->Data = _mallocopy(buf, bytes);
-}
-
 static void vector_replace(
 	Vector *vector, u32 index, u32 count, const void *elems, u32 new_count)
 {
-	/* TODO: This could be more simple (use realloc) */
 	u32 new_length;
 
+	assert(index <= vector->Length);
+	assert(count <= vector->Length);
 	assert(index + count <= vector->Length);
 
-	/* Calculate new number of elements */
 	new_length = vector->Length - count + new_count;
 	if(new_length > vector->Capacity)
 	{
-		/* Resize necessary */
-		u32 new_capacity, prev_bytes, new_bytes, old_bytes, last_bytes;
-		void *new_data;
-
-		new_capacity = _next_pot(new_length);
-		prev_bytes = index;
-		new_bytes = new_count;
-		old_bytes = count;
-		last_bytes = (vector->Length - index - count);
-
-		/* Calculate new capacity */
-		vector->Capacity = new_capacity;
-
-		/* Create new buffer */
-		new_data = _malloc(new_capacity);
-
-		/* Copy first part from previous buffer */
-		memcpy(new_data, vector->Data, prev_bytes);
-
-		/* Copy new range */
-		memcpy((u8 *)new_data + prev_bytes, elems, new_bytes);
-
-		/* Copy last part */
-		memcpy((u8 *)new_data + prev_bytes + new_bytes,
-			(u8 *)vector->Data + prev_bytes + old_bytes,
-			last_bytes);
-
-		/* Replace with new buffer */
-		_free(vector->Data);
-		vector->Data = new_data;
-	}
-	else
-	{
-		u32 prev_bytes, new_bytes, old_bytes, last_bytes;
-
-		prev_bytes = index;
-		new_bytes = new_count;
-		old_bytes = count;
-		last_bytes = (vector->Length - index - count);
-
-		/* Shift last part */
-		memmove((u8 *)vector->Data + prev_bytes + new_bytes,
-			(u8 *)vector->Data + prev_bytes + old_bytes,
-			last_bytes);
-
-		/* Copy new range */
-		memcpy((u8 *)vector->Data + prev_bytes, elems, new_bytes);
+		vector->Capacity = _next_pot(new_length);
+		vector->Data = _realloc(vector->Data, vector->Capacity);
 	}
 
+	memmove((u8 *)vector->Data + index + new_count,
+		(u8 *)vector->Data + index + count,
+		vector->Length - index - count);
+
+	memcpy((u8 *)vector->Data + index, elems, new_count);
 	vector->Length = new_length;
 }
 
