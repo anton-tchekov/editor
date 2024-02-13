@@ -5,10 +5,9 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-- Syntax Hightligher Multi-line comment `/* */`
+- Performance: Optimize rendering process (> 90% cpu time)
 
-- BUG: When using the up and down arrow keys, cursor does not always line
-	up on the same collumn due to tabs being wider than other characters
+- Syntax Hightligher Multi-line comment `/* */`
 
 - Add UTF-8 german umlaut and cyrillic support
 

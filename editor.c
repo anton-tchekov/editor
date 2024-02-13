@@ -35,7 +35,7 @@ typedef struct
 {
 	Vector Lines;
 	u32 CursorX;
-	u32 CursorSaveX;
+	i32 CursorSaveX;
 	u32 CursorY;
 	u32 PageW;
 	u32 FullW;
@@ -580,24 +580,24 @@ static u32 ed_render_goto_line(Editor *ed)
 	return ed_render_dir(ed);
 }
 
-static u32 ed_cursor_pos_x(Editor *ed)
+static u32 ed_chr_x_inc(Editor *ed, u32 c, u32 x)
+{
+	return (c == '\t') ?
+		((x + ed->TabSize) / ed->TabSize * ed->TabSize) :
+		(x + 1);
+}
+
+static u32 ed_cursor_pos_x(Editor *ed, u32 y)
 {
 	u32 i;
-	u32 r = 0;
-	const char *line = vector_data(ed_cur_line(ed));
+	u32 x = 0;
+	const char *line = vector_data(ed_line_get(ed, y));
 	for(i = 0; i < ed->CursorX; ++i)
 	{
-		if(line[i] == '\t')
-		{
-			r = (r + ed->TabSize) / ed->TabSize * ed->TabSize;
-		}
-		else
-		{
-			++r;
-		}
+		x = ed_chr_x_inc(ed, line[i], x);
 	}
 
-	return r;
+	return x;
 }
 
 static void ed_render(Editor *ed)
@@ -643,7 +643,7 @@ static void ed_render(Editor *ed)
 		ed_render_msg(ed);
 	}
 
-	cursor_x = ed_cursor_pos_x(ed);
+	cursor_x = ed_cursor_pos_x(ed, ed->CursorY);
 	for(y = start_y; y < end_y; ++y)
 	{
 		ed_render_line(ed, y, cursor_x);
@@ -682,7 +682,7 @@ static void ed_backspace(Editor *ed)
 		vector_remove(line, --ed->CursorX, 1);
 	}
 
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -710,7 +710,7 @@ static void ed_delete(Editor *ed)
 		vector_remove(line, ed->CursorX, 1);
 	}
 
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -720,7 +720,7 @@ static void ed_char(Editor *ed, u32 chr)
 	ins[0] = chr;
 	vector_insert(ed_cur_line(ed), ed->CursorX, 1, ins);
 	++ed->CursorX;
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -755,32 +755,79 @@ static void ed_home(Editor *ed)
 	u32 i = 0;
 	while(i < len && isspace(buf[i])) { ++i; }
 	ed->CursorX = (ed->CursorX == i) ? 0 : i;
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
 static void ed_end(Editor *ed)
 {
 	ed->CursorX = ed_cur_line_len(ed);
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
-static void ed_move_vertical(Editor *ed)
+static void ed_move_vertical(Editor *ed, u32 prev_y)
 {
-	u32 len = ed_cur_line_len(ed);
-	ed->CursorX = ed->CursorSaveX;
-	if(ed->CursorX > len)
+	Vector *line = ed_cur_line(ed);
+	u32 len = vector_len(line);
+	const char *buf = vector_data(line);
+	u32 i, x, max_x;
+
+	if(ed->CursorSaveX < 0)
 	{
-		ed->CursorX = len;
+		ed->CursorSaveX = ed_cursor_pos_x(ed, prev_y);
 	}
+
+	max_x = ed->CursorSaveX;
+	for(i = 0, x = 0; i < len && x < max_x; ++i)
+	{
+		x = ed_chr_x_inc(ed, buf[i], x);
+	}
+
+	ed->CursorX = i;
+}
+
+static void ed_up(Editor *ed)
+{
+	if(ed->CursorY == 0)
+	{
+		ed->CursorX = 0;
+		ed->CursorSaveX = 0;
+	}
+	else
+	{
+		u32 prev_y = ed->CursorY;
+		--ed->CursorY;
+		ed_move_vertical(ed, prev_y);
+	}
+
+	ed_render(ed);
+}
+
+static void ed_down(Editor *ed)
+{
+	if(ed->CursorY >= ed_num_lines(ed) - 1)
+	{
+		ed->CursorX = ed_cur_line_len(ed);
+		ed->CursorSaveX = -1;
+	}
+	else
+	{
+		u32 prev_y = ed->CursorY;
+		++ed->CursorY;
+		ed_move_vertical(ed, prev_y);
+	}
+
+	ed_render(ed);
 }
 
 static void ed_page_up(Editor *ed)
 {
 	if(ed->CursorY >= ed->PageH)
 	{
+		u32 prev_y = ed->CursorY;
 		ed->CursorY -= ed->PageH;
+		ed_move_vertical(ed, prev_y);
 	}
 	else
 	{
@@ -789,22 +836,25 @@ static void ed_page_up(Editor *ed)
 		ed->CursorSaveX = 0;
 	}
 
-	ed_move_vertical(ed);
 	ed_render(ed);
 }
 
 static void ed_page_down(Editor *ed)
 {
 	u32 num_lines = ed_num_lines(ed);
+	u32 prev_y = ed->CursorY;
 	ed->CursorY += ed->PageH;
 	if(ed->CursorY >= num_lines)
 	{
 		ed->CursorY = num_lines - 1;
 		ed->CursorX = ed_cur_line_len(ed);
-		ed->CursorSaveX = ed->CursorX;
+		ed->CursorSaveX = -1;
+	}
+	else
+	{
+		ed_move_vertical(ed, prev_y);
 	}
 
-	ed_move_vertical(ed);
 	ed_render(ed);
 }
 
@@ -823,7 +873,7 @@ static void ed_left(Editor *ed)
 		--ed->CursorX;
 	}
 
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -842,39 +892,7 @@ static void ed_right(Editor *ed)
 		++ed->CursorX;
 	}
 
-	ed->CursorSaveX = ed->CursorX;
-	ed_render(ed);
-}
-
-static void ed_up(Editor *ed)
-{
-	if(ed->CursorY == 0)
-	{
-		ed->CursorX = 0;
-		ed->CursorSaveX = 0;
-	}
-	else
-	{
-		--ed->CursorY;
-		ed_move_vertical(ed);
-	}
-
-	ed_render(ed);
-}
-
-static void ed_down(Editor *ed)
-{
-	if(ed->CursorY >= ed_num_lines(ed) - 1)
-	{
-		ed->CursorX = ed_cur_line_len(ed);
-		ed->CursorSaveX = ed->CursorX;
-	}
-	else
-	{
-		++ed->CursorY;
-		ed_move_vertical(ed);
-	}
-
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -890,7 +908,7 @@ static void ed_bottom(Editor *ed)
 {
 	ed->CursorY = ed_num_lines(ed) - 1;
 	ed->CursorX = ed_cur_line_len(ed);
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -916,7 +934,8 @@ static void ed_gotoxy(Editor *ed, u32 x, u32 y)
 		ed->PageY = ed->CursorY - ed->PageH / 2;
 	}
 
-	ed->CursorSaveX = ed->CursorX = x;
+	ed->CursorX = x;
+	ed->CursorSaveX = -1;
 }
 
 static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
@@ -1036,7 +1055,7 @@ static void ed_prev_word(Editor *ed)
 		}
 	}
 
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -1063,7 +1082,7 @@ static void ed_next_word(Editor *ed)
 		}
 	}
 
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
@@ -1209,7 +1228,7 @@ static void ed_inc(Editor *ed, const char *s)
 {
 	vector_insert(ed_cur_line(ed), ed->CursorX, 11, s);
 	ed->CursorX += 10;
-	ed->CursorSaveX = ed->CursorX;
+	ed->CursorSaveX = -1;
 	ed_render(ed);
 }
 
