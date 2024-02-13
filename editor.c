@@ -84,119 +84,6 @@ static u32 cursor_unordered(Cursor *a, Cursor *b)
 	return (b->Y < a->Y) || (a->Y == b->Y && b->X < a->X);
 }
 
-#if 0
-
-static void cursor_normalize(TextBuffer *tb, Cursor *cursor)
-{
-	size_t length = tb->Lines[cursor->Y]->Length;
-	cursor->X = (cursor->X < length) ? cursor->X : length;
-}
-
-static void selection_normalize(TextBuffer *tb, Selection *sel)
-{
-	Cursor *first = &sel->Limits[0];
-	Cursor *second = &sel->Limits[1];
-
-	cursor_normalize(tb, first);
-	cursor_normalize(tb, second);
-
-	if(cursor_unordered(first, second))
-	{
-		cursor_swap(first, second);
-	}
-}
-
-static size_t count_bytes(TextBuffer *tb, const Selection *sel)
-{
-	size_t length;
-	size_t x1 = sel->Limits[0].X;
-	size_t y1 = sel->Limits[0].Y;
-	size_t x2 = sel->Limits[1].X;
-	size_t y2 = sel->Limits[1].Y;
-	TextLine **lines = tb->Lines;
-	TextLine **cur = lines + y1;
-	TextLine **end = lines + y2;
-
-	if(y1 == y2)
-	{
-		length = x2 - x1;
-	}
-	else
-	{
-		length = (*cur)->Length - x1 + 1;
-		++cur;
-		while(cur < end)
-		{
-			length += (*cur)->Length + 1;
-			++cur;
-		}
-
-		length += x2;
-	}
-
-	return length;
-}
-
-static char *textbuffer_get(TextBuffer *tb, const Selection *sel, size_t *len)
-{
-	TextLine **lines, **cur, **end;
-	Selection nsel = *sel;
-	size_t x1, y1, x2, y2;
-	size_t length;
-	char *output, *p;
-
-	selection_normalize(tb, &nsel);
-
-	x1 = nsel.Limits[0].X;
-	y1 = nsel.Limits[0].Y;
-	x2 = nsel.Limits[1].X;
-	y2 = nsel.Limits[1].Y;
-
-	length = count_bytes(tb, &nsel);
-	output = _malloc(length + 1);
-	*len = length;
-
-	lines = tb->Lines;
-	cur = lines + y1;
-	end = lines + y2;
-
-	p = output;
-	if(y1 == y2)
-	{
-		/* Copy span of single line */
-		memcpy(p, (*cur)->Buffer + x1, length);
-		p += length;
-	}
-	else
-	{
-		/* Copy end of first line */
-		length = (*cur)->Length - x1;
-		memcpy(p, (*cur)->Buffer + x1, length);
-		p += length;
-		++cur;
-
-		/* Copy all lines in between */
-		while(cur < end)
-		{
-			*p++ = '\n';
-			length = (*cur)->Length;
-			memcpy(p, (*cur)->Buffer, length);
-			p += length;
-			++cur;
-		}
-
-		/* Copy start of last line */
-		*p++ = '\n';
-		memcpy(p, (*cur)->Buffer, x2);
-		p += x2;
-	}
-
-	*p = '\0';
-	return output;
-}
-
-#endif
-
 static u32 ed_num_lines(Editor *ed)
 {
 	return vector_len(&ed->Lines) / sizeof(Vector);
@@ -217,9 +104,98 @@ static u32 ed_line_len(Editor *ed, u32 i)
 	return vector_len(ed_line_get(ed, i));
 }
 
+static const char *ed_line_data(Editor *ed, u32 i)
+{
+	return vector_data(ed_line_get(ed, i));
+}
+
 static u32 ed_cur_line_len(Editor *ed)
 {
 	return vector_len(ed_cur_line(ed));
+}
+
+static void ed_cursor_norm(Editor *ed, Cursor *cursor)
+{
+	u32 len = ed_line_len(ed, cursor->Y);
+	cursor->X = (cursor->X < len) ? cursor->X : len;
+}
+
+static void ed_sel_norm(Editor *ed, Selection *sel)
+{
+	Cursor *first = &sel->Limits[0];
+	Cursor *second = &sel->Limits[1];
+
+	ed_cursor_norm(ed, first);
+	ed_cursor_norm(ed, second);
+
+	if(cursor_unordered(first, second))
+	{
+		cursor_swap(first, second);
+	}
+}
+
+static u32 ed_sel_count_bytes(Editor *ed, const Selection *sel)
+{
+	u32 len;
+	u32 x1 = sel->Limits[0].X;
+	u32 y1 = sel->Limits[0].Y;
+	u32 x2 = sel->Limits[1].X;
+	u32 y2 = sel->Limits[1].Y;
+	if(y1 == y2)
+	{
+		return x2 - x1;
+	}
+
+	len = ed_line_len(ed, y1) - x1 + 1;
+	for(++y1; y1 < y2; ++y1)
+	{
+		len += ed_line_len(ed, y1) + 1;
+	}
+
+	return len + x2;
+}
+
+static char *ed_sel_get(Editor *ed, const Selection *sel, u32 *out_len)
+{
+	u32 x1, y1, x2, y2, len;
+	char *output, *p;
+	Selection nsel = *sel;
+	ed_sel_norm(ed, &nsel);
+
+	x1 = nsel.Limits[0].X;
+	y1 = nsel.Limits[0].Y;
+	x2 = nsel.Limits[1].X;
+	y2 = nsel.Limits[1].Y;
+
+	*out_len = len = ed_sel_count_bytes(ed, &nsel);
+	p = output = _malloc(len + 1);
+	if(y1 == y2)
+	{
+		memcpy(p, ed_line_data(ed, y1) + x1, len);
+		p += len;
+	}
+	else
+	{
+		Vector *line = ed_line_get(ed, y1);
+		len = vector_len(line) - x1;
+		memcpy(p, (u8 *)vector_data(line) + x1, len);
+		p += len;
+		for(++y1; y1 < y2; ++y1)
+		{
+			*p++ = '\n';
+			line = ed_line_get(ed, y1);
+			len = vector_len(line);
+			memcpy(p, vector_data(line), len);
+			p += len;
+		}
+
+		*p++ = '\n';
+		memcpy(p, ed_line_data(ed, y1), x2);
+		p += x2;
+	}
+
+	*p = '\0';
+	return output;
 }
 
 static void ed_line_remove(Editor *ed, u32 line)
