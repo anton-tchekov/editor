@@ -5,22 +5,22 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-- Performance: Optimize rendering process (> 90% cpu time)
-
-- Syntax Hightligher Multi-line comment `/* */`
-
-- Add UTF-8 german umlaut and cyrillic support
-
+- CTRL+Backspace, CTRL+Delete
+- CTRL+Return, CTRL+Shift+Return
 - Text Selection
-	- Select All (Ctrl+A)
-	- Copy (Ctrl+C)
-	- Cut (Ctrl+X)
-	- Paste (Ctrl+V)
+- Select All (Ctrl+A)
+- Copy (Ctrl+C)
+- Cut (Ctrl+X)
+- Paste (Ctrl+V)
 
 - Finish Navigation bar
-	- Select file
+	- Select file and open
 	- Refactor navbar autocomplete ugliness
 
+- Syntax Hightligher Multi-line comment `/* */`
+- Performance: Optimize rendering process (> 90% cpu time)
+
+- Search and replace in file / whole folder
 - Multiple files open at the same time
 - Create New File (Ctrl+N)
 - Ask to save when exiting
@@ -29,8 +29,6 @@ that is optimized for C projects, is performant, and productive.
 	- Save all, Discard All, Cancel
 	- Modified flag for each open file needed
 
-- Search and replace in file / whole folder
-
-- Multi-line editing
-
+- Add UTF-8 german umlaut and cyrillic support
 - Undo / Redo
+- Multi-line editing

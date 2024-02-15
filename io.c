@@ -42,7 +42,7 @@ enum
 {
 	COLOR_TABLE_BG,
 	COLOR_TABLE_FG,
-	COLOR_TABLE_LINE_NUMBER,
+	COLOR_TABLE_GRAY,
 	COLOR_TABLE_COMMENT,
 	COLOR_TABLE_NUMBER,
 	COLOR_TABLE_STRING,
@@ -53,7 +53,7 @@ enum
 	COLOR_TABLE_PAREN,
 	COLOR_TABLE_FN,
 	COLOR_TABLE_ARRAY,
-	COLOR_TABLE_VISIBLE_SPACE,
+	COLOR_TABLE_SELECTION,
 	COLOR_TABLE_INFO,
 	COLOR_TABLE_ERROR
 };
@@ -62,7 +62,7 @@ static const u32 _color_table[] =
 {
 	0xFF040404, /* Background */
 	0xFFFFFFFF, /* Foreground */
-	0xFF777777, /* Line Number */
+	0xFF777777, /* Gray / Line Number / Visible Space */
 	0xFFFF6A55, /* Comment */
 	0xFF9DFE88, /* Number */
 	0xFFCE9178, /* String */
@@ -73,7 +73,7 @@ static const u32 _color_table[] =
 	0xFF179FFF, /* Parenthesis/Bracket/Brace Nesting Level 2 */
 	0xFFDCDCAA, /* Function Identifier */
 	0xFF9CDCFE, /* Array Identifier */
-	0xFF454545, /* Visible Space */
+	0xFF264F78, /* Selection */
 	0xFF3C88CF, /* Info */
 	0xFFFF0000, /* Error */
 };
@@ -398,6 +398,12 @@ static u32 screen_color(u32 fg, u32 bg)
 static u32 screen_pack(u32 c, u32 color)
 {
 	return color | (c << 8);
+}
+
+static u32 screen_pack_set_bg(u32 v, u32 bg)
+{
+	v &= ~0xF0;
+	return v | (bg << 4);
 }
 
 static u32 screen_pack_color_swap(u32 v)
