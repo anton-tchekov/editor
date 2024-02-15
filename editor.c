@@ -190,6 +190,7 @@ static char *ed_sel_get(Editor *ed, const Selection *sel, u32 *out_len)
 
 static void ed_line_remove(Editor *ed, u32 line)
 {
+	vector_destroy(ed_line_get(ed, line));
 	vector_remove(&ed->Lines, line * sizeof(Vector), sizeof(Vector));
 }
 
@@ -647,7 +648,6 @@ static void ed_backspace(Editor *ed)
 			Vector *prev = ed_line_get(ed, --ed->CursorY);
 			ed->CursorX = vector_len(prev);
 			vector_push(prev, vector_len(line), vector_data(line));
-			vector_destroy(line);
 			ed_line_remove(ed, ed->CursorY + 1);
 		}
 	}
@@ -675,7 +675,6 @@ static void ed_delete(Editor *ed)
 			u32 next_idx = ed->CursorY + 1;
 			Vector *next = ed_line_get(ed, next_idx);
 			vector_push(line, vector_len(next), vector_data(next));
-			vector_destroy(next);
 			ed_line_remove(ed, next_idx);
 		}
 	}
@@ -1223,7 +1222,23 @@ static void ed_del_next_word(Editor *ed)
 
 static void ed_del_cur_line(Editor *ed)
 {
+	u32 count = ed_num_lines(ed);
+	if(count == 1)
+	{
+		ed_line_get(ed, 0)->Length = 0;
+	}
+	else
+	{
+		ed_line_remove(ed, ed->CursorY);
+		if(ed->CursorY >= count - 1)
+		{
+			ed->CursorY = count - 2;
+		}
+	}
 
+	ed->CursorX = 0;
+	ed->CursorSaveX = 0;
+	ed_render(ed);
 }
 
 static void ed_move_up(Editor *ed)
