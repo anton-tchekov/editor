@@ -145,3 +145,15 @@ static u32 match_part(const char *str, const char *cmp, u32 len)
 {
 	return len == strlen(cmp) && !strncmp(str, cmp, len);
 }
+
+static u32 count_char(const char *s, u32 c)
+{
+	u32 cnt = 0;
+	while((s = strchr(s, c)))
+	{
+		++s;
+		++cnt;
+	}
+
+	return cnt;
+}
