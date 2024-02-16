@@ -1376,6 +1376,9 @@ static void ed_prev_word(Editor *ed)
 
 static void ed_del_prev_word(Editor *ed)
 {
+	ed_prev_word_internal(ed);
+	ed_sel_clear(ed);
+	ed_render(ed);
 }
 
 static void ed_next_word_internal(Editor *ed)
@@ -1419,6 +1422,9 @@ static void ed_next_word(Editor *ed)
 
 static void ed_del_next_word(Editor *ed)
 {
+	ed_next_word_internal(ed);
+	ed_sel_clear(ed);
+	ed_render(ed);
 }
 
 static void ed_del_cur_line(Editor *ed)
