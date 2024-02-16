@@ -5,7 +5,6 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO (in order)
 
-- Paste (Ctrl+V)
 - Performance: Optimize rendering process by using HW acceleration
 
 - Finish Navigation bar

@@ -259,6 +259,14 @@ static void ed_sel_delete(Editor *ed)
 	}
 }
 
+static void ed_sel_clear(Editor *ed)
+{
+	if(sel_wide(&ed->Sel))
+	{
+		ed_sel_delete(ed);
+	}
+}
+
 static void ed_ins_lines(Editor *ed, u32 y, u32 count)
 {
 	vector_makespace(&ed->Lines, y * sizeof(Vector), count * sizeof(Vector));
@@ -266,33 +274,70 @@ static void ed_ins_lines(Editor *ed, u32 y, u32 count)
 
 static void ed_insert(Editor *ed, const char *text)
 {
-	u32 c;
-	Vector line;
-	const char *linestart, *p;
-	u32 new_lines = count_char(text, '\n');
-	ed_ins_lines(ed, ed->Sel.C[1].Y, new_lines);
-	p = text;
-	linestart = text;
-	do
-	{
-		c = *p;
-		if(c == '\0' || c == '\n')
-		{
-			vector_from(&line, linestart, p - linestart);
-			vector_push(&ed->Lines, sizeof(line), &line);
-			linestart = p + 1;
-		}
-		++p;
-	}
-	while(c != '\0');
-}
+	u32 c, y, new_lines;
+	const char *p, *s;
 
-static void ed_sel_clear(Editor *ed)
-{
-	if(sel_wide(&ed->Sel))
+	ed_sel_clear(ed);
+
+	/* Count number of newlines and store position of last line */
+	new_lines = 0;
+	for(s = text; (c = *s); ++s)
 	{
-		ed_sel_delete(ed);
+		if(c == '\n')
+		{
+			p = s + 1;
+			++new_lines;
+		}
 	}
+
+	y = ed->Sel.C[1].Y;
+	if(!new_lines)
+	{
+		u32 len = s - text;
+		vector_insert(ed_line_get(ed, y), ed->Sel.C[1].X, len, text);
+		ed->Sel.C[1].X += len;
+	}
+	else
+	{
+		char *last;
+		u32 slen, rlen;
+		Vector line, *first, *lines;
+
+		/* Insert new lines in advance to avoid quadratic complexity */
+		ed_ins_lines(ed, y + 1, new_lines);
+		lines = vector_data(&ed->Lines);
+
+		/* Last line */
+		first = ed_line_get(ed, y);
+		rlen = vector_len(first) - ed->Sel.C[1].X;
+		slen = s - p;
+		vector_init(&line, rlen + slen);
+		line.Length = rlen + slen;
+		last = vector_data(&line);
+		memcpy(last, p, slen);
+		memcpy(last + slen, (u8 *)vector_data(first) + ed->Sel.C[1].X, rlen);
+		lines[y + new_lines] = line;
+
+		first->Length = ed->Sel.C[1].X;
+		ed->Sel.C[1].X = slen;
+		ed->Sel.C[1].Y = y + new_lines;
+
+		/* First line */
+		p = strchr(text, '\n');
+		vector_push(ed_line_get(ed, y), p - text, text);
+		text = p + 1;
+
+		/* Other lines */
+		while((p = strchr(text, '\n')))
+		{
+			vector_from(&line, text, p - text);
+			lines[++y] = line;
+			text = p + 1;
+		}
+	}
+
+	ed->CursorSaveX = -1;
+	ed_sel_to_cursor(ed);
 }
 
 static void ed_line_remove(Editor *ed, u32 line)
