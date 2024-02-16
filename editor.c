@@ -1490,6 +1490,7 @@ static void ed_del_cur_line(Editor *ed)
 
 	ed->Sel.C[1].X = 0;
 	ed->CursorSaveX = 0;
+	ed_sel_to_cursor(ed);
 	ed_render(ed);
 }
 
