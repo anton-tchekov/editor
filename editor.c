@@ -886,6 +886,28 @@ static void ed_enter(Editor *ed)
 	ed_render(ed);
 }
 
+static void ed_enter_after(Editor *ed)
+{
+	Vector new;
+	vector_init(&new, 8);
+	ed_line_insert(ed, ++ed->Sel.C[1].Y, &new);
+	ed->Sel.C[1].X = 0;
+	ed->CursorSaveX = 0;
+	ed_sel_to_cursor(ed);
+	ed_render(ed);
+}
+
+static void ed_enter_before(Editor *ed)
+{
+	Vector new;
+	vector_init(&new, 8);
+	ed_line_insert(ed, ed->Sel.C[1].Y, &new);
+	ed->Sel.C[1].X = 0;
+	ed->CursorSaveX = 0;
+	ed_sel_to_cursor(ed);
+	ed_render(ed);
+}
+
 static void ed_home_internal(Editor *ed)
 {
 	Vector *line = ed_cur_line(ed);
@@ -1281,7 +1303,7 @@ static void ed_sel_store(Editor *ed)
 	u32 len;
 	char *text = ed_sel_get(ed, &ed->Sel, &len);
 	clipboard_store(text);
-	free(text);
+	_free(text);
 }
 
 static void ed_sel_all(Editor *ed)
@@ -1592,53 +1614,55 @@ static void ed_key_press_default(Editor *ed, u32 key, u32 cp)
 {
 	switch(key)
 	{
-	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:  ed_sel_prev_word(ed);  break;
-	case MOD_CTRL | KEY_LEFT:              ed_prev_word(ed);      break;
-	case MOD_SHIFT | KEY_LEFT:             ed_sel_left(ed);       break;
-	case KEY_LEFT:                         ed_left(ed);           break;
-	case MOD_CTRL | MOD_SHIFT | KEY_RIGHT: ed_sel_next_word(ed);  break;
-	case MOD_CTRL | KEY_RIGHT:             ed_next_word(ed);      break;
-	case MOD_SHIFT | KEY_RIGHT:            ed_sel_right(ed);      break;
-	case KEY_RIGHT:                        ed_right(ed);          break;
-	case MOD_CTRL | KEY_UP:                ed_move_up(ed);        break;
-	case MOD_SHIFT | KEY_UP:               ed_sel_up(ed);         break;
-	case KEY_UP:                           ed_up(ed);             break;
-	case MOD_CTRL | KEY_DOWN:              ed_move_down(ed);      break;
-	case MOD_SHIFT | KEY_DOWN:             ed_sel_down(ed);       break;
-	case KEY_DOWN:                         ed_down(ed);           break;
-	case MOD_SHIFT | KEY_PAGE_UP:          ed_sel_page_up(ed);    break;
-	case KEY_PAGE_UP:                      ed_page_up(ed);        break;
-	case MOD_SHIFT | KEY_PAGE_DOWN:        ed_sel_page_down(ed);  break;
-	case KEY_PAGE_DOWN:                    ed_page_down(ed);      break;
-	case MOD_CTRL | MOD_SHIFT | KEY_HOME:  ed_sel_top(ed);        break;
-	case MOD_CTRL | KEY_HOME:              ed_top(ed);            break;
-	case MOD_SHIFT | KEY_HOME:             ed_sel_home(ed);       break;
-	case KEY_HOME:                         ed_home(ed);           break;
-	case MOD_CTRL | MOD_SHIFT | KEY_END:   ed_sel_bottom(ed);     break;
-	case MOD_CTRL | KEY_END:               ed_bottom(ed);         break;
-	case MOD_SHIFT | KEY_END:              ed_sel_end(ed);        break;
-	case KEY_END:                          ed_end(ed);            break;
+	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   ed_sel_prev_word(ed);  break;
+	case MOD_CTRL | KEY_LEFT:               ed_prev_word(ed);      break;
+	case MOD_SHIFT | KEY_LEFT:              ed_sel_left(ed);       break;
+	case KEY_LEFT:                          ed_left(ed);           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_RIGHT:  ed_sel_next_word(ed);  break;
+	case MOD_CTRL | KEY_RIGHT:              ed_next_word(ed);      break;
+	case MOD_SHIFT | KEY_RIGHT:             ed_sel_right(ed);      break;
+	case KEY_RIGHT:                         ed_right(ed);          break;
+	case MOD_CTRL | KEY_UP:                 ed_move_up(ed);        break;
+	case MOD_SHIFT | KEY_UP:                ed_sel_up(ed);         break;
+	case KEY_UP:                            ed_up(ed);             break;
+	case MOD_CTRL | KEY_DOWN:               ed_move_down(ed);      break;
+	case MOD_SHIFT | KEY_DOWN:              ed_sel_down(ed);       break;
+	case KEY_DOWN:                          ed_down(ed);           break;
+	case MOD_SHIFT | KEY_PAGE_UP:           ed_sel_page_up(ed);    break;
+	case KEY_PAGE_UP:                       ed_page_up(ed);        break;
+	case MOD_SHIFT | KEY_PAGE_DOWN:         ed_sel_page_down(ed);  break;
+	case KEY_PAGE_DOWN:                     ed_page_down(ed);      break;
+	case MOD_CTRL | MOD_SHIFT | KEY_HOME:   ed_sel_top(ed);        break;
+	case MOD_CTRL | KEY_HOME:               ed_top(ed);            break;
+	case MOD_SHIFT | KEY_HOME:              ed_sel_home(ed);       break;
+	case KEY_HOME:                          ed_home(ed);           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_END:    ed_sel_bottom(ed);     break;
+	case MOD_CTRL | KEY_END:                ed_bottom(ed);         break;
+	case MOD_SHIFT | KEY_END:               ed_sel_end(ed);        break;
+	case KEY_END:                           ed_end(ed);            break;
 	case MOD_SHIFT | KEY_RETURN:
-	case KEY_RETURN:                       ed_enter(ed);          break;
-	case MOD_CTRL | KEY_BACKSPACE:         ed_del_prev_word(ed);  break;
+	case KEY_RETURN:                        ed_enter(ed);          break;
+	case MOD_CTRL | KEY_RETURN:             ed_enter_after(ed);    break;
+	case MOD_CTRL | MOD_SHIFT | KEY_RETURN: ed_enter_before(ed);   break;
+	case MOD_CTRL | KEY_BACKSPACE:          ed_del_prev_word(ed);  break;
 	case MOD_SHIFT | KEY_BACKSPACE:
-	case KEY_BACKSPACE:                    ed_backspace(ed);      break;
-	case MOD_CTRL | KEY_DELETE:            ed_del_next_word(ed);  break;
-	case MOD_SHIFT | KEY_DELETE:           ed_del_cur_line(ed);   break;
-	case KEY_DELETE:                       ed_delete(ed);         break;
-	case MOD_CTRL | KEY_L:                 ed_toggle_line_nr(ed); break;
-	case MOD_CTRL | KEY_G:                 ed_goto(ed);           break;
-	case MOD_CTRL | KEY_O:                 ed_open(ed);           break;
-	case MOD_CTRL | KEY_C:                 ed_copy(ed);           break;
-	case MOD_CTRL | KEY_X:                 ed_cut(ed);            break;
-	case MOD_CTRL | KEY_V:                 ed_paste(ed);          break;
-	case MOD_CTRL | KEY_S:                 ed_save(ed);           break;
-	case MOD_CTRL | KEY_T:                 ed_tab_size(ed);       break;
-	case MOD_CTRL | KEY_J:                 ed_whitespace(ed);     break;
-	case MOD_CTRL | KEY_I:                 ed_include(ed);        break;
-	case MOD_CTRL | MOD_SHIFT | KEY_I:     ed_include_lib(ed);    break;
-	case MOD_CTRL | KEY_A:                 ed_sel_all(ed);        break;
-	case MOD_CTRL | MOD_SHIFT | KEY_A:     ed_ins_comment(ed);    break;
+	case KEY_BACKSPACE:                     ed_backspace(ed);      break;
+	case MOD_CTRL | KEY_DELETE:             ed_del_next_word(ed);  break;
+	case MOD_SHIFT | KEY_DELETE:            ed_del_cur_line(ed);   break;
+	case KEY_DELETE:                        ed_delete(ed);         break;
+	case MOD_CTRL | KEY_L:                  ed_toggle_line_nr(ed); break;
+	case MOD_CTRL | KEY_G:                  ed_goto(ed);           break;
+	case MOD_CTRL | KEY_O:                  ed_open(ed);           break;
+	case MOD_CTRL | KEY_C:                  ed_copy(ed);           break;
+	case MOD_CTRL | KEY_X:                  ed_cut(ed);            break;
+	case MOD_CTRL | KEY_V:                  ed_paste(ed);          break;
+	case MOD_CTRL | KEY_S:                  ed_save(ed);           break;
+	case MOD_CTRL | KEY_T:                  ed_tab_size(ed);       break;
+	case MOD_CTRL | KEY_J:                  ed_whitespace(ed);     break;
+	case MOD_CTRL | KEY_I:                  ed_include(ed);        break;
+	case MOD_CTRL | MOD_SHIFT | KEY_I:      ed_include_lib(ed);    break;
+	case MOD_CTRL | KEY_A:                  ed_sel_all(ed);        break;
+	case MOD_CTRL | MOD_SHIFT | KEY_A:      ed_ins_comment(ed);    break;
 	default:
 		if(isprint(cp) || cp == '\t')
 		{

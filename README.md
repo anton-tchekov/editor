@@ -6,7 +6,6 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 - CTRL+Backspace, CTRL+Delete
-- CTRL+Return, CTRL+Shift+Return
 - Text Selection
 - Select All (Ctrl+A)
 - Copy (Ctrl+C)
