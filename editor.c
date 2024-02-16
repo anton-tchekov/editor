@@ -374,18 +374,18 @@ static void ed_render_linenr(Editor *ed)
 			linenr_str(lnr_buf, lnr, lnr_width);
 			for(x = 0; x < lnr_width; ++x)
 			{
-				screen_set(x, y, lnr_buf[x], color);
+				screen_set(x, y, screen_pack(lnr_buf[x], color));
 			}
 		}
 		else
 		{
 			for(x = 0; x < lnr_width; ++x)
 			{
-				screen_set(x, y, ' ', color);
+				screen_set(x, y, screen_pack(' ', color));
 			}
 		}
 
-		screen_set(x, y, ' ', color);
+		screen_set(x, y, screen_pack(' ', color));
 	}
 
 	ed->PageW = ed->FullW - lnr_width - 1;
@@ -428,7 +428,7 @@ static void ed_put(Editor *ed, u32 x, u32 y, u32 c)
 		c = screen_pack_set_bg(c, COLOR_TABLE_SELECTION);
 	}
 
-	screen_set_pack(x + ed->OffsetX, y - ed->PageY, c);
+	screen_set(x + ed->OffsetX, y - ed->PageY, c);
 }
 
 static u32 ed_syntax_sub(Editor *ed, u32 c, u32 color, u32 y, u32 x)
@@ -650,7 +650,7 @@ static void ed_render_line(Editor *ed, u32 y)
 
 	for(; x < ed->PageW; ++x)
 	{
-		screen_set_pack(x + ed->OffsetX, y,
+		screen_set(x + ed->OffsetX, y,
 			screen_pack(' ', screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
 	}
 }
@@ -665,12 +665,12 @@ static void ed_render_msg(Editor *ed)
 
 	for(x = 0; (c = *s); ++x, ++s)
 	{
-		screen_set(x, y, c, color);
+		screen_set(x, y, screen_pack(c, color));
 	}
 
 	for(; x < ed->FullW; ++x)
 	{
-		screen_set(x, y, ' ', color);
+		screen_set(x, y, screen_pack(' ', color));
 	}
 }
 
@@ -694,12 +694,12 @@ static u32 ed_render_dir(Editor *ed)
 		const char *p = ed->DirList[i];
 		for(; *p && x < ed->FullW; ++p, ++x)
 		{
-			screen_set(x, y, *p, color);
+			screen_set(x, y, screen_pack(*p, color));
 		}
 
 		for(; x < ed->FullW; ++x)
 		{
-			screen_set(x, y, ' ', color);
+			screen_set(x, y, screen_pack(' ', color));
 		}
 	}
 
@@ -715,15 +715,15 @@ static u32 ed_render_goto_line(Editor *ed)
 	color = screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG);
 	for(s = prompt, x = 0; (c = *s); ++x, ++s)
 	{
-		screen_set(x, 0, c, color);
+		screen_set(x, 0, screen_pack(c, color));
 	}
 
 	for(s = ed->Search, i = 0; x < ed->FullW; ++x, ++s, ++i)
 	{
-		screen_set(x, 0, (i < ed->SLen) ? *s : ' ',
+		screen_set(x, 0, screen_pack((i < ed->SLen) ? *s : ' ',
 			(i == ed->SCursor) ?
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
-			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG));
+			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG)));
 	}
 
 	return ed_render_dir(ed);

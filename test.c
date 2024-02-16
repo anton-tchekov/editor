@@ -1,3 +1,5 @@
+#ifndef NDEBUG
+
 #define TEST(expr)      test((expr), #expr, __FILE__, __LINE__)
 #define TEST_FN(name)   test_fn(name, #name)
 #define TEST_ALL(name)  test_all(name)
@@ -120,3 +122,5 @@ static void test_run_all(void)
 {
 	TEST_ALL(test_list);
 }
+
+#endif

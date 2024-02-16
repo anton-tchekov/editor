@@ -138,10 +138,14 @@ static void _free(void *p)
 	}
 }
 
+#ifndef NDEBUG
+
 static void print_mem(void)
 {
 	printf("%"PRIu32" allocs, %"PRIu32" frees\n", alloc_cnt, free_cnt);
 }
+
+#endif
 
 static void resize_internal(u32 w, u32 h)
 {
@@ -355,8 +359,7 @@ static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
 
 static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 {
-	u32 w0, h0, mask;
-	const u8 *start;
+	const u8 *start, *end;
 	u32 *line;
 
 	assert(x < _gfx_width);
@@ -366,16 +369,19 @@ static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 	assert(c >= 32 && c <= CHAR_MAX);
 
 	start = terminus16 + (c - 32) * CHAR_HEIGHT;
+	end = start + CHAR_HEIGHT;
 	line = _pixels + y * _gfx_width + x;
-	for(h0 = 0; h0 < CHAR_HEIGHT; ++h0)
+	for(; start < end; ++start)
 	{
-		mask = (1 << (CHAR_WIDTH - 1));
-		for(w0 = 0; w0 < CHAR_WIDTH; ++w0)
-		{
-			line[w0] = (start[h0] & mask) ? fg : bg;
-			mask >>= 1;
-		}
-
+		u32 c = *start;
+		line[0] = (c & 0x80) ? fg : bg;
+		line[1] = (c & 0x40) ? fg : bg;
+		line[2] = (c & 0x20) ? fg : bg;
+		line[3] = (c & 0x10) ? fg : bg;
+		line[4] = (c & 0x08) ? fg : bg;
+		line[5] = (c & 0x04) ? fg : bg;
+		line[6] = (c & 0x02) ? fg : bg;
+		line[7] = (c & 0x01) ? fg : bg;
 		line += _gfx_width;
 	}
 }
@@ -415,31 +421,21 @@ static u32 screen_pack_color_swap(u32 v)
 	return v;
 }
 
-static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
+static void screen_set(u32 x, u32 y, u32 v)
 {
-	glyph(x * CHAR_WIDTH, y * CHAR_HEIGHT,
-		_color_table[fg], _color_table[bg], c);
-}
-
-static void screen_set(u32 x, u32 y, u32 c, u32 color)
-{
-	u16 *prev, new;
+	u16 *prev;
 
 	assert(x < _screen_width);
 	assert(y < _screen_height);
 
-	prev = &_screen[y * _screen_width + x];
-	new = color | (c << 8);
-	if(*prev != new)
+	prev = _screen + y * _screen_width + x;
+	if(*prev != v)
 	{
-		*prev = new;
-		render_char(x, y, c, color & 0x0F, (color >> 4) & 0x0F);
+		*prev = v;
+		glyph(x * CHAR_WIDTH, y * CHAR_HEIGHT,
+			_color_table[v & 0x0F],
+			_color_table[(v >> 4) & 0x0F], v >> 8);
 	}
-}
-
-static void screen_set_pack(u32 x, u32 y, u32 v)
-{
-	screen_set(x, y, v >> 8, v & 0xFF);
 }
 
 #include "vector.c"
