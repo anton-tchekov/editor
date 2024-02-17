@@ -28,4 +28,4 @@ that is optimized for C projects, is performant, and productive.
 - Collapse/Expand code block
 - Add UTF-8 german umlaut and cyrillic support
 - Undo / Redo
-- Multi-line editing
+- Multiple cursors

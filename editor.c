@@ -41,6 +41,8 @@ typedef struct
 	i32 CursorSaveX;
 	u32 FullW, OffsetX, PageW, PageH, PageY;
 
+	u8 InComment;
+
 	u8 TabSize;
 	u8 ShowLineNr;
 	u8 ShowWhitespace;
@@ -493,13 +495,32 @@ static u32 ed_syntax(Editor *ed, u32 y)
 	while(i < len)
 	{
 		u32 c = line[i];
-		if((c == '/') && (i + 1 < len) && (line[i + 1] == '/'))
+		if(ed->InComment)
+		{
+			x = ed_syntax_sub(ed, c, COLOR_TABLE_COMMENT, y, x);
+			if(x >= ed->PageW) { return x; }
+
+			if((c == '*') && (i + 1 < len) && (line[i + 1] == '/'))
+			{
+				++i;
+				ed->InComment = 0;
+				ed_put(ed, x++, y, screen_pack('/',
+					screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
+				if(x >= ed->PageW) { return x; }
+			}
+			++i;
+		}
+		else if((c == '/') && (i + 1 < len) && (line[i + 1] == '/'))
 		{
 			for(; i < len; ++i)
 			{
 				x = ed_syntax_sub(ed, line[i], COLOR_TABLE_COMMENT, y, x);
 				if(x >= ed->PageW) { return x; }
 			}
+		}
+		else if((c == '/') && (i + 1 < len) && (line[i + 1] == '*'))
+		{
+			ed->InComment = 1;
 		}
 		else if(c == '#')
 		{
@@ -749,6 +770,11 @@ static u32 ed_cursor_pos_x(Editor *ed, u32 y, u32 end)
 	return x;
 }
 
+static u32 ed_prev_comment(Editor *ed)
+{
+
+}
+
 static void ed_render(Editor *ed)
 {
 	u32 y;
@@ -804,6 +830,7 @@ static void ed_render(Editor *ed)
 		ed->VSel.C[1].Y = ed->Sel.C[0].Y;
 	}
 
+	ed->InComment = 0;
 	ed_sel_norm(&ed->VSel);
 	for(y = start_y; y < end_y; ++y)
 	{

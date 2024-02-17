@@ -16,16 +16,30 @@ static Keyword _keywords[] =
 	{ COLOR_TABLE_TYPE, "double" },
 	{ COLOR_TABLE_TYPE, "int" },
 	{ COLOR_TABLE_TYPE, "long" },
+
 	{ COLOR_TABLE_TYPE, "f32" },
 	{ COLOR_TABLE_TYPE, "f64" },
+
+	{ COLOR_TABLE_TYPE, "i8" },
 	{ COLOR_TABLE_TYPE, "i16" },
 	{ COLOR_TABLE_TYPE, "i32" },
 	{ COLOR_TABLE_TYPE, "i64" },
-	{ COLOR_TABLE_TYPE, "i8" },
+
+	{ COLOR_TABLE_TYPE, "u8" },
 	{ COLOR_TABLE_TYPE, "u16" },
 	{ COLOR_TABLE_TYPE, "u32" },
 	{ COLOR_TABLE_TYPE, "u64" },
-	{ COLOR_TABLE_TYPE, "u8" },
+
+	{ COLOR_TABLE_TYPE, "int8_t" },
+	{ COLOR_TABLE_TYPE, "int16_t" },
+	{ COLOR_TABLE_TYPE, "int32_t" },
+	{ COLOR_TABLE_TYPE, "int64_t" },
+
+	{ COLOR_TABLE_TYPE, "uint8_t" },
+	{ COLOR_TABLE_TYPE, "uint16_t" },
+	{ COLOR_TABLE_TYPE, "uint32_t" },
+	{ COLOR_TABLE_TYPE, "uint64_t" },
+
 	{ COLOR_TABLE_TYPE, "size_t" },
 	{ COLOR_TABLE_TYPE, "FILE" },
 
