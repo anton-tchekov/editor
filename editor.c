@@ -17,6 +17,12 @@ enum
 	EDITOR_ERROR
 };
 
+enum
+{
+	LANGUAGE_UNKNOWN,
+	LANGUAGE_C
+};
+
 #define MAX_SEARCH_LEN    256
 #define MAX_MSG_LEN        80
 #define ED_DIR_PAGE        12
@@ -47,6 +53,7 @@ typedef struct
 	u8 ShowLineNr;
 	u8 ShowWhitespace;
 	u8 Mode;
+	u8 Language;
 
 	u8 MsgType;
 	char Msg[MAX_MSG_LEN];
@@ -484,6 +491,21 @@ static u32 ed_syntax_sub(Editor *ed, u32 c, u32 color, u32 y, u32 x)
 	return x;
 }
 
+static u32 ed_plain(Editor *ed, u32 y)
+{
+	Vector *lv = ed_line_get(ed, y);
+	const char *line = vector_data(lv);
+	u32 len = vector_len(lv);
+	u32 i, x;
+	for(x = 0, i = 0; i < len; ++i)
+	{
+		x = ed_syntax_sub(ed, line[i], COLOR_TABLE_FG, y, x);
+		if(x >= ed->PageW) { return x; }
+	}
+
+	return x;
+}
+
 static u32 ed_syntax(Editor *ed, u32 y)
 {
 	Vector *lv = ed_line_get(ed, y);
@@ -660,7 +682,16 @@ static void ed_render_line(Editor *ed, u32 y)
 	u32 line = ed->PageY + y;
 	if(line < ed_num_lines(ed))
 	{
-		x = ed_syntax(ed, line);
+		switch(ed->Language)
+		{
+		case LANGUAGE_UNKNOWN:
+			x = ed_plain(ed, line);
+			break;
+
+		case LANGUAGE_C:
+			x = ed_syntax(ed, line);
+			break;
+		}
 	}
 
 	if(x < ed->PageW)
@@ -772,7 +803,7 @@ static u32 ed_cursor_pos_x(Editor *ed, u32 y, u32 end)
 
 static u32 ed_prev_comment(Editor *ed)
 {
-
+	return 0;
 }
 
 static void ed_render(Editor *ed)
@@ -830,7 +861,11 @@ static void ed_render(Editor *ed)
 		ed->VSel.C[1].Y = ed->Sel.C[0].Y;
 	}
 
-	ed->InComment = 0;
+	if(ed->Language != LANGUAGE_UNKNOWN)
+	{
+		ed->InComment = ed_prev_comment(ed);
+	}
+
 	ed_sel_norm(&ed->VSel);
 	for(y = start_y; y < end_y; ++y)
 	{
@@ -1543,6 +1578,12 @@ static void ed_toggle_line_nr(Editor *ed)
 	ed_render(ed);
 }
 
+static void ed_toggle_lang(Editor *ed)
+{
+	ed->Language = !ed->Language;
+	ed_render(ed);
+}
+
 static void ed_tab_size(Editor *ed)
 {
 	ed->TabSize <<= 1;
@@ -1730,6 +1771,7 @@ static void ed_key_press_default(Editor *ed, u32 key, u32 cp)
 	case MOD_SHIFT | KEY_DELETE:            ed_del_cur_line(ed);   break;
 	case KEY_DELETE:                        ed_delete(ed);         break;
 	case MOD_CTRL | KEY_L:                  ed_toggle_line_nr(ed); break;
+	case MOD_CTRL | KEY_K:                  ed_toggle_lang(ed);    break;
 	case MOD_CTRL | KEY_G:                  ed_goto(ed);           break;
 	case MOD_CTRL | KEY_O:                  ed_open(ed);           break;
 	case MOD_CTRL | KEY_C:                  ed_copy(ed);           break;

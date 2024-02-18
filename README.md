@@ -10,7 +10,6 @@ that is optimized for C projects, is performant, and productive.
 	- Select file and open
 	- Refactor navbar autocomplete ugliness
 - Syntax Hightligher Multi-line comment `/* */`
-- Option to disable syntax highlighting
 
 ### B
 - Search and replace in file / whole folder
