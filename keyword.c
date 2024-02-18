@@ -72,6 +72,12 @@ static Keyword _keywords[] =
 	{ COLOR_TABLE_TYPE, "unsigned" },
 	{ COLOR_TABLE_TYPE, "volatile" },
 	{ COLOR_TABLE_KEYWORD, "while" },
+
+	{ COLOR_TABLE_KEYWORD, "private" },
+	{ COLOR_TABLE_KEYWORD, "public" },
+	{ COLOR_TABLE_KEYWORD, "class" },
+	{ COLOR_TABLE_KEYWORD, "function" },
+	{ COLOR_TABLE_KEYWORD, "fn" },
 };
 
 static i32 _hashmap[HASHMAP_SIZE];
