@@ -26,6 +26,7 @@ enum
 #define MAX_SEARCH_LEN    256
 #define MAX_MSG_LEN        80
 #define ED_DIR_PAGE        12
+#define COMMENT_LOOKBACK   10
 
 typedef struct
 {
@@ -803,7 +804,40 @@ static u32 ed_cursor_pos_x(Editor *ed, u32 y, u32 end)
 
 static u32 ed_prev_comment(Editor *ed)
 {
-	return 0;
+	u32 i = 0, in_comment = 0;
+	if(ed->PageY > COMMENT_LOOKBACK)
+	{
+		i = ed->PageY - COMMENT_LOOKBACK;
+	}
+
+	for(; i < ed->PageY; ++i)
+	{
+		i32 p;
+		Vector *line = ed_line_get(ed, i);
+		const char *data = vector_data(line);
+		i32 len = vector_len(line);
+		for(p = 0; p < len - 1; ++p)
+		{
+			if(in_comment)
+			{
+				if(data[p] == '*' && data[p + 1] == '/')
+				{
+					++p;
+					in_comment = 0;
+				}
+			}
+			else
+			{
+				if(data[p] == '/' && data[p + 1] == '*')
+				{
+					++p;
+					in_comment = 1;
+				}
+			}
+		}
+	}
+
+	return in_comment;
 }
 
 static void ed_render(Editor *ed)
@@ -1393,6 +1427,7 @@ static void ed_init(Editor *ed, u32 width, u32 height)
 
 	ed_reset_cursor(ed);
 
+	ed->Language = LANGUAGE_C;
 	ed->TabSize = 4;
 	ed->ShowWhitespace = 1;
 
