@@ -9,7 +9,6 @@ that is optimized for C projects, is performant, and productive.
 - Finish Navigation bar
 	- Select file and open
 	- Refactor navbar autocomplete ugliness
-- Syntax Hightligher Multi-line comment `/* */`
 
 ### B
 - Search and replace in file / whole folder
