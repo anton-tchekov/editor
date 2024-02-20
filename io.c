@@ -373,7 +373,7 @@ static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 	line = _pixels + y * _gfx_width + x;
 	for(; start < end; ++start)
 	{
-		u32 c = *start;
+		c = *start;
 		line[0] = (c & 0x80) ? fg : bg;
 		line[1] = (c & 0x40) ? fg : bg;
 		line[2] = (c & 0x20) ? fg : bg;
@@ -530,8 +530,7 @@ static u32 file_write(const char *filename, void *data, size_t len)
 	return 0;
 }
 
-static u32 dir_iter(const char *path, void *data,
-	void (*iter)(void *, const char *, u32))
+static u32 dir_iter(const char *path, void (*iter)(const char *, u32))
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -543,7 +542,7 @@ static u32 dir_iter(const char *path, void *data,
 
 	while((dp = readdir(dir)))
 	{
-		iter(data, dp->d_name, dp->d_type == DT_DIR);
+		iter(dp->d_name, dp->d_type == DT_DIR);
 	}
 
 	closedir(dir);

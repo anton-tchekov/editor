@@ -1,4 +1,4 @@
-CFLAGS = -ansi -pedantic -Wall -Wextra -lSDL2
+CFLAGS = -ansi -pedantic -Wall -Wextra -Wshadow -lSDL2
 
 all: debug
 

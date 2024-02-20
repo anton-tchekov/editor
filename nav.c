@@ -1,79 +1,76 @@
-/* TODO: Search bar max capacity */
-
-static void ed_dir_load(Editor *ed)
+static void ed_dir_load(void)
 {
-	char buf[256]; /* TODO: POTENTIAL OVERFLOW HAZARD */
+	char buf[MAX_SEARCH_LEN];
 
-	ed->DirPos = 0;
-	ed->DirOffset = 0;
-	ed->DirEntries = 0;
+	dir_pos = 0;
+	dir_offset = 0;
+	dir_entries = 0;
 
-	ed->Search[ed->SLen] = '\0';
-	strcpy(buf, ed->SBuf);
+	nav_buf[nav_len] = '\0';
+	strcpy(buf, nav_base);
 	path_dir(buf);
 
-	_free(ed->DirList);
-	ed->DirList = dir_sorted(buf, &ed->DirEntries);
+	_free(dir_list);
+	dir_list = dir_sorted(buf, &dir_entries);
 }
 
-static void ed_nav_open(Editor *ed)
+static void ed_nav_open(void)
 {
-	ed->Mode = EDITOR_MODE_GOTO;
-	ed_dir_load(ed);
-	ed_render(ed);
+	mode = EDITOR_MODE_GOTO;
+	ed_dir_load();
+	ed_render();
 }
 
-static void ed_nav_close(Editor *ed)
+static void ed_nav_close(void)
 {
-	ed->Mode = EDITOR_MODE_DEFAULT;
-	ed_render(ed);
+	mode = EDITOR_MODE_DEFAULT;
+	ed_render();
 }
 
-static void ed_goto(Editor *ed)
+static void ed_goto(void)
 {
-	ed->Search[0] = ':';
-	ed->SCursor = 1;
-	ed->SLen = 1;
-	ed_nav_open(ed);
+	nav_buf[0] = ':';
+	nav_cursor = 1;
+	nav_len = 1;
+	ed_nav_open();
 }
 
-static void ed_open(Editor *ed)
+static void ed_open(void)
 {
-	ed->SLen = 0;
-	ed->SCursor = 0;
-	ed_nav_open(ed);
+	nav_len = 0;
+	nav_cursor = 0;
+	ed_nav_open();
 }
 
-static void ed_tab_cmpl_callback(void *data, const char *fname, u32 is_dir)
+static void ed_tab_cmpl_callback(const char *fname, u32 is_dir)
 {
-	Editor *ed = data;
 	if(!strcmp(fname, ".") || !strcmp(fname, ".."))
 	{
 		return;
 	}
 
-	if(starts_with(fname, ed->SearchFile))
+	if(starts_with(fname, search_file))
 	{
-		if(ed->FirstCompare)
+		if(first_compare)
 		{
-			ed->FirstCompare = 0;
-			strcpy(ed->Same, fname);
+			first_compare = 0;
+			strcpy(same, fname);
 			if(is_dir)
 			{
-				strcat(ed->Same, "/");
+				strcat(same, "/");
 			}
 		}
 		else
 		{
 			const char *q = fname;
-			char *p = ed->Same;
+			char *p = same;
 			while(*p == *q) { ++p; ++q; }
 			*p = '\0';
 		}
 	}
 }
 
-static u32 ed_set_lnr(Editor *ed, const char *s)
+static u32 ed_set_lnr(const char *s)
 {
 	u32 lnr = conv_lnr_str(s);
 	if(!lnr)
@@ -81,7 +78,7 @@ static u32 ed_set_lnr(Editor *ed, const char *s)
 		return 1;
 	}
 
-	ed_gotoxy(ed, 0, lnr - 1);
+	ed_gotoxy(0, lnr - 1);
 	return 0;
 }
 
@@ -102,158 +99,158 @@ static size_t revstrlen(const char *p)
 
 #endif
 
-static void ed_key_press_nav(Editor *ed, u32 key, u32 cp)
+static void ed_key_press_nav(u32 key, u32 cp)
 {
 	switch(key)
 	{
 	case KEY_UP:
-		if(ed->DirPos > 0)
+		if(dir_pos > 0)
 		{
-			--ed->DirPos;
-			if(ed->DirPos < ed->DirOffset)
+			--dir_pos;
+			if(dir_pos < dir_offset)
 			{
-				--ed->DirOffset;
+				--dir_offset;
 			}
-			ed_render(ed);
+			ed_render();
 		}
 		break;
 
 	case KEY_DOWN:
-		if(ed->DirPos < ed->DirEntries - 1)
+		if(dir_pos < dir_entries - 1)
 		{
-			++ed->DirPos;
-			if(ed->DirPos >= ed->DirOffset + ED_DIR_PAGE)
+			++dir_pos;
+			if(dir_pos >= dir_offset + ED_DIR_PAGE)
 			{
-				++ed->DirOffset;
+				++dir_offset;
 			}
-			ed_render(ed);
+			ed_render();
 		}
 		break;
 
 	case KEY_LEFT:
-		if(ed->SCursor > 0)
+		if(nav_cursor > 0)
 		{
-			--ed->SCursor;
+			--nav_cursor;
 		}
-		ed_render(ed);
+		ed_render();
 		break;
 
 	case KEY_RIGHT:
-		if(ed->SCursor < ed->SLen)
+		if(nav_cursor < nav_len)
 		{
-			++ed->SCursor;
+			++nav_cursor;
 		}
-		ed_render(ed);
+		ed_render();
 		break;
 
 	case KEY_HOME:
-		ed->SCursor = 0;
-		ed_render(ed);
+		nav_cursor = 0;
+		ed_render();
 		break;
 
 	case KEY_END:
-		ed->SCursor = ed->SLen;
-		ed_render(ed);
+		nav_cursor = nav_len;
+		ed_render();
 		break;
 
 	case KEY_RETURN:
 	{
 		char *p;
-		if(!ed->SLen)
+		if(!nav_len)
 		{
-			ed_nav_close(ed);
+			ed_nav_close();
 			break;
 		}
 
-		ed->Search[ed->SLen] = '\0';
-		p = memchr(ed->Search, ':', ed->SLen);
+		nav_buf[nav_len] = '\0';
+		p = memchr(nav_buf, ':', nav_len);
 		if(p)
 		{
 			*p = '\0';
-			if(p != ed->Search)
+			if(p != nav_buf)
 			{
-				ed_load(ed, ed->Search);
+				ed_load(nav_buf);
 			}
 
 			++p;
-			if(ed_set_lnr(ed, p))
+			if(ed_set_lnr(p))
 			{
-				ed_goto_def(ed, p);
+				ed_goto_def(p);
 			}
 
-			ed->Mode = EDITOR_MODE_DEFAULT;
+			mode = EDITOR_MODE_DEFAULT;
 		}
 		else
 		{
-			ed_load(ed, ed->Search);
+			ed_load(nav_buf);
 		}
 
-		ed_render(ed);
+		ed_render();
 		break;
 	}
 
 	case KEY_BACKSPACE:
-		if(ed->SCursor > 0)
+		if(nav_cursor > 0)
 		{
-			char *p = ed->Search + ed->SCursor;
-			memmove(p - 1, p, ed->SLen - ed->SCursor);
-			--ed->SCursor;
-			--ed->SLen;
-			ed_render(ed);
+			char *p = nav_buf + nav_cursor;
+			memmove(p - 1, p, nav_len - nav_cursor);
+			--nav_cursor;
+			--nav_len;
+			ed_render();
 		}
 		break;
 
 	case KEY_DELETE:
-		if(ed->SCursor < ed->SLen)
+		if(nav_cursor < nav_len)
 		{
-			char *p = ed->Search + ed->SCursor;
-			memmove(p, p + 1, ed->SLen - ed->SCursor - 1);
-			--ed->SLen;
-			ed_render(ed);
+			char *p = nav_buf + nav_cursor;
+			memmove(p, p + 1,  - nav_cursor - 1);
+			--nav_len;
+			ed_render();
 		}
 		break;
 
 	case KEY_TAB:
 	{
-		char buf[256]; /* TODO: POTENTIAL OVERFLOW HAZARD */
-		ed->Search[ed->SLen] = '\0';
-		strcpy(buf, ed->SBuf);
+		char buf[MAX_SEARCH_LEN];
+		nav_buf[nav_len] = '\0';
+		strcpy(buf, nav_base);
 		path_dir(buf);
-		ed->FirstCompare = 1;
-		ed->SearchFile = path_file(ed->Search);
-		if(dir_iter(buf, ed, ed_tab_cmpl_callback))
+		first_compare = 1;
+		search_file = path_file(nav_buf);
+		if(dir_iter(buf, ed_tab_cmpl_callback))
 		{
-			ed_msg(ed, EDITOR_ERROR, "Failed to open directory");
+			ed_msg(EDITOR_ERROR, "Failed to open directory");
 			break;
 		}
 
-		if(!ed->FirstCompare)
+		if(!first_compare)
 		{
-			strcpy(ed->SearchFile, ed->Same);
-			ed->SCursor = ed->SLen = strlen(ed->Search);
-			ed_render(ed);
+			strcpy(search_file, same);
+			nav_cursor = nav_len = strlen(nav_buf);
+			ed_render();
 		}
 		break;
 	}
 
 	case MOD_CTRL | KEY_G:
 	case KEY_ESCAPE:
-		ed_nav_close(ed);
+		ed_nav_close();
 		break;
 
 	default:
-		if(ed->SLen >= MAX_SEARCH_LEN - 1)
+		if(nav_len >= MAX_SEARCH_LEN - 1)
 		{
 			break;
 		}
 
 		if(isprint(cp))
 		{
-			char *p = ed->Search + ed->SCursor;
-			memmove(p + 1, p, ed->SLen - ed->SCursor);
-			ed->Search[ed->SCursor++] = cp;
-			++ed->SLen;
-			ed_render(ed);
+			char *p = nav_buf + nav_cursor;
+			memmove(p + 1, p, nav_len - nav_cursor);
+			nav_buf[nav_cursor++] = cp;
+			++nav_len;
+			ed_render();
 		}
 		break;
 	}

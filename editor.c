@@ -30,198 +30,192 @@ enum
 
 typedef struct
 {
-	u32 X, Y;
-} Cursor;
+	u32 x, y;
+} cursor;
 
 typedef struct
 {
-	Cursor C[2];
-} Selection;
+	cursor c[2];
+} selection;
 
 typedef struct
 {
-	Vector Lines;
+	Vector lines;
+	selection sel;
+	char *filename;
+	u32 page_y;
+	i32 cursor_save_x;
+	u8 language;
+	u8 modified;
+} text_buf;
 
-	Selection Sel, VSel;
-	Cursor VCursor;
+static selection vsel;
+static cursor vcursor;
+static Vector buffers;
 
-	i32 CursorSaveX;
-	u32 FullW, OffsetX, PageW, PageH, PageY;
+static u32 full_w, full_h, offset_x, page_w;
 
-	u8 InComment;
+static u8 in_comment;
+static u8 tabsize;
+static u8 show_linenr;
+static u8 show_whitespace;
+static u8 mode;
 
-	u8 TabSize;
-	u8 ShowLineNr;
-	u8 ShowWhitespace;
-	u8 Mode;
-	u8 Language;
+static u8 msg_type;
+static char msg_buf[MAX_MSG_LEN];
 
-	u8 MsgType;
-	char Msg[MAX_MSG_LEN];
+static u32 nav_cursor, nav_len;
+static char *nav_buf, nav_base[MAX_SEARCH_LEN];
 
-	char FileName[128];
+static u8 first_compare;
+static char *search_file, same[MAX_SEARCH_LEN];
 
-	char SBuf[MAX_SEARCH_LEN];
-	char *Search;
-	u32 SCursor, SLen;
+static char **dir_list;
+static u32 dir_entries, dir_offset, dir_pos;
 
-	u8 FirstCompare;
-	char *SearchFile;
-	char Same[64];
+static text_buf *tb;
 
-	char **DirList;
-	u32 DirEntries, DirOffset, DirPos;
-} Editor;
-
-typedef void (*EditorFunc)(Editor *);
-
-typedef struct
+static void ed_sel_to_cursor(void)
 {
-	u16 Key;
-	EditorFunc Event;
-} EditorKeyBind;
-
-static void ed_sel_to_cursor(Editor *ed)
-{
-	ed->Sel.C[0] = ed->Sel.C[1];
+	tb->sel.c[0] = tb->sel.c[1];
 }
 
-static void cursor_swap(Cursor *a, Cursor *b)
+static void cursor_swap(cursor *a, cursor *b)
 {
-	Cursor temp = *a;
+	cursor temp = *a;
 	*a = *b;
 	*b = temp;
 }
 
-static u32 cursor_unordered(Cursor *a, Cursor *b)
+static u32 cursor_unordered(cursor *a, cursor *b)
 {
-	return (b->Y < a->Y) || (a->Y == b->Y && b->X < a->X);
+	return (b->y < a->y) || (a->y == b->y && b->x < a->x);
 }
 
-static u32 sel_wide(Selection *sel)
+static u32 sel_wide(selection *sel)
 {
-	return !(sel->C[0].X == sel->C[1].X && sel->C[0].Y == sel->C[1].Y);
+	return !(sel->c[0].x == sel->c[1].x && sel->c[0].y == sel->c[1].y);
 }
 
-static void sel_left(Selection *sel)
+static void sel_left(selection *sel)
 {
-	if(cursor_unordered(&sel->C[0], &sel->C[1]))
+	if(cursor_unordered(&sel->c[0], &sel->c[1]))
 	{
-		sel->C[0] = sel->C[1];
+		sel->c[0] = sel->c[1];
 	}
 	else
 	{
-		sel->C[1] = sel->C[0];
+		sel->c[1] = sel->c[0];
 	}
 }
 
-static void sel_right(Selection *sel)
+static void sel_right(selection *sel)
 {
-	if(cursor_unordered(&sel->C[0], &sel->C[1]))
+	if(cursor_unordered(&sel->c[0], &sel->c[1]))
 	{
-		sel->C[1] = sel->C[0];
+		sel->c[1] = sel->c[0];
 	}
 	else
 	{
-		sel->C[0] = sel->C[1];
+		sel->c[0] = sel->c[1];
 	}
 }
 
-static void ed_sel_norm(Selection *sel)
+static void ed_sel_norm(selection *sel)
 {
-	if(cursor_unordered(&sel->C[0], &sel->C[1]))
+	if(cursor_unordered(&sel->c[0], &sel->c[1]))
 	{
-		cursor_swap(&sel->C[0], &sel->C[1]);
+		cursor_swap(&sel->c[0], &sel->c[1]);
 	}
 }
 
-static u32 ed_num_lines(Editor *ed)
+static u32 ed_num_lines(void)
 {
-	return vector_len(&ed->Lines) / sizeof(Vector);
+	return vector_len(&tb->lines) / sizeof(Vector);
 }
 
-static Vector *ed_line_get(Editor *ed, u32 i)
+static Vector *ed_line_get(u32 i)
 {
-	return (Vector *)vector_get(&ed->Lines, i * sizeof(Vector));
+	return (Vector *)vector_get(&tb->lines, i * sizeof(Vector));
 }
 
-static Vector *ed_cur_line(Editor *ed)
+static Vector *ed_cur_line(void)
 {
-	return ed_line_get(ed, ed->Sel.C[1].Y);
+	return ed_line_get(tb->sel.c[1].y);
 }
 
-static u32 ed_line_len(Editor *ed, u32 i)
+static u32 ed_line_len(u32 i)
 {
-	return vector_len(ed_line_get(ed, i));
+	return vector_len(ed_line_get(i));
 }
 
-static const char *ed_line_data(Editor *ed, u32 i)
+static const char *ed_line_data(u32 i)
 {
-	return vector_data(ed_line_get(ed, i));
+	return vector_data(ed_line_get(i));
 }
 
-static u32 ed_cur_line_len(Editor *ed)
+static u32 ed_cur_line_len(void)
 {
-	return vector_len(ed_cur_line(ed));
+	return vector_len(ed_cur_line());
 }
 
-static u32 ed_sel_count_bytes(Editor *ed, Selection *sel)
+static u32 ed_sel_count_bytes(selection *sel)
 {
 	u32 len;
-	u32 x1 = sel->C[0].X;
-	u32 y1 = sel->C[0].Y;
-	u32 x2 = sel->C[1].X;
-	u32 y2 = sel->C[1].Y;
+	u32 x1 = sel->c[0].x;
+	u32 y1 = sel->c[0].y;
+	u32 x2 = sel->c[1].x;
+	u32 y2 = sel->c[1].y;
 	if(y1 == y2)
 	{
 		return x2 - x1;
 	}
 
-	len = ed_line_len(ed, y1) - x1 + 1;
+	len = ed_line_len(y1) - x1 + 1;
 	for(++y1; y1 < y2; ++y1)
 	{
-		len += ed_line_len(ed, y1) + 1;
+		len += ed_line_len(y1) + 1;
 	}
 
 	return len + x2;
 }
 
-static char *ed_sel_get(Editor *ed, Selection *sel, u32 *out_len)
+static char *ed_sel_get(selection *sel, u32 *out_len)
 {
 	u32 x1, y1, x2, y2, len;
 	char *output, *p;
-	Selection nsel = *sel;
+	selection nsel = *sel;
 	ed_sel_norm(&nsel);
 
-	x1 = nsel.C[0].X;
-	y1 = nsel.C[0].Y;
-	x2 = nsel.C[1].X;
-	y2 = nsel.C[1].Y;
+	x1 = nsel.c[0].x;
+	y1 = nsel.c[0].y;
+	x2 = nsel.c[1].x;
+	y2 = nsel.c[1].y;
 
-	*out_len = len = ed_sel_count_bytes(ed, &nsel);
+	*out_len = len = ed_sel_count_bytes(&nsel);
 	p = output = _malloc(len + 1);
 	if(y1 == y2)
 	{
-		memcpy(p, ed_line_data(ed, y1) + x1, len);
+		memcpy(p, ed_line_data(y1) + x1, len);
 		p += len;
 	}
 	else
 	{
-		Vector *line = ed_line_get(ed, y1);
+		Vector *line = ed_line_get(y1);
 		len = vector_len(line) - x1;
 		memcpy(p, (u8 *)vector_data(line) + x1, len);
 		p += len;
 		for(++y1; y1 < y2; ++y1)
 		{
 			*p++ = '\n';
-			line = ed_line_get(ed, y1);
+			line = ed_line_get(y1);
 			len = vector_len(line);
 			memcpy(p, vector_data(line), len);
 			p += len;
 		}
 
 		*p++ = '\n';
-		memcpy(p, ed_line_data(ed, y1), x2);
+		memcpy(p, ed_line_data(y1), x2);
 		p += x2;
 	}
 
@@ -229,65 +223,65 @@ static char *ed_sel_get(Editor *ed, Selection *sel, u32 *out_len)
 	return output;
 }
 
-static void ed_remove_lines(Editor *ed, u32 y1, u32 y2)
+static void ed_remove_lines(u32 y1, u32 y2)
 {
 	u32 i;
 	for(i = y1; i <= y2; ++i)
 	{
-		vector_destroy(ed_line_get(ed, i));
+		vector_destroy(ed_line_get(i));
 	}
 
-	vector_remove(&ed->Lines, y1 * sizeof(Vector),
+	vector_remove(&tb->lines, y1 * sizeof(Vector),
 		(y2 - y1 + 1) * sizeof(Vector));
 }
 
-static void ed_sel_delete(Editor *ed)
+static void ed_sel_delete(void)
 {
 	u32 x1, y1, x2, y2;
 	Vector *line;
-	Selection nsel = ed->Sel;
+	selection nsel = tb->sel;
 	ed_sel_norm(&nsel);
 
-	x1 = nsel.C[0].X;
-	y1 = nsel.C[0].Y;
-	x2 = nsel.C[1].X;
-	y2 = nsel.C[1].Y;
+	x1 = nsel.c[0].x;
+	y1 = nsel.c[0].y;
+	x2 = nsel.c[1].x;
+	y2 = nsel.c[1].y;
 
-	ed->Sel.C[1] = ed->Sel.C[0] = nsel.C[0];
+	tb->sel.c[1] = tb->sel.c[0] = nsel.c[0];
 
-	line = ed_line_get(ed, y1);
+	line = ed_line_get(y1);
 	if(y1 == y2)
 	{
 		vector_remove(line, x1, x2 - x1);
 	}
 	else
 	{
-		Vector *last = ed_line_get(ed, y2);
+		Vector *last = ed_line_get(y2);
 		vector_replace(line, x1, vector_len(line) - x1,
 			(u8 *)vector_data(last) + x2, vector_len(last) - x2);
-		ed_remove_lines(ed, y1 + 1, y2);
+		ed_remove_lines(y1 + 1, y2);
 	}
 }
 
-static void ed_sel_clear(Editor *ed)
+static void ed_sel_clear(void)
 {
-	if(sel_wide(&ed->Sel))
+	if(sel_wide(&tb->sel))
 	{
-		ed_sel_delete(ed);
+		ed_sel_delete();
 	}
 }
 
-static void ed_ins_lines(Editor *ed, u32 y, u32 count)
+static void ed_ins_lines(u32 y, u32 count)
 {
-	vector_makespace(&ed->Lines, y * sizeof(Vector), count * sizeof(Vector));
+	vector_makespace(&tb->lines, y * sizeof(Vector), count * sizeof(Vector));
 }
 
-static void ed_insert(Editor *ed, const char *text)
+static void ed_insert(const char *text)
 {
 	u32 c, y, new_lines;
 	const char *p, *s;
 
-	ed_sel_clear(ed);
+	ed_sel_clear();
 
 	/* Count number of newlines and store position of last line */
 	new_lines = 0;
@@ -300,12 +294,12 @@ static void ed_insert(Editor *ed, const char *text)
 		}
 	}
 
-	y = ed->Sel.C[1].Y;
+	y = tb->sel.c[1].y;
 	if(!new_lines)
 	{
 		u32 len = s - text;
-		vector_insert(ed_line_get(ed, y), ed->Sel.C[1].X, len, text);
-		ed->Sel.C[1].X += len;
+		vector_insert(ed_line_get(y), tb->sel.c[1].x, len, text);
+		tb->sel.c[1].x += len;
 	}
 	else
 	{
@@ -314,27 +308,27 @@ static void ed_insert(Editor *ed, const char *text)
 		Vector line, *first, *lines;
 
 		/* Insert new lines in advance to avoid quadratic complexity */
-		ed_ins_lines(ed, y + 1, new_lines);
-		lines = vector_data(&ed->Lines);
+		ed_ins_lines(y + 1, new_lines);
+		lines = vector_data(&tb->lines);
 
 		/* Last line */
-		first = ed_line_get(ed, y);
-		rlen = vector_len(first) - ed->Sel.C[1].X;
+		first = ed_line_get(y);
+		rlen = vector_len(first) - tb->sel.c[1].x;
 		slen = s - p;
 		vector_init(&line, rlen + slen);
 		line.Length = rlen + slen;
 		last = vector_data(&line);
 		memcpy(last, p, slen);
-		memcpy(last + slen, (u8 *)vector_data(first) + ed->Sel.C[1].X, rlen);
+		memcpy(last + slen, (u8 *)vector_data(first) + tb->sel.c[1].x, rlen);
 		lines[y + new_lines] = line;
 
-		first->Length = ed->Sel.C[1].X;
-		ed->Sel.C[1].X = slen;
-		ed->Sel.C[1].Y = y + new_lines;
+		first->Length = tb->sel.c[1].x;
+		tb->sel.c[1].x = slen;
+		tb->sel.c[1].y = y + new_lines;
 
 		/* First line */
 		p = strchr(text, '\n');
-		vector_push(ed_line_get(ed, y), p - text, text);
+		vector_push(ed_line_get(y), p - text, text);
 		text = p + 1;
 
 		/* Other lines */
@@ -346,37 +340,37 @@ static void ed_insert(Editor *ed, const char *text)
 		}
 	}
 
-	ed->CursorSaveX = -1;
-	ed_sel_to_cursor(ed);
+	tb->cursor_save_x = -1;
+	ed_sel_to_cursor();
 }
 
-static void ed_line_remove(Editor *ed, u32 line)
+static void ed_line_remove(u32 line)
 {
-	vector_destroy(ed_line_get(ed, line));
-	vector_remove(&ed->Lines, line * sizeof(Vector), sizeof(Vector));
+	vector_destroy(ed_line_get(line));
+	vector_remove(&tb->lines, line * sizeof(Vector), sizeof(Vector));
 }
 
-static void ed_line_insert(Editor *ed, u32 line, Vector *v)
+static void ed_line_insert(u32 line, Vector *v)
 {
-	vector_insert(&ed->Lines, line * sizeof(Vector), sizeof(Vector), v);
+	vector_insert(&tb->lines, line * sizeof(Vector), sizeof(Vector), v);
 }
 
-static void ed_render_linenr(Editor *ed)
+static void ed_render_linenr(void)
 {
 	u32 x, y, lnr_max, lnr_width;
 
 	u32 def = screen_color(COLOR_TABLE_GRAY, COLOR_TABLE_BG);
 	u32 cur = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
 
-	u32 lines = ed_num_lines(ed);
-	u32 lnr = ed->PageY;
-	lnr_max = lnr + ed->PageH;
+	u32 lines = ed_num_lines();
+	u32 lnr = tb->page_y;
+	lnr_max = lnr + full_h;
 	lnr_max = lnr_max < lines ? lnr_max : lines;
 	lnr_width = dec_digit_cnt(lnr_max);
 
-	for(y = 0; y < ed->PageH; ++y)
+	for(y = 0; y < full_h; ++y)
 	{
-		u32 color = (lnr == ed->Sel.C[1].Y) ? cur : def;
+		u32 color = (lnr == tb->sel.c[1].y) ? cur : def;
 		++lnr;
 		if(lnr <= lines)
 		{
@@ -398,23 +392,23 @@ static void ed_render_linenr(Editor *ed)
 		screen_set(x, y, screen_pack(' ', color));
 	}
 
-	ed->PageW = ed->FullW - lnr_width - 1;
-	ed->OffsetX = lnr_width + 1;
+	page_w = full_w - lnr_width - 1;
+	offset_x = lnr_width + 1;
 }
 
-static u32 is_sel(Editor *ed, u32 x, u32 y)
+static u32 is_sel(u32 x, u32 y)
 {
-	if(y < ed->VSel.C[0].Y || y > ed->VSel.C[1].Y)
+	if(y < vsel.c[0].y || y > vsel.c[1].y)
 	{
 		return 0;
 	}
 
-	if(y == ed->VSel.C[0].Y && x < ed->VSel.C[0].X)
+	if(y == vsel.c[0].y && x < vsel.c[0].x)
 	{
 		return 0;
 	}
 
-	if(y == ed->VSel.C[1].Y && x >= ed->VSel.C[1].X)
+	if(y == vsel.c[1].y && x >= vsel.c[1].x)
 	{
 		return 0;
 	}
@@ -422,94 +416,93 @@ static u32 is_sel(Editor *ed, u32 x, u32 y)
 	return 1;
 }
 
-static u32 is_cursor(Editor *ed, u32 x, u32 y)
+static u32 is_cursor(u32 x, u32 y)
 {
-	return y == ed->VCursor.Y && x == ed->VCursor.X;
+	return y == vcursor.y && x == vcursor.x;
 }
 
-static void ed_put(Editor *ed, u32 x, u32 y, u32 c)
+static void ed_put(u32 x, u32 y, u32 c)
 {
-	if(is_cursor(ed, x, y))
+	if(is_cursor(x, y))
 	{
 		c = screen_pack_color_swap(c);
 	}
-	else if(is_sel(ed, x, y))
+	else if(is_sel(x, y))
 	{
 		c = screen_pack_set_bg(c, COLOR_TABLE_SELECTION);
 	}
 
-	screen_set(x + ed->OffsetX, y - ed->PageY, c);
+	screen_set(x + offset_x, y - tb->page_y, c);
 }
 
-static u32 ed_syntax_sub(Editor *ed, u32 c, u32 color, u32 y, u32 x)
+static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 {
 	if(c == '\t')
 	{
-		u32 tabsize = ed->TabSize;
 		u32 n = x & (tabsize - 1);
-		if(ed->ShowWhitespace)
+		if(show_whitespace)
 		{
 			color = screen_color(COLOR_TABLE_GRAY, COLOR_TABLE_BG);
 			if(n == tabsize - 1)
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, screen_pack(CHAR_TAB_BOTH, color));
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(CHAR_TAB_BOTH, color));
 			}
 			else
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, screen_pack(CHAR_TAB_START, color));
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(CHAR_TAB_START, color));
 				for(++n; n < tabsize - 1; ++n)
 				{
-					if(x >= ed->PageW) { return x; }
-					ed_put(ed, x++, y, screen_pack(CHAR_TAB_MIDDLE, color));
+					if(x >= page_w) { return x; }
+					ed_put(x++, y, screen_pack(CHAR_TAB_MIDDLE, color));
 				}
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, screen_pack(CHAR_TAB_END, color));
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(CHAR_TAB_END, color));
 			}
 		}
 		else
 		{
 			for(; n < tabsize; ++n)
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, screen_pack(' ', color));
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(' ', color));
 			}
 		}
 	}
 	else
 	{
-		if(c == ' ' && ed->ShowWhitespace)
+		if(c == ' ' && show_whitespace)
 		{
 			c = CHAR_VISIBLE_SPACE;
 			color = COLOR_TABLE_GRAY;
 		}
 
-		if(x >= ed->PageW) { return x; }
-		ed_put(ed, x++, y, screen_pack(c, screen_color(color, COLOR_TABLE_BG)));
+		if(x >= page_w) { return x; }
+		ed_put(x++, y, screen_pack(c, screen_color(color, COLOR_TABLE_BG)));
 	}
 
 	return x;
 }
 
-static u32 ed_plain(Editor *ed, u32 y)
+static u32 ed_plain(u32 y)
 {
-	Vector *lv = ed_line_get(ed, y);
+	Vector *lv = ed_line_get(y);
 	const char *line = vector_data(lv);
 	u32 len = vector_len(lv);
 	u32 i, x;
 	for(x = 0, i = 0; i < len; ++i)
 	{
-		x = ed_syntax_sub(ed, line[i], COLOR_TABLE_FG, y, x);
-		if(x >= ed->PageW) { return x; }
+		x = ed_syntax_sub(line[i], COLOR_TABLE_FG, y, x);
+		if(x >= page_w) { return x; }
 	}
 
 	return x;
 }
 
-static u32 ed_syntax(Editor *ed, u32 y)
+static u32 ed_syntax(u32 y)
 {
-	Vector *lv = ed_line_get(ed, y);
+	Vector *lv = ed_line_get(y);
 	u32 len = vector_len(lv);
 	const char *line = vector_data(lv);
 	u32 incflag = 0;
@@ -518,18 +511,18 @@ static u32 ed_syntax(Editor *ed, u32 y)
 	while(i < len)
 	{
 		u32 c = line[i];
-		if(ed->InComment)
+		if(in_comment)
 		{
-			x = ed_syntax_sub(ed, c, COLOR_TABLE_COMMENT, y, x);
-			if(x >= ed->PageW) { return x; }
+			x = ed_syntax_sub(c, COLOR_TABLE_COMMENT, y, x);
+			if(x >= page_w) { return x; }
 
 			if((c == '*') && (i + 1 < len) && (line[i + 1] == '/'))
 			{
 				++i;
-				ed->InComment = 0;
-				ed_put(ed, x++, y, screen_pack('/',
+				in_comment = 0;
+				ed_put(x++, y, screen_pack('/',
 					screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
-				if(x >= ed->PageW) { return x; }
+				if(x >= page_w) { return x; }
 			}
 			++i;
 		}
@@ -537,23 +530,23 @@ static u32 ed_syntax(Editor *ed, u32 y)
 		{
 			for(; i < len; ++i)
 			{
-				x = ed_syntax_sub(ed, line[i], COLOR_TABLE_COMMENT, y, x);
-				if(x >= ed->PageW) { return x; }
+				x = ed_syntax_sub(line[i], COLOR_TABLE_COMMENT, y, x);
+				if(x >= page_w) { return x; }
 			}
 		}
 		else if((c == '/') && (i + 1 < len) && (line[i + 1] == '*'))
 		{
-			ed->InComment = 1;
+			in_comment = 1;
 		}
 		else if(c == '#')
 		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, screen_pack(c,
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
 			for(++i; i < len && isalnum(c = line[i]); ++i)
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, screen_pack(c,
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(c,
 					screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
 			}
 			incflag = 1;
@@ -562,14 +555,14 @@ static u32 ed_syntax(Editor *ed, u32 y)
 		{
 			u32 save = c == '<' ? '>' : c;
 			u32 esc = 0;
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, screen_pack(c,
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				x = ed_syntax_sub(ed, c, COLOR_TABLE_STRING, y, x);
-				if(x >= ed->PageW) { return x; }
+				x = ed_syntax_sub(c, COLOR_TABLE_STRING, y, x);
+				if(x >= page_w) { return x; }
 
 				if(esc)
 				{
@@ -588,22 +581,22 @@ static u32 ed_syntax(Editor *ed, u32 y)
 		}
 		else if(c == '(' || c == ')')
 		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, screen_pack(c,
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
 			++i;
 		}
 		else if(c == '[' || c == ']')
 		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, screen_pack(c,
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_BRACKET, COLOR_TABLE_BG)));
 			++i;
 		}
 		else if(c == '{' || c == '}')
 		{
-			if(x >= ed->PageW) { return x; }
-			ed_put(ed, x++, y, screen_pack(c,
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_BRACE, COLOR_TABLE_BG)));
 			++i;
 		}
@@ -628,8 +621,8 @@ static u32 ed_syntax(Editor *ed, u32 y)
 
 			for(i = start; i < end; ++i)
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x++, y, screen_pack(line[i], color));
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(line[i], color));
 			}
 		}
 		else if(isdigit(c))
@@ -661,15 +654,15 @@ static u32 ed_syntax(Editor *ed, u32 y)
 
 			for(; i < e; ++x, ++i)
 			{
-				if(x >= ed->PageW) { return x; }
-				ed_put(ed, x, y, screen_pack(line[i],
+				if(x >= page_w) { return x; }
+				ed_put(x, y, screen_pack(line[i],
 					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
 			}
 		}
 		else
 		{
-			x = ed_syntax_sub(ed, c, COLOR_TABLE_FG, y, x);
-			if(x >= ed->PageW) { return x; }
+			x = ed_syntax_sub(c, COLOR_TABLE_FG, y, x);
+			if(x >= page_w) { return x; }
 			++i;
 		}
 	}
@@ -677,80 +670,80 @@ static u32 ed_syntax(Editor *ed, u32 y)
 	return x;
 }
 
-static void ed_render_line(Editor *ed, u32 y)
+static void ed_render_line(u32 y)
 {
 	u32 x = 0;
-	u32 line = ed->PageY + y;
-	if(line < ed_num_lines(ed))
+	u32 line = tb->page_y + y;
+	if(line < ed_num_lines())
 	{
-		switch(ed->Language)
+		switch(tb->language)
 		{
 		case LANGUAGE_UNKNOWN:
-			x = ed_plain(ed, line);
+			x = ed_plain(line);
 			break;
 
 		case LANGUAGE_C:
-			x = ed_syntax(ed, line);
+			x = ed_syntax(line);
 			break;
 		}
 	}
 
-	if(x < ed->PageW)
+	if(x < page_w)
 	{
-		ed_put(ed, x++, line, screen_pack(' ',
+		ed_put(x++, line, screen_pack(' ',
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
 	}
 
-	for(; x < ed->PageW; ++x)
+	for(; x < page_w; ++x)
 	{
-		screen_set(x + ed->OffsetX, y,
+		screen_set(x + offset_x, y,
 			screen_pack(' ', screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
 	}
 }
 
-static void ed_render_msg(Editor *ed)
+static void ed_render_msg(void)
 {
-	const char *s = ed->Msg;
+	const char *s = msg_buf;
 	u32 x, c;
-	u32 y = ed->PageH - 1;
+	u32 y = full_h - 1;
 	u32 color = screen_color(COLOR_TABLE_FG,
-		ed->MsgType ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO);
+		msg_type ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO);
 
 	for(x = 0; (c = *s); ++x, ++s)
 	{
 		screen_set(x, y, screen_pack(c, color));
 	}
 
-	for(; x < ed->FullW; ++x)
+	for(; x < full_w; ++x)
 	{
 		screen_set(x, y, screen_pack(' ', color));
 	}
 }
 
-static u32 ed_render_dir(Editor *ed)
+static u32 ed_render_dir(void)
 {
 	u32 i;
 	u32 y = 1;
-	u32 end = ed->DirOffset + ED_DIR_PAGE;
-	if(end > ed->DirEntries)
+	u32 end = dir_offset + ED_DIR_PAGE;
+	if(end > dir_entries)
 	{
-		end = ed->DirEntries;
+		end = dir_entries;
 	}
 
-	for(i = ed->DirOffset; i < end; ++i, ++y)
+	for(i = dir_offset; i < end; ++i, ++y)
 	{
-		u32 color = (i == ed->DirPos) ?
+		u32 color = (i == dir_pos) ?
 			screen_color(COLOR_TABLE_INFO, COLOR_TABLE_GRAY) :
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
 
 		u32 x = 0;
-		const char *p = ed->DirList[i];
-		for(; *p && x < ed->FullW; ++p, ++x)
+		const char *p = dir_list[i];
+		for(; *p && x < full_w; ++p, ++x)
 		{
 			screen_set(x, y, screen_pack(*p, color));
 		}
 
-		for(; x < ed->FullW; ++x)
+		for(; x < full_w; ++x)
 		{
 			screen_set(x, y, screen_pack(' ', color));
 		}
@@ -759,7 +752,7 @@ static u32 ed_render_dir(Editor *ed)
 	return y;
 }
 
-static u32 ed_render_goto_line(Editor *ed)
+static u32 ed_render_goto_line(void)
 {
 	const char *prompt = "Location: ";
 	const char *s;
@@ -771,59 +764,59 @@ static u32 ed_render_goto_line(Editor *ed)
 		screen_set(x, 0, screen_pack(c, color));
 	}
 
-	for(s = ed->Search, i = 0; x < ed->FullW; ++x, ++s, ++i)
+	for(s = nav_buf, i = 0; x < full_w; ++x, ++s, ++i)
 	{
-		screen_set(x, 0, screen_pack((i < ed->SLen) ? *s : ' ',
-			(i == ed->SCursor) ?
+		screen_set(x, 0, screen_pack((i < nav_len) ? *s : ' ',
+			(i == nav_cursor) ?
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
 			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG)));
 	}
 
-	return ed_render_dir(ed);
+	return ed_render_dir();
 }
 
-static u32 ed_chr_x_inc(Editor *ed, u32 c, u32 x)
+static u32 ed_chr_x_inc(u32 c, u32 x)
 {
 	return (c == '\t') ?
-		((x + ed->TabSize) / ed->TabSize * ed->TabSize) :
+		((x + tabsize) / tabsize * tabsize) :
 		(x + 1);
 }
 
-static u32 ed_cursor_pos_x(Editor *ed, u32 y, u32 end)
+static u32 ed_cursor_pos_x(u32 y, u32 end)
 {
 	u32 i;
 	u32 x = 0;
-	const char *line = vector_data(ed_line_get(ed, y));
+	const char *line = vector_data(ed_line_get(y));
 	for(i = 0; i < end; ++i)
 	{
-		x = ed_chr_x_inc(ed, line[i], x);
+		x = ed_chr_x_inc(line[i], x);
 	}
 
 	return x;
 }
 
-static u32 ed_prev_comment(Editor *ed)
+static u32 ed_prev_comment(void)
 {
-	u32 i = 0, in_comment = 0;
-	if(ed->PageY > COMMENT_LOOKBACK)
+	u32 i = 0, result = 0;
+	if(tb->page_y > COMMENT_LOOKBACK)
 	{
-		i = ed->PageY - COMMENT_LOOKBACK;
+		i = tb->page_y - COMMENT_LOOKBACK;
 	}
 
-	for(; i < ed->PageY; ++i)
+	for(; i < tb->page_y; ++i)
 	{
 		i32 p;
-		Vector *line = ed_line_get(ed, i);
+		Vector *line = ed_line_get(i);
 		const char *data = vector_data(line);
 		i32 len = vector_len(line);
 		for(p = 0; p < len - 1; ++p)
 		{
-			if(in_comment)
+			if(result)
 			{
 				if(data[p] == '*' && data[p + 1] == '/')
 				{
 					++p;
-					in_comment = 0;
+					result = 0;
 				}
 			}
 			else
@@ -831,545 +824,545 @@ static u32 ed_prev_comment(Editor *ed)
 				if(data[p] == '/' && data[p + 1] == '*')
 				{
 					++p;
-					in_comment = 1;
+					result = 1;
 				}
 			}
 		}
 	}
 
-	return in_comment;
+	return result;
 }
 
-static void ed_render(Editor *ed)
+static void ed_render(void)
 {
 	u32 y;
 	u32 start_y = 0;
-	u32 end_y = ed->PageH;
-	u32 lines = ed_num_lines(ed);
+	u32 end_y = full_h;
+	u32 lines = ed_num_lines();
 
-	if(ed->Sel.C[1].Y < ed->PageY)
+	if(tb->sel.c[1].y < tb->page_y)
 	{
-		ed->PageY = ed->Sel.C[1].Y;
+		tb->page_y = tb->sel.c[1].y;
 	}
 
-	if(ed->Sel.C[1].Y >= ed->PageY + ed->PageH)
+	if(tb->sel.c[1].y >= tb->page_y + full_h)
 	{
-		ed->PageY = ed->Sel.C[1].Y - ed->PageH + 1;
+		tb->page_y = tb->sel.c[1].y - full_h + 1;
 	}
 
-	if(lines > ed->PageH && ed->PageY + ed->PageH >= lines)
+	if(lines > full_h && tb->page_y + full_h >= lines)
 	{
-		ed->PageY = lines - ed->PageH;
+		tb->page_y = lines - full_h;
 	}
 
-	if(ed->ShowLineNr)
+	if(show_linenr)
 	{
-		ed_render_linenr(ed);
+		ed_render_linenr();
 	}
 	else
 	{
-		ed->PageW = ed->FullW;
-		ed->OffsetX = 0;
+		page_w = full_w;
+		offset_x = 0;
 	}
 
-	if(ed->Mode == EDITOR_MODE_GOTO)
+	if(mode == EDITOR_MODE_GOTO)
 	{
-		start_y = ed_render_goto_line(ed);
+		start_y = ed_render_goto_line();
 	}
-	else if(ed->Mode == EDITOR_MODE_MSG)
+	else if(mode == EDITOR_MODE_MSG)
 	{
 		--end_y;
-		ed_render_msg(ed);
+		ed_render_msg();
 	}
 
-	ed->VCursor.X = ed_cursor_pos_x(ed, ed->Sel.C[1].Y, ed->Sel.C[1].X);
-	ed->VCursor.Y = ed->Sel.C[1].Y;
-	ed->VSel.C[0] = ed->VCursor;
-	if(ed->Sel.C[0].Y == ed->Sel.C[1].Y && ed->Sel.C[1].X == ed->Sel.C[0].X)
+	vcursor.x = ed_cursor_pos_x(tb->sel.c[1].y, tb->sel.c[1].x);
+	vcursor.y = tb->sel.c[1].y;
+	vsel.c[0] = vcursor;
+	if(tb->sel.c[0].y == tb->sel.c[1].y && tb->sel.c[1].x == tb->sel.c[0].x)
 	{
-		ed->VSel.C[1] = ed->VCursor;
+		vsel.c[1] = vcursor;
 	}
 	else
 	{
-		ed->VSel.C[1].X = ed_cursor_pos_x(ed, ed->Sel.C[0].Y, ed->Sel.C[0].X);
-		ed->VSel.C[1].Y = ed->Sel.C[0].Y;
+		vsel.c[1].x = ed_cursor_pos_x(tb->sel.c[0].y, tb->sel.c[0].x);
+		vsel.c[1].y = tb->sel.c[0].y;
 	}
 
-	if(ed->Language != LANGUAGE_UNKNOWN)
+	if(tb->language != LANGUAGE_UNKNOWN)
 	{
-		ed->InComment = ed_prev_comment(ed);
+		in_comment = ed_prev_comment();
 	}
 
-	ed_sel_norm(&ed->VSel);
+	ed_sel_norm(&vsel);
 	for(y = start_y; y < end_y; ++y)
 	{
-		ed_render_line(ed, y);
+		ed_render_line(y);
 	}
 }
 
-static void ed_msg(Editor *ed, u32 msg_type, const char *msg, ...)
+static void ed_msg(u32 type, const char *msg, ...)
 {
 	va_list args;
-	ed->Mode = EDITOR_MODE_MSG;
-	ed->MsgType = msg_type;
+	mode = EDITOR_MODE_MSG;
+	msg_type = type;
 	va_start(args, msg);
-	vsnprintf(ed->Msg, MAX_MSG_LEN, msg, args);
+	vsnprintf(msg_buf, MAX_MSG_LEN, msg, args);
 	va_end(args);
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_backspace(Editor *ed)
+static void ed_backspace(void)
 {
-	if(sel_wide(&ed->Sel))
+	if(sel_wide(&tb->sel))
 	{
-		ed_sel_delete(ed);
+		ed_sel_delete();
 	}
 	else
 	{
-		Vector *line = ed_cur_line(ed);
-		if(ed->Sel.C[1].X == 0)
+		Vector *line = ed_cur_line();
+		if(tb->sel.c[1].x == 0)
 		{
-			if(ed->Sel.C[1].Y > 0)
+			if(tb->sel.c[1].y > 0)
 			{
 				/* merge with previous line */
-				Vector *prev = ed_line_get(ed, --ed->Sel.C[1].Y);
-				ed->Sel.C[1].X = vector_len(prev);
+				Vector *prev = ed_line_get(--tb->sel.c[1].y);
+				tb->sel.c[1].x = vector_len(prev);
 				vector_push(prev, vector_len(line), vector_data(line));
-				ed_line_remove(ed, ed->Sel.C[1].Y + 1);
+				ed_line_remove(tb->sel.c[1].y + 1);
 			}
 		}
 		else
 		{
 			/* delete prev char */
-			vector_remove(line, --ed->Sel.C[1].X, 1);
+			vector_remove(line, --tb->sel.c[1].x, 1);
 		}
 
-		ed->CursorSaveX = -1;
-		ed_sel_to_cursor(ed);
+		tb->cursor_save_x = -1;
+		ed_sel_to_cursor();
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_delete(Editor *ed)
+static void ed_delete(void)
 {
-	if(sel_wide(&ed->Sel))
+	if(sel_wide(&tb->sel))
 	{
-		ed_sel_delete(ed);
+		ed_sel_delete();
 	}
 	else
 	{
-		Vector *line = ed_cur_line(ed);
+		Vector *line = ed_cur_line();
 		u32 line_len = vector_len(line);
-		if(ed->Sel.C[1].X >= line_len)
+		if(tb->sel.c[1].x >= line_len)
 		{
-			u32 num_lines = ed_num_lines(ed);
-			ed->Sel.C[1].X = line_len;
-			if(ed->Sel.C[1].Y < num_lines - 1)
+			u32 num_lines = ed_num_lines();
+			tb->sel.c[1].x = line_len;
+			if(tb->sel.c[1].y < num_lines - 1)
 			{
 				/* merge with next line */
-				u32 next_idx = ed->Sel.C[1].Y + 1;
-				Vector *next = ed_line_get(ed, next_idx);
+				u32 next_idx = tb->sel.c[1].y + 1;
+				Vector *next = ed_line_get(next_idx);
 				vector_push(line, vector_len(next), vector_data(next));
-				ed_line_remove(ed, next_idx);
+				ed_line_remove(next_idx);
 			}
 		}
 		else
 		{
 			/* delete next char */
-			vector_remove(line, ed->Sel.C[1].X, 1);
+			vector_remove(line, tb->sel.c[1].x, 1);
 		}
 
-		ed->CursorSaveX = -1;
+		tb->cursor_save_x = -1;
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_char(Editor *ed, u32 chr)
+static void ed_char(u32 chr)
 {
 	u8 ins[1];
-	ed_sel_clear(ed);
+	ed_sel_clear();
 	ins[0] = chr;
-	vector_insert(ed_cur_line(ed), ed->Sel.C[1].X, 1, ins);
-	++ed->Sel.C[1].X;
-	ed->CursorSaveX = -1;
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	vector_insert(ed_cur_line(), tb->sel.c[1].x, 1, ins);
+	++tb->sel.c[1].x;
+	tb->cursor_save_x = -1;
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_enter(Editor *ed)
+static void ed_enter(void)
 {
 	u32 len;
 	char *str;
-	Vector new, *cur;
+	Vector new_line, *cur;
 
-	ed_sel_clear(ed);
+	ed_sel_clear();
 
-	cur = ed_cur_line(ed);
-	str = (char *)vector_data(cur) + ed->Sel.C[1].X;
-	len = vector_len(cur) - ed->Sel.C[1].X;
+	cur = ed_cur_line();
+	str = (char *)vector_data(cur) + tb->sel.c[1].x;
+	len = vector_len(cur) - tb->sel.c[1].x;
 
 	/* Copy characters after cursor on current line to new line */
-	vector_init(&new, len);
-	vector_push(&new, len, str);
+	vector_init(&new_line, len);
+	vector_push(&new_line, len, str);
 
 	/* Insert new line */
-	ed_line_insert(ed, ed->Sel.C[1].Y + 1, &new);
+	ed_line_insert(tb->sel.c[1].y + 1, &new_line);
 
 	/* Remove characters after cursor on current line */
-	vector_remove(cur, ed->Sel.C[1].X, len);
+	vector_remove(cur, tb->sel.c[1].x, len);
 
-	++ed->Sel.C[1].Y;
-	ed->Sel.C[1].X = 0;
-	ed->CursorSaveX = 0;
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	++tb->sel.c[1].y;
+	tb->sel.c[1].x = 0;
+	tb->cursor_save_x = 0;
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_enter_after(Editor *ed)
+static void ed_enter_after(void)
 {
-	Vector new;
-	vector_init(&new, 8);
-	ed_line_insert(ed, ++ed->Sel.C[1].Y, &new);
-	ed->Sel.C[1].X = 0;
-	ed->CursorSaveX = 0;
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	Vector new_line;
+	vector_init(&new_line, 8);
+	ed_line_insert(++tb->sel.c[1].y, &new_line);
+	tb->sel.c[1].x = 0;
+	tb->cursor_save_x = 0;
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_enter_before(Editor *ed)
+static void ed_enter_before(void)
 {
-	Vector new;
-	vector_init(&new, 8);
-	ed_line_insert(ed, ed->Sel.C[1].Y, &new);
-	ed->Sel.C[1].X = 0;
-	ed->CursorSaveX = 0;
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	Vector new_line;
+	vector_init(&new_line, 8);
+	ed_line_insert(tb->sel.c[1].y, &new_line);
+	tb->sel.c[1].x = 0;
+	tb->cursor_save_x = 0;
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_home_internal(Editor *ed)
+static void ed_home_internal(void)
 {
-	Vector *line = ed_cur_line(ed);
+	Vector *line = ed_cur_line();
 	char *buf = vector_data(line);
 	u32 len = vector_len(line);
 	u32 i = 0;
 	while(i < len && isspace(buf[i])) { ++i; }
-	ed->Sel.C[1].X = (ed->Sel.C[1].X == i) ? 0 : i;
-	ed->CursorSaveX = -1;
+	tb->sel.c[1].x = (tb->sel.c[1].x == i) ? 0 : i;
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_home(Editor *ed)
+static void ed_sel_home(void)
 {
-	ed_home_internal(ed);
-	ed_render(ed);
+	ed_home_internal();
+	ed_render();
 }
 
-static void ed_home(Editor *ed)
+static void ed_home(void)
 {
-	ed_home_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_home_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_end_internal(Editor *ed)
+static void ed_end_internal(void)
 {
-	ed->Sel.C[1].X = ed_cur_line_len(ed);
-	ed->CursorSaveX = -1;
+	tb->sel.c[1].x = ed_cur_line_len();
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_end(Editor *ed)
+static void ed_sel_end(void)
 {
-	ed_end_internal(ed);
-	ed_render(ed);
+	ed_end_internal();
+	ed_render();
 }
 
-static void ed_end(Editor *ed)
+static void ed_end(void)
 {
-	ed_end_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_end_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_move_vertical(Editor *ed, u32 prev_y)
+static void ed_move_vertical(u32 prev_y)
 {
-	Vector *line = ed_cur_line(ed);
+	Vector *line = ed_cur_line();
 	u32 len = vector_len(line);
 	const char *buf = vector_data(line);
 	u32 i, x, max_x;
 
-	if(ed->CursorSaveX < 0)
+	if(tb->cursor_save_x < 0)
 	{
-		ed->CursorSaveX = ed_cursor_pos_x(ed, prev_y, ed->Sel.C[1].X);
+		tb->cursor_save_x = ed_cursor_pos_x(prev_y, tb->sel.c[1].x);
 	}
 
-	max_x = ed->CursorSaveX;
+	max_x = tb->cursor_save_x;
 	for(i = 0, x = 0; i < len && x < max_x; ++i)
 	{
-		x = ed_chr_x_inc(ed, buf[i], x);
+		x = ed_chr_x_inc(buf[i], x);
 	}
 
-	ed->Sel.C[1].X = i;
+	tb->sel.c[1].x = i;
 }
 
-static void ed_up_internal(Editor *ed)
+static void ed_up_internal(void)
 {
-	if(ed->Sel.C[1].Y == 0)
+	if(tb->sel.c[1].y == 0)
 	{
-		ed->Sel.C[1].X = 0;
-		ed->CursorSaveX = 0;
-	}
-	else
-	{
-		u32 prev_y = ed->Sel.C[1].Y;
-		--ed->Sel.C[1].Y;
-		ed_move_vertical(ed, prev_y);
-	}
-}
-
-static void ed_sel_up(Editor *ed)
-{
-	ed_up_internal(ed);
-	ed_render(ed);
-}
-
-static void ed_up(Editor *ed)
-{
-	ed_up_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
-}
-
-static void ed_down_internal(Editor *ed)
-{
-	if(ed->Sel.C[1].Y >= ed_num_lines(ed) - 1)
-	{
-		ed->Sel.C[1].X = ed_cur_line_len(ed);
-		ed->CursorSaveX = -1;
+		tb->sel.c[1].x = 0;
+		tb->cursor_save_x = 0;
 	}
 	else
 	{
-		u32 prev_y = ed->Sel.C[1].Y;
-		++ed->Sel.C[1].Y;
-		ed_move_vertical(ed, prev_y);
+		u32 prev_y = tb->sel.c[1].y;
+		--tb->sel.c[1].y;
+		ed_move_vertical(prev_y);
 	}
 }
 
-static void ed_sel_down(Editor *ed)
+static void ed_sel_up(void)
 {
-	ed_down_internal(ed);
-	ed_render(ed);
+	ed_up_internal();
+	ed_render();
 }
 
-static void ed_down(Editor *ed)
+static void ed_up(void)
 {
-	ed_down_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_up_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_page_up_internal(Editor *ed)
+static void ed_down_internal(void)
 {
-	if(ed->Sel.C[1].Y >= ed->PageH)
+	if(tb->sel.c[1].y >= ed_num_lines() - 1)
 	{
-		u32 prev_y = ed->Sel.C[1].Y;
-		ed->Sel.C[1].Y -= ed->PageH;
-		ed_move_vertical(ed, prev_y);
-	}
-	else
-	{
-		ed->Sel.C[1].Y = 0;
-		ed->Sel.C[1].X = 0;
-		ed->CursorSaveX = 0;
-	}
-}
-
-static void ed_sel_page_up(Editor *ed)
-{
-	ed_page_up_internal(ed);
-	ed_render(ed);
-}
-
-static void ed_page_up(Editor *ed)
-{
-	ed_page_up_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
-}
-
-static void ed_page_down_internal(Editor *ed)
-{
-	u32 num_lines = ed_num_lines(ed);
-	u32 prev_y = ed->Sel.C[1].Y;
-	ed->Sel.C[1].Y += ed->PageH;
-	if(ed->Sel.C[1].Y >= num_lines)
-	{
-		ed->Sel.C[1].Y = num_lines - 1;
-		ed->Sel.C[1].X = ed_cur_line_len(ed);
-		ed->CursorSaveX = -1;
+		tb->sel.c[1].x = ed_cur_line_len();
+		tb->cursor_save_x = -1;
 	}
 	else
 	{
-		ed_move_vertical(ed, prev_y);
+		u32 prev_y = tb->sel.c[1].y;
+		++tb->sel.c[1].y;
+		ed_move_vertical(prev_y);
 	}
 }
 
-static void ed_sel_page_down(Editor *ed)
+static void ed_sel_down(void)
 {
-	ed_page_down_internal(ed);
-	ed_render(ed);
+	ed_down_internal();
+	ed_render();
 }
 
-static void ed_page_down(Editor *ed)
+static void ed_down(void)
 {
-	ed_page_down_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_down_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_left_internal(Editor *ed)
+static void ed_page_up_internal(void)
 {
-	if(ed->Sel.C[1].X == 0)
+	if(tb->sel.c[1].y >= full_h)
 	{
-		if(ed->Sel.C[1].Y > 0)
+		u32 prev_y = tb->sel.c[1].y;
+		tb->sel.c[1].y -= full_h;
+		ed_move_vertical(prev_y);
+	}
+	else
+	{
+		tb->sel.c[1].y = 0;
+		tb->sel.c[1].x = 0;
+		tb->cursor_save_x = 0;
+	}
+}
+
+static void ed_sel_page_up(void)
+{
+	ed_page_up_internal();
+	ed_render();
+}
+
+static void ed_page_up(void)
+{
+	ed_page_up_internal();
+	ed_sel_to_cursor();
+	ed_render();
+}
+
+static void ed_page_down_internal(void)
+{
+	u32 num_lines = ed_num_lines();
+	u32 prev_y = tb->sel.c[1].y;
+	tb->sel.c[1].y += full_h;
+	if(tb->sel.c[1].y >= num_lines)
+	{
+		tb->sel.c[1].y = num_lines - 1;
+		tb->sel.c[1].x = ed_cur_line_len();
+		tb->cursor_save_x = -1;
+	}
+	else
+	{
+		ed_move_vertical(prev_y);
+	}
+}
+
+static void ed_sel_page_down(void)
+{
+	ed_page_down_internal();
+	ed_render();
+}
+
+static void ed_page_down(void)
+{
+	ed_page_down_internal();
+	ed_sel_to_cursor();
+	ed_render();
+}
+
+static void ed_left_internal(void)
+{
+	if(tb->sel.c[1].x == 0)
+	{
+		if(tb->sel.c[1].y > 0)
 		{
-			--ed->Sel.C[1].Y;
-			ed->Sel.C[1].X = ed_cur_line_len(ed);
+			--tb->sel.c[1].y;
+			tb->sel.c[1].x = ed_cur_line_len();
 		}
 	}
 	else
 	{
-		--ed->Sel.C[1].X;
+		--tb->sel.c[1].x;
 	}
 
-	ed->CursorSaveX = -1;
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_left(Editor *ed)
+static void ed_sel_left(void)
 {
-	ed_left_internal(ed);
-	ed_render(ed);
+	ed_left_internal();
+	ed_render();
 }
 
-static void ed_left(Editor *ed)
+static void ed_left(void)
 {
-	if(sel_wide(&ed->Sel))
+	if(sel_wide(&tb->sel))
 	{
-		sel_left(&ed->Sel);
+		sel_left(&tb->sel);
 	}
 	else
 	{
-		ed_left_internal(ed);
-		ed_sel_to_cursor(ed);
+		ed_left_internal();
+		ed_sel_to_cursor();
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_right_internal(Editor *ed)
+static void ed_right_internal(void)
 {
-	if(ed->Sel.C[1].X == ed_cur_line_len(ed))
+	if(tb->sel.c[1].x == ed_cur_line_len())
 	{
-		if(ed->Sel.C[1].Y < ed_num_lines(ed) - 1)
+		if(tb->sel.c[1].y < ed_num_lines() - 1)
 		{
-			++ed->Sel.C[1].Y;
-			ed->Sel.C[1].X = 0;
+			++tb->sel.c[1].y;
+			tb->sel.c[1].x = 0;
 		}
 	}
 	else
 	{
-		++ed->Sel.C[1].X;
+		++tb->sel.c[1].x;
 	}
 
-	ed->CursorSaveX = -1;
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_right(Editor *ed)
+static void ed_sel_right(void)
 {
-	ed_right_internal(ed);
-	ed_render(ed);
+	ed_right_internal();
+	ed_render();
 }
 
-static void ed_right(Editor *ed)
+static void ed_right(void)
 {
-	if(sel_wide(&ed->Sel))
+	if(sel_wide(&tb->sel))
 	{
-		sel_right(&ed->Sel);
+		sel_right(&tb->sel);
 	}
 	else
 	{
-		ed_right_internal(ed);
-		ed_sel_to_cursor(ed);
+		ed_right_internal();
+		ed_sel_to_cursor();
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_top_internal(Editor *ed)
+static void ed_top_internal(void)
 {
-	ed->Sel.C[1].X = 0;
-	ed->Sel.C[1].Y = 0;
-	ed->CursorSaveX = 0;
+	tb->sel.c[1].x = 0;
+	tb->sel.c[1].y = 0;
+	tb->cursor_save_x = 0;
 }
 
-static void ed_sel_top(Editor *ed)
+static void ed_sel_top(void)
 {
-	ed_top_internal(ed);
-	ed_render(ed);
+	ed_top_internal();
+	ed_render();
 }
 
-static void ed_top(Editor *ed)
+static void ed_top(void)
 {
-	ed_top_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_top_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_bottom_internal(Editor *ed)
+static void ed_bottom_internal(void)
 {
-	ed->Sel.C[1].Y = ed_num_lines(ed) - 1;
-	ed->Sel.C[1].X = ed_cur_line_len(ed);
-	ed->CursorSaveX = -1;
+	tb->sel.c[1].y = ed_num_lines() - 1;
+	tb->sel.c[1].x = ed_cur_line_len();
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_bottom(Editor *ed)
+static void ed_sel_bottom(void)
 {
-	ed_bottom_internal(ed);
-	ed_render(ed);
+	ed_bottom_internal();
+	ed_render();
 }
 
-static void ed_bottom(Editor *ed)
+static void ed_bottom(void)
 {
-	ed_bottom_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_bottom_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_reset_cursor(Editor *ed)
+static void ed_reset_cursor(void)
 {
-	ed->PageY = 0;
-	ed->CursorSaveX = 0;
-	memset(&ed->Sel, 0, sizeof(Selection));
+	tb->page_y = 0;
+	tb->cursor_save_x = 0;
+	memset(&tb->sel, 0, sizeof(selection));
 }
 
-static void ed_gotoxy(Editor *ed, u32 x, u32 y)
+static void ed_gotoxy(u32 x, u32 y)
 {
-	u32 num_lines = ed_num_lines(ed);
+	u32 num_lines = ed_num_lines();
 	if(y >= num_lines)
 	{
 		y = num_lines - 1;
 	}
 
-	ed->Sel.C[1].Y = y;
-	if(ed->Sel.C[1].Y > ed->PageH / 2)
+	tb->sel.c[1].y = y;
+	if(tb->sel.c[1].y > full_h / 2)
 	{
-		ed->PageY = ed->Sel.C[1].Y - ed->PageH / 2;
+		tb->page_y = tb->sel.c[1].y - full_h / 2;
 	}
 
-	ed->Sel.C[1].X = x;
-	ed_sel_to_cursor(ed);
-	ed->CursorSaveX = -1;
+	tb->sel.c[1].x = x;
+	ed_sel_to_cursor();
+	tb->cursor_save_x = -1;
 }
 
 static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
@@ -1391,14 +1384,14 @@ static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
 	return -1;
 }
 
-static void ed_goto_def(Editor *ed, const char *s)
+static void ed_goto_def(const char *s)
 {
 	u32 i;
-	u32 len = ed_num_lines(ed);
+	u32 len = ed_num_lines();
 	u32 sl = strlen(s);
 	for(i = 0; i < len; ++i)
 	{
-		Vector *line = ed_line_get(ed, i);
+		Vector *line = ed_line_get(i);
 		u32 ll = vector_len(line);
 		const char *buf = vector_data(line);
 		i32 offset;
@@ -1413,248 +1406,249 @@ static void ed_goto_def(Editor *ed, const char *s)
 			continue;
 		}
 
-		ed_gotoxy(ed, offset, i);
+		ed_gotoxy(offset, i);
 		return;
 	}
 }
 
-static void ed_init(Editor *ed, u32 width, u32 height)
+static void ed_init(u32 width, u32 height)
 {
 	Vector line;
-	vector_init(&ed->Lines, 128 * sizeof(Vector));
+
+	tb = _malloc(sizeof(text_buf));
+
+	vector_init(&tb->lines, 128 * sizeof(Vector));
 	vector_init(&line, 8);
-	vector_push(&ed->Lines, sizeof(line), &line);
+	vector_push(&tb->lines, sizeof(line), &line);
 
-	ed_reset_cursor(ed);
+	ed_reset_cursor();
+	tb->language = LANGUAGE_C;
 
-	ed->Language = LANGUAGE_C;
-	ed->TabSize = 4;
-	ed->ShowWhitespace = 1;
+	tabsize = 4;
+	show_whitespace = 1;
+	full_w = width;
+	full_h = height;
+	show_linenr = 1;
 
-	ed->FullW = width;
-	ed->PageH = height;
-
-	ed->ShowLineNr = 1;
-
-	strcpy(ed->SBuf, "./");
-	ed->Search = ed->SBuf + 2;
+	strcpy(nav_base, "./");
+	nav_buf = nav_base + 2;
 }
 
-static void ed_sel_store(Editor *ed)
+static void ed_sel_store(void)
 {
 	u32 len;
-	char *text = ed_sel_get(ed, &ed->Sel, &len);
+	char *text = ed_sel_get(&tb->sel, &len);
 	clipboard_store(text);
 	_free(text);
 }
 
-static void ed_sel_all(Editor *ed)
+static void ed_sel_all(void)
 {
-	u32 last_line = ed_num_lines(ed) - 1;
-	ed->Sel.C[0].X = 0;
-	ed->Sel.C[0].Y = 0;
-	ed->Sel.C[1].X = ed_line_len(ed, last_line);
-	ed->Sel.C[1].Y = last_line;
-	ed_render(ed);
+	u32 last_line = ed_num_lines() - 1;
+	tb->sel.c[0].x = 0;
+	tb->sel.c[0].y = 0;
+	tb->sel.c[1].x = ed_line_len(last_line);
+	tb->sel.c[1].y = last_line;
+	ed_render();
 }
 
-static void ed_cut(Editor *ed)
+static void ed_cut(void)
 {
-	ed_sel_store(ed);
-	ed_sel_delete(ed);
-	ed_render(ed);
+	ed_sel_store();
+	ed_sel_delete();
+	ed_render();
 }
 
-static void ed_copy(Editor *ed)
+static void ed_copy(void)
 {
-	ed_sel_store(ed);
+	ed_sel_store();
 }
 
-static void ed_paste(Editor *ed)
+static void ed_paste(void)
 {
 	char *text = clipboard_load();
-	ed_insert(ed, text);
+	ed_insert(text);
 	free(text);
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_prev_word_internal(Editor *ed)
+static void ed_prev_word_internal(void)
 {
-	if(ed->Sel.C[1].X == 0)
+	if(tb->sel.c[1].x == 0)
 	{
-		if(ed->Sel.C[1].Y > 0)
+		if(tb->sel.c[1].y > 0)
 		{
-			--ed->Sel.C[1].Y;
-			ed->Sel.C[1].X = ed_cur_line_len(ed);
+			--tb->sel.c[1].y;
+			tb->sel.c[1].x = ed_cur_line_len();
 		}
 	}
 	else
 	{
-		if(ed->Sel.C[1].X > 0)
+		if(tb->sel.c[1].x > 0)
 		{
-			char *buf = vector_data(ed_cur_line(ed));
-			u32 i = ed->Sel.C[1].X - 1;
+			char *buf = vector_data(ed_cur_line());
+			u32 i = tb->sel.c[1].x - 1;
 			u32 type = char_type(buf[i]);
 			while(i > 0 && char_type(buf[i - 1]) == type) { --i; }
-			ed->Sel.C[1].X = i;
+			tb->sel.c[1].x = i;
 		}
 	}
 
-	ed->CursorSaveX = -1;
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_prev_word(Editor *ed)
+static void ed_sel_prev_word(void)
 {
-	ed_prev_word_internal(ed);
-	ed_render(ed);
+	ed_prev_word_internal();
+	ed_render();
 }
 
-static void ed_prev_word(Editor *ed)
+static void ed_prev_word(void)
 {
-	ed_prev_word_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_prev_word_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_del_prev_word(Editor *ed)
+static void ed_del_prev_word(void)
 {
-	ed_prev_word_internal(ed);
-	ed_sel_clear(ed);
-	ed_render(ed);
+	ed_prev_word_internal();
+	ed_sel_clear();
+	ed_render();
 }
 
-static void ed_next_word_internal(Editor *ed)
+static void ed_next_word_internal(void)
 {
-	u32 len = ed_cur_line_len(ed);
-	if(ed->Sel.C[1].X == len)
+	u32 len = ed_cur_line_len();
+	if(tb->sel.c[1].x == len)
 	{
-		if(ed->Sel.C[1].Y < ed_num_lines(ed) - 1)
+		if(tb->sel.c[1].y < ed_num_lines() - 1)
 		{
-			++ed->Sel.C[1].Y;
-			ed->Sel.C[1].X = 0;
+			++tb->sel.c[1].y;
+			tb->sel.c[1].x = 0;
 		}
 	}
 	else
 	{
-		if(ed->Sel.C[1].X < len)
+		if(tb->sel.c[1].x < len)
 		{
-			char *buf = vector_data(ed_cur_line(ed));
-			u32 i = ed->Sel.C[1].X;
+			char *buf = vector_data(ed_cur_line());
+			u32 i = tb->sel.c[1].x;
 			u32 type = char_type(buf[i]);
 			while(i < len && char_type(buf[i]) == type) { ++i; }
-			ed->Sel.C[1].X = i;
+			tb->sel.c[1].x = i;
 		}
 	}
 
-	ed->CursorSaveX = -1;
+	tb->cursor_save_x = -1;
 }
 
-static void ed_sel_next_word(Editor *ed)
+static void ed_sel_next_word(void)
 {
-	ed_next_word_internal(ed);
-	ed_render(ed);
+	ed_next_word_internal();
+	ed_render();
 }
 
-static void ed_next_word(Editor *ed)
+static void ed_next_word(void)
 {
-	ed_next_word_internal(ed);
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	ed_next_word_internal();
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_del_next_word(Editor *ed)
+static void ed_del_next_word(void)
 {
-	ed_next_word_internal(ed);
-	ed_sel_clear(ed);
-	ed_render(ed);
+	ed_next_word_internal();
+	ed_sel_clear();
+	ed_render();
 }
 
-static void ed_del_cur_line(Editor *ed)
+static void ed_del_cur_line(void)
 {
-	u32 count = ed_num_lines(ed);
+	u32 count = ed_num_lines();
 	if(count == 1)
 	{
-		ed_line_get(ed, 0)->Length = 0;
+		ed_line_get(0)->Length = 0;
 	}
 	else
 	{
-		ed_line_remove(ed, ed->Sel.C[1].Y);
-		if(ed->Sel.C[1].Y >= count - 1)
+		ed_line_remove(tb->sel.c[1].y);
+		if(tb->sel.c[1].y >= count - 1)
 		{
-			ed->Sel.C[1].Y = count - 2;
+			tb->sel.c[1].y = count - 2;
 		}
 	}
 
-	ed->Sel.C[1].X = 0;
-	ed->CursorSaveX = 0;
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
+	tb->sel.c[1].x = 0;
+	tb->cursor_save_x = 0;
+	ed_sel_to_cursor();
+	ed_render();
 }
 
-static void ed_move_up(Editor *ed)
+static void ed_move_up(void)
 {
-	if(ed->PageY > 0)
+	if(tb->page_y > 0)
 	{
-		--ed->PageY;
+		--tb->page_y;
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_move_down(Editor *ed)
+static void ed_move_down(void)
 {
-	++ed->PageY;
-	ed_render(ed);
+	++tb->page_y;
+	ed_render();
 }
 
-static void ed_toggle_line_nr(Editor *ed)
+static void ed_toggle_line_nr(void)
 {
-	ed->ShowLineNr = !ed->ShowLineNr;
-	ed_render(ed);
+	show_linenr = !show_linenr;
+	ed_render();
 }
 
-static void ed_toggle_lang(Editor *ed)
+static void ed_toggle_lang(void)
 {
-	ed->Language = !ed->Language;
-	ed_render(ed);
+	tb->language = !tb->language;
+	ed_render();
 }
 
-static void ed_tab_size(Editor *ed)
+static void ed_tab_size(void)
 {
-	ed->TabSize <<= 1;
-	if(ed->TabSize > 8)
+	tabsize <<= 1;
+	if(tabsize > 8)
 	{
-		ed->TabSize = 2;
+		tabsize = 2;
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_whitespace(Editor *ed)
+static void ed_whitespace(void)
 {
-	ed->ShowWhitespace = !ed->ShowWhitespace;
-	ed_render(ed);
+	show_whitespace = !show_whitespace;
+	ed_render();
 }
 
-static void ed_clear(Editor *ed)
+static void ed_clear(void)
 {
 	u32 i;
-	u32 num_lines = ed_num_lines(ed);
+	u32 num_lines = ed_num_lines();
 	for(i = 0; i < num_lines; ++i)
 	{
-		vector_destroy(ed_line_get(ed, i));
+		vector_destroy(ed_line_get(i));
 	}
 
-	vector_clear(&ed->Lines);
+	vector_clear(&tb->lines);
 }
 
-static void ed_load_text(Editor *ed, const char *buf)
+static void ed_load_text(const char *buf)
 {
 	u32 c;
 	Vector line;
 	const char *linestart, *p;
-	ed_clear(ed);
-	ed_reset_cursor(ed);
+	ed_clear();
+	ed_reset_cursor();
 	p = buf;
 	linestart = buf;
 	do
@@ -1663,7 +1657,7 @@ static void ed_load_text(Editor *ed, const char *buf)
 		if(c == '\0' || c == '\n')
 		{
 			vector_from(&line, linestart, p - linestart);
-			vector_push(&ed->Lines, sizeof(line), &line);
+			vector_push(&tb->lines, sizeof(line), &line);
 			linestart = p + 1;
 		}
 		++p;
@@ -1671,49 +1665,50 @@ static void ed_load_text(Editor *ed, const char *buf)
 	while(c != '\0');
 }
 
-static void ed_load(Editor *ed, const char *filename)
+static void ed_load(const char *filename)
 {
 	char *buf;
 	u32 status = textfile_read(filename, &buf);
 	switch(status)
 	{
 	case FILE_READ_FAIL:
-		ed_msg(ed, EDITOR_ERROR, "Failed to open file");
+		ed_msg(EDITOR_ERROR, "Failed to open file");
 		return;
 
 	case FILE_READ_NOT_TEXT:
-		ed_msg(ed, EDITOR_ERROR, "Invalid character, binary file?");
+		ed_msg(EDITOR_ERROR, "Invalid character, binary file?");
 		return;
 	}
 
-	ed->Mode = EDITOR_MODE_DEFAULT;
-	strcpy(ed->FileName, filename);
-	ed_load_text(ed, buf);
+	mode = EDITOR_MODE_DEFAULT;
+	tb->filename = _malloc(strlen(filename));
+	strcpy(tb->filename, filename);
+	ed_load_text(buf);
 	_free(buf);
 }
 
-static u32 ed_count_bytes(Editor *ed)
+static u32 ed_count_bytes(void)
 {
 	u32 i, len;
-	u32 num_lines = ed_num_lines(ed);
+	u32 num_lines = ed_num_lines();
 	for(i = 0, len = 0; i < num_lines; ++i)
 	{
-		len += ed_line_len(ed, i) + 1;
+		len += ed_line_len(i) + 1;
 	}
 
 	return len - 1;
 }
 
-static void ed_save(Editor *ed)
+static void ed_save(void)
 {
 	u32 i;
-	u32 len = ed_count_bytes(ed);
+	u32 len = ed_count_bytes();
 	char *buf = _malloc(len);
 	char *p = buf;
-	u32 num_lines = ed_num_lines(ed);
+	u32 num_lines = ed_num_lines();
 	for(i = 0; i < num_lines; ++i)
 	{
-		Vector *cur = ed_line_get(ed, i);
+		Vector *cur = ed_line_get(i);
 		u32 line_len = vector_len(cur);
 		memcpy(p, vector_data(cur), line_len);
 		p += line_len;
@@ -1723,169 +1718,208 @@ static void ed_save(Editor *ed)
 		}
 	}
 
-	if(file_write(ed->FileName, buf, len))
+	if(file_write(tb->filename, buf, len))
 	{
-		ed_msg(ed, EDITOR_ERROR, "Writing file failed");
+		ed_msg(EDITOR_ERROR, "Writing file failed");
 	}
 	else
 	{
-		ed_msg(ed, EDITOR_INFO, "File saved");
+		ed_msg(EDITOR_INFO, "File saved");
 	}
 
 	_free(buf);
 }
 
-static void ed_ins(Editor *ed, const char *s, u32 len, u32 inc)
+static void ed_save_as(void)
 {
-	ed_sel_clear(ed);
-	vector_insert(ed_cur_line(ed), ed->Sel.C[1].X, len, s);
-	ed->Sel.C[1].X += inc;
-	ed->CursorSaveX = -1;
-	ed_sel_to_cursor(ed);
-	ed_render(ed);
 }
 
-static void ed_ins_comment(Editor *ed)
+static void ed_ins(const char *s, u32 len, u32 inc)
+{
+	ed_sel_clear();
+	vector_insert(ed_cur_line(), tb->sel.c[1].x, len, s);
+	tb->sel.c[1].x += inc;
+	tb->cursor_save_x = -1;
+	ed_sel_to_cursor();
+	ed_render();
+}
+
+static void ed_ins_comment(void)
 {
 	static const char *ins = "/*  */";
-	ed_ins(ed, ins, 6, 3);
+	ed_ins(ins, 6, 3);
 }
 
-static void ed_include(Editor *ed)
+static void ed_include(void)
 {
 	static const char *ins = "#include \"\"";
-	ed_ins(ed, ins, 11, 10);
+	ed_ins(ins, 11, 10);
 }
 
-static void ed_include_lib(Editor *ed)
+static void ed_include_lib(void)
 {
 	static const char *ins = "#include <>";
-	ed_ins(ed, ins, 11, 10);
+	ed_ins(ins, 11, 10);
 }
 
-static void ed_sel_cur_line(Editor *ed)
+static void ed_sel_cur_line(void)
 {
-	u32 last_line = ed_num_lines(ed) - 1;
-	ed->Sel.C[0].X = 0;
-	if(ed->Sel.C[1].Y < last_line)
+	u32 last_line = ed_num_lines() - 1;
+	tb->sel.c[0].x = 0;
+	if(tb->sel.c[1].y < last_line)
 	{
-		ed->Sel.C[1].X = 0;
-		++ed->Sel.C[1].Y;
+		tb->sel.c[1].x = 0;
+		++tb->sel.c[1].y;
 	}
 	else
 	{
-		u32 last_line_len = ed_line_len(ed, last_line);
-		if(ed->Sel.C[1].X == last_line_len)
+		u32 last_line_len = ed_line_len(last_line);
+		if(tb->sel.c[1].x == last_line_len)
 		{
 			return;
 		}
 
-		ed->Sel.C[1].X = last_line_len;
+		tb->sel.c[1].x = last_line_len;
 	}
 
-	ed_render(ed);
+	ed_render();
 }
 
-static void ed_new_file(Editor *ed)
+static void ed_trailing(void)
+{
+	u32 i, end;
+	end = ed_num_lines();
+	for(i = 0; i < end; ++i)
+	{
+		Vector *line = ed_line_get(i);
+		char *data = vector_data(line);
+		u32 len = vector_len(line);
+		for(;;)
+		{
+			if(!len)
+			{
+				break;
+			}
+
+			--len;
+			if(!isspace(data[len]))
+			{
+				break;
+			}
+		}
+	}
+
+	ed_render();
+}
+
+static void ed_new_file(void)
 {
 
 }
 
-static void ed_close_file(Editor *ed)
+static void ed_close_file(void)
 {
 
 }
 
-static void ed_quit(Editor *ed)
+static void ed_quit(void)
+{
+
+}
+
+static void ed_switch_buf(void)
 {
 
 }
 
 #include "nav.c"
 
-static void ed_key_press_default(Editor *ed, u32 key, u32 cp)
+static void ed_key_press_default(u32 key, u32 cp)
 {
 	switch(key)
 	{
-	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   ed_sel_prev_word(ed);  break;
-	case MOD_CTRL | KEY_LEFT:               ed_prev_word(ed);      break;
-	case MOD_SHIFT | KEY_LEFT:              ed_sel_left(ed);       break;
-	case KEY_LEFT:                          ed_left(ed);           break;
-	case MOD_CTRL | MOD_SHIFT | KEY_RIGHT:  ed_sel_next_word(ed);  break;
-	case MOD_CTRL | KEY_RIGHT:              ed_next_word(ed);      break;
-	case MOD_SHIFT | KEY_RIGHT:             ed_sel_right(ed);      break;
-	case KEY_RIGHT:                         ed_right(ed);          break;
-	case MOD_CTRL | KEY_UP:                 ed_move_up(ed);        break;
-	case MOD_SHIFT | KEY_UP:                ed_sel_up(ed);         break;
-	case KEY_UP:                            ed_up(ed);             break;
-	case MOD_CTRL | KEY_DOWN:               ed_move_down(ed);      break;
-	case MOD_SHIFT | KEY_DOWN:              ed_sel_down(ed);       break;
-	case KEY_DOWN:                          ed_down(ed);           break;
-	case MOD_SHIFT | KEY_PAGE_UP:           ed_sel_page_up(ed);    break;
-	case KEY_PAGE_UP:                       ed_page_up(ed);        break;
-	case MOD_SHIFT | KEY_PAGE_DOWN:         ed_sel_page_down(ed);  break;
-	case KEY_PAGE_DOWN:                     ed_page_down(ed);      break;
-	case MOD_CTRL | MOD_SHIFT | KEY_HOME:   ed_sel_top(ed);        break;
-	case MOD_CTRL | KEY_HOME:               ed_top(ed);            break;
-	case MOD_SHIFT | KEY_HOME:              ed_sel_home(ed);       break;
-	case KEY_HOME:                          ed_home(ed);           break;
-	case MOD_CTRL | MOD_SHIFT | KEY_END:    ed_sel_bottom(ed);     break;
-	case MOD_CTRL | KEY_END:                ed_bottom(ed);         break;
-	case MOD_SHIFT | KEY_END:               ed_sel_end(ed);        break;
-	case KEY_END:                           ed_end(ed);            break;
+	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   ed_sel_prev_word();  break;
+	case MOD_CTRL | KEY_LEFT:               ed_prev_word();      break;
+	case MOD_SHIFT | KEY_LEFT:              ed_sel_left();       break;
+	case KEY_LEFT:                          ed_left();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_RIGHT:  ed_sel_next_word();  break;
+	case MOD_CTRL | KEY_RIGHT:              ed_next_word();      break;
+	case MOD_SHIFT | KEY_RIGHT:             ed_sel_right();      break;
+	case KEY_RIGHT:                         ed_right();          break;
+	case MOD_CTRL | KEY_UP:                 ed_move_up();        break;
+	case MOD_SHIFT | KEY_UP:                ed_sel_up();         break;
+	case KEY_UP:                            ed_up();             break;
+	case MOD_CTRL | KEY_DOWN:               ed_move_down();      break;
+	case MOD_SHIFT | KEY_DOWN:              ed_sel_down();       break;
+	case KEY_DOWN:                          ed_down();           break;
+	case MOD_SHIFT | KEY_PAGE_UP:           ed_sel_page_up();    break;
+	case KEY_PAGE_UP:                       ed_page_up();        break;
+	case MOD_SHIFT | KEY_PAGE_DOWN:         ed_sel_page_down();  break;
+	case KEY_PAGE_DOWN:                     ed_page_down();      break;
+	case MOD_CTRL | MOD_SHIFT | KEY_HOME:   ed_sel_top();        break;
+	case MOD_CTRL | KEY_HOME:               ed_top();            break;
+	case MOD_SHIFT | KEY_HOME:              ed_sel_home();       break;
+	case KEY_HOME:                          ed_home();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_END:    ed_sel_bottom();     break;
+	case MOD_CTRL | KEY_END:                ed_bottom();         break;
+	case MOD_SHIFT | KEY_END:               ed_sel_end();        break;
+	case KEY_END:                           ed_end();            break;
 	case MOD_SHIFT | KEY_RETURN:
-	case KEY_RETURN:                        ed_enter(ed);          break;
-	case MOD_CTRL | KEY_RETURN:             ed_enter_after(ed);    break;
-	case MOD_CTRL | MOD_SHIFT | KEY_RETURN: ed_enter_before(ed);   break;
-	case MOD_CTRL | KEY_BACKSPACE:          ed_del_prev_word(ed);  break;
+	case KEY_RETURN:                        ed_enter();          break;
+	case MOD_CTRL | KEY_RETURN:             ed_enter_after();    break;
+	case MOD_CTRL | MOD_SHIFT | KEY_RETURN: ed_enter_before();   break;
+	case MOD_CTRL | KEY_BACKSPACE:          ed_del_prev_word();  break;
 	case MOD_SHIFT | KEY_BACKSPACE:
-	case KEY_BACKSPACE:                     ed_backspace(ed);      break;
-	case MOD_CTRL | KEY_DELETE:             ed_del_next_word(ed);  break;
-	case MOD_SHIFT | KEY_DELETE:            ed_del_cur_line(ed);   break;
-	case KEY_DELETE:                        ed_delete(ed);         break;
-	case MOD_CTRL | KEY_L:                  ed_sel_cur_line(ed);   break;
-	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr(ed); break;
-	case MOD_CTRL | KEY_K:                  ed_toggle_lang(ed);    break;
-	case MOD_CTRL | KEY_G:                  ed_goto(ed);           break;
-	case MOD_CTRL | KEY_O:                  ed_open(ed);           break;
-	case MOD_CTRL | KEY_C:                  ed_copy(ed);           break;
-	case MOD_CTRL | KEY_X:                  ed_cut(ed);            break;
-	case MOD_CTRL | KEY_V:                  ed_paste(ed);          break;
-	case MOD_CTRL | KEY_S:                  ed_save(ed);           break;
-	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size(ed);       break;
+	case KEY_BACKSPACE:                     ed_backspace();      break;
+	case MOD_CTRL | KEY_DELETE:             ed_del_next_word();  break;
+	case MOD_SHIFT | KEY_DELETE:            ed_del_cur_line();   break;
+	case KEY_DELETE:                        ed_delete();         break;
+	case MOD_CTRL | KEY_L:                  ed_sel_cur_line();   break;
+	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr(); break;
+	case MOD_CTRL | KEY_K:                  ed_toggle_lang();    break;
+	case MOD_CTRL | KEY_G:                  ed_goto();           break;
+	case MOD_CTRL | KEY_O:                  ed_open();           break;
+	case MOD_CTRL | KEY_C:                  ed_copy();           break;
+	case MOD_CTRL | KEY_X:                  ed_cut();            break;
+	case MOD_CTRL | KEY_V:                  ed_paste();          break;
+	case MOD_CTRL | KEY_S:                  ed_save();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_S:      ed_save_as();        break;
+	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();       break;
 	case MOD_CTRL | KEY_T:
-	case MOD_CTRL | KEY_N:                  ed_new_file(ed);       break;
-	case MOD_CTRL | KEY_W:                  ed_close_file(ed);     break;
-	case MOD_CTRL | KEY_Q:                  ed_quit(ed);           break;
-	case MOD_CTRL | KEY_J:                  ed_whitespace(ed);     break;
-	case MOD_CTRL | KEY_I:                  ed_include(ed);        break;
-	case MOD_CTRL | MOD_SHIFT | KEY_I:      ed_include_lib(ed);    break;
-	case MOD_CTRL | KEY_A:                  ed_sel_all(ed);        break;
-	case MOD_CTRL | MOD_SHIFT | KEY_A:      ed_ins_comment(ed);    break;
+	case MOD_CTRL | KEY_N:                  ed_new_file();       break;
+	case MOD_CTRL | KEY_W:                  ed_close_file();     break;
+	case MOD_CTRL | KEY_Q:                  ed_quit();           break;
+	case MOD_CTRL | KEY_J:                  ed_whitespace();     break;
+	case MOD_CTRL | KEY_D:                  ed_trailing();       break;
+	case MOD_CTRL | KEY_I:                  ed_include();        break;
+	case MOD_CTRL | MOD_SHIFT | KEY_I:      ed_include_lib();    break;
+	case MOD_CTRL | KEY_A:                  ed_sel_all();        break;
+	case MOD_CTRL | MOD_SHIFT | KEY_A:      ed_ins_comment();    break;
+	case MOD_CTRL | KEY_TAB:                ed_switch_buf();     break;
 	default:
 		if(isprint(cp) || cp == '\t')
 		{
-			ed_char(ed, cp);
+			ed_char(cp);
 		}
 		break;
 	}
 }
 
-static void ed_key_press_msg(Editor *ed, u32 key, u32 cp)
+static void ed_key_press_msg(u32 key, u32 cp)
 {
-	if((ed->MsgType == EDITOR_ERROR && key == KEY_RETURN) ||
-		(ed->MsgType == EDITOR_INFO))
+	if((msg_type == EDITOR_ERROR && key == KEY_RETURN) ||
+		(msg_type == EDITOR_INFO))
 	{
-		ed->Mode = EDITOR_MODE_DEFAULT;
-		ed_render(ed);
+		mode = EDITOR_MODE_DEFAULT;
+		ed_render();
 	}
 
 	(void)cp;
 }
 
-static void ed_key_press(Editor *ed, u32 key, u32 cp)
+static void ed_key_press(u32 key, u32 cp)
 {
-	typedef void (*KeyPressFN)(Editor *, u32, u32);
+	typedef void (*KeyPressFN)(u32, u32);
 	static const KeyPressFN fns[EDITOR_MODE_COUNT] =
 	{
 		ed_key_press_default,
@@ -1893,10 +1927,8 @@ static void ed_key_press(Editor *ed, u32 key, u32 cp)
 		ed_key_press_msg
 	};
 
-	fns[ed->Mode](ed, key, cp);
+	fns[mode](key, cp);
 }
-
-static Editor editor;
 
 static void event_keyboard(u32 key, u32 cp, u32 state)
 {
@@ -1905,14 +1937,14 @@ static void event_keyboard(u32 key, u32 cp, u32 state)
 		return;
 	}
 
-	ed_key_press(&editor, key, cp);
+	ed_key_press(key, cp);
 }
 
 static void event_resize(u32 w, u32 h)
 {
-	editor.FullW = w;
-	editor.PageH = h;
-	ed_render(&editor);
+	full_w = w;
+	full_h = h;
+	ed_render();
 }
 
 static void event_init(int argc, char *argv[], u32 w, u32 h)
@@ -1922,20 +1954,20 @@ static void event_init(int argc, char *argv[], u32 w, u32 h)
 #endif
 
 	keyword_init();
-	ed_init(&editor, w, h);
+	ed_init(w, h);
 
 	if(argc == 2)
 	{
-		ed_load(&editor, argv[1]);
+		ed_load(argv[1]);
 	}
 
-	ed_render(&editor);
+	ed_render();
 }
 
 static u32 event_exit(void)
 {
-	ed_clear(&editor);
-	vector_destroy(&editor.Lines);
-	_free(editor.DirList);
+	ed_clear();
+	vector_destroy(&tb->lines);
+	_free(dir_list);
 	return 1;
 }

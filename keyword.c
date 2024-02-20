@@ -9,9 +9,12 @@ typedef struct
 
 static Keyword _keywords[] =
 {
+	{ COLOR_TABLE_TYPE, "asm" },
+
 	{ COLOR_TABLE_TYPE, "const" },
 	{ COLOR_TABLE_TYPE, "void" },
 	{ COLOR_TABLE_TYPE, "bool" },
+
 	{ COLOR_TABLE_TYPE, "char" },
 	{ COLOR_TABLE_TYPE, "double" },
 	{ COLOR_TABLE_TYPE, "int" },
@@ -42,6 +45,7 @@ static Keyword _keywords[] =
 
 	{ COLOR_TABLE_TYPE, "size_t" },
 	{ COLOR_TABLE_TYPE, "FILE" },
+	{ COLOR_TABLE_TYPE, "NULL" },
 
 	{ COLOR_TABLE_KEYWORD, "break" },
 	{ COLOR_TABLE_KEYWORD, "case" },
@@ -75,7 +79,20 @@ static Keyword _keywords[] =
 
 	{ COLOR_TABLE_KEYWORD, "private" },
 	{ COLOR_TABLE_KEYWORD, "public" },
+	{ COLOR_TABLE_KEYWORD, "friend" },
+	{ COLOR_TABLE_KEYWORD, "throw" },
+	{ COLOR_TABLE_KEYWORD, "try" },
+	{ COLOR_TABLE_KEYWORD, "catch" },
+	{ COLOR_TABLE_KEYWORD, "using" },
+	{ COLOR_TABLE_KEYWORD, "virtual" },
+	{ COLOR_TABLE_KEYWORD, "new" },
+	{ COLOR_TABLE_KEYWORD, "delete" },
+	{ COLOR_TABLE_KEYWORD, "namespace" },
+	{ COLOR_TABLE_KEYWORD, "protected" },
+	{ COLOR_TABLE_KEYWORD, "template" },
+	{ COLOR_TABLE_KEYWORD, "operator" },
 	{ COLOR_TABLE_KEYWORD, "class" },
+	{ COLOR_TABLE_KEYWORD, "this" },
 	{ COLOR_TABLE_KEYWORD, "function" },
 	{ COLOR_TABLE_KEYWORD, "fn" },
 };
