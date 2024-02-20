@@ -1763,6 +1763,44 @@ static void ed_include_lib(Editor *ed)
 	ed_ins(ed, ins, 11, 10);
 }
 
+static void ed_sel_cur_line(Editor *ed)
+{
+	u32 last_line = ed_num_lines(ed) - 1;
+	ed->Sel.C[0].X = 0;
+	if(ed->Sel.C[1].Y < last_line)
+	{
+		ed->Sel.C[1].X = 0;
+		++ed->Sel.C[1].Y;
+	}
+	else
+	{
+		u32 last_line_len = ed_line_len(ed, last_line);
+		if(ed->Sel.C[1].X == last_line_len)
+		{
+			return;
+		}
+
+		ed->Sel.C[1].X = last_line_len;
+	}
+
+	ed_render(ed);
+}
+
+static void ed_new_file(Editor *ed)
+{
+
+}
+
+static void ed_close_file(Editor *ed)
+{
+
+}
+
+static void ed_quit(Editor *ed)
+{
+
+}
+
 #include "nav.c"
 
 static void ed_key_press_default(Editor *ed, u32 key, u32 cp)
@@ -1805,7 +1843,8 @@ static void ed_key_press_default(Editor *ed, u32 key, u32 cp)
 	case MOD_CTRL | KEY_DELETE:             ed_del_next_word(ed);  break;
 	case MOD_SHIFT | KEY_DELETE:            ed_del_cur_line(ed);   break;
 	case KEY_DELETE:                        ed_delete(ed);         break;
-	case MOD_CTRL | KEY_L:                  ed_toggle_line_nr(ed); break;
+	case MOD_CTRL | KEY_L:                  ed_sel_cur_line(ed);   break;
+	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr(ed); break;
 	case MOD_CTRL | KEY_K:                  ed_toggle_lang(ed);    break;
 	case MOD_CTRL | KEY_G:                  ed_goto(ed);           break;
 	case MOD_CTRL | KEY_O:                  ed_open(ed);           break;
@@ -1813,7 +1852,11 @@ static void ed_key_press_default(Editor *ed, u32 key, u32 cp)
 	case MOD_CTRL | KEY_X:                  ed_cut(ed);            break;
 	case MOD_CTRL | KEY_V:                  ed_paste(ed);          break;
 	case MOD_CTRL | KEY_S:                  ed_save(ed);           break;
-	case MOD_CTRL | KEY_T:                  ed_tab_size(ed);       break;
+	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size(ed);       break;
+	case MOD_CTRL | KEY_T:
+	case MOD_CTRL | KEY_N:                  ed_new_file(ed);       break;
+	case MOD_CTRL | KEY_W:                  ed_close_file(ed);     break;
+	case MOD_CTRL | KEY_Q:                  ed_quit(ed);           break;
 	case MOD_CTRL | KEY_J:                  ed_whitespace(ed);     break;
 	case MOD_CTRL | KEY_I:                  ed_include(ed);        break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      ed_include_lib(ed);    break;
