@@ -23,6 +23,10 @@ enum
 	LANGUAGE_C
 };
 
+#ifndef NDEBUG
+static u8 render_cnt;
+#endif
+
 #define MAX_SEARCH_LEN    256
 #define MAX_MSG_LEN        80
 #define ED_DIR_PAGE        12
@@ -47,6 +51,7 @@ typedef struct
 	i32 cursor_save_x;
 	u8 language;
 	u8 modified;
+	u8 exists;
 } text_buf;
 
 static selection vsel;
@@ -54,6 +59,8 @@ static cursor vcursor;
 static Vector buffers;
 
 static u32 full_w, full_h, offset_x, page_w;
+
+static u32 untitled_cnt = 1;
 
 static u8 in_comment;
 static u8 tabsize;
@@ -129,14 +136,34 @@ static void ed_sel_norm(selection *sel)
 	}
 }
 
+static text_buf *tb_get(u32 i)
+{
+	return *(text_buf **)vector_get(&buffers, i * sizeof(text_buf *));
+}
+
+static u32 ed_num_buffers(void)
+{
+	return vector_len(&buffers) / sizeof(text_buf *);
+}
+
+static u32 tb_num_lines(text_buf *t)
+{
+	return vector_len(&t->lines) / sizeof(Vector);
+}
+
 static u32 ed_num_lines(void)
 {
-	return vector_len(&tb->lines) / sizeof(Vector);
+	return tb_num_lines(tb);
+}
+
+static Vector *tb_line_get(text_buf *t, u32 i)
+{
+	return (Vector *)vector_get(&t->lines, i * sizeof(Vector));
 }
 
 static Vector *ed_line_get(u32 i)
 {
-	return (Vector *)vector_get(&tb->lines, i * sizeof(Vector));
+	return tb_line_get(tb, i);
 }
 
 static Vector *ed_cur_line(void)
@@ -342,6 +369,7 @@ static void ed_insert(const char *text)
 
 	tb->cursor_save_x = -1;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 }
 
 static void ed_line_remove(u32 line)
@@ -898,6 +926,10 @@ static void ed_render(void)
 	{
 		ed_render_line(y);
 	}
+
+#ifndef NDEBUG
+	++render_cnt;
+#endif
 }
 
 static void ed_msg(u32 type, const char *msg, ...)
@@ -924,7 +956,7 @@ static void ed_backspace(void)
 		{
 			if(tb->sel.c[1].y > 0)
 			{
-				/* merge with previous line */
+				/* Merge with previous line */
 				Vector *prev = ed_line_get(--tb->sel.c[1].y);
 				tb->sel.c[1].x = vector_len(prev);
 				vector_push(prev, vector_len(line), vector_data(line));
@@ -933,7 +965,7 @@ static void ed_backspace(void)
 		}
 		else
 		{
-			/* delete prev char */
+			/* Delete previous char */
 			vector_remove(line, --tb->sel.c[1].x, 1);
 		}
 
@@ -960,7 +992,7 @@ static void ed_delete(void)
 			tb->sel.c[1].x = line_len;
 			if(tb->sel.c[1].y < num_lines - 1)
 			{
-				/* merge with next line */
+				/* Merge with next line */
 				u32 next_idx = tb->sel.c[1].y + 1;
 				Vector *next = ed_line_get(next_idx);
 				vector_push(line, vector_len(next), vector_data(next));
@@ -969,7 +1001,7 @@ static void ed_delete(void)
 		}
 		else
 		{
-			/* delete next char */
+			/* Delete next char */
 			vector_remove(line, tb->sel.c[1].x, 1);
 		}
 
@@ -988,6 +1020,7 @@ static void ed_char(u32 chr)
 	++tb->sel.c[1].x;
 	tb->cursor_save_x = -1;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1017,6 +1050,7 @@ static void ed_enter(void)
 	tb->sel.c[1].x = 0;
 	tb->cursor_save_x = 0;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1028,6 +1062,7 @@ static void ed_enter_after(void)
 	tb->sel.c[1].x = 0;
 	tb->cursor_save_x = 0;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1039,6 +1074,7 @@ static void ed_enter_before(void)
 	tb->sel.c[1].x = 0;
 	tb->cursor_save_x = 0;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1411,18 +1447,92 @@ static void ed_goto_def(const char *s)
 	}
 }
 
-static void ed_init(u32 width, u32 height)
+static void ed_load(const char *filename)
+{
+	u32 c;
+	Vector line;
+	const char *linestart, *p;
+	char *buf;
+	u32 status = textfile_read(filename, &buf);
+	switch(status)
+	{
+	case FILE_READ_FAIL:
+		ed_msg(EDITOR_ERROR, "Failed to open file");
+		return;
+
+	case FILE_READ_NOT_TEXT:
+		ed_msg(EDITOR_ERROR, "Invalid character, binary file?");
+		return;
+	}
+
+	mode = EDITOR_MODE_DEFAULT;
+	tb = _malloc(sizeof(text_buf));
+	vector_push(&buffers, sizeof(text_buf *), &tb);
+	vector_init(&tb->lines, count_char(buf, '\n') + 1);
+	tb->filename = _malloc(strlen(filename));
+	strcpy(tb->filename, filename);
+	tb->language = LANGUAGE_C;
+	tb->modified = 0;
+	tb->exists = 1;
+	ed_reset_cursor();
+	p = buf;
+	linestart = buf;
+	do
+	{
+		c = *p;
+		if(c == '\0' || c == '\n')
+		{
+			vector_from(&line, linestart, p - linestart);
+			vector_push(&tb->lines, sizeof(line), &line);
+			linestart = p + 1;
+		}
+		++p;
+	}
+	while(c != '\0');
+	_free(buf);
+}
+
+static void tb_init(void)
 {
 	Vector line;
-
 	tb = _malloc(sizeof(text_buf));
+	vector_push(&buffers, sizeof(text_buf *), &tb);
 
-	vector_init(&tb->lines, 128 * sizeof(Vector));
+	vector_init(&tb->lines, 32 * sizeof(Vector));
 	vector_init(&line, 8);
 	vector_push(&tb->lines, sizeof(line), &line);
 
 	ed_reset_cursor();
 	tb->language = LANGUAGE_C;
+	tb->modified = 0;
+	tb->exists = 0;
+	tb->filename = _malloc(32);
+	sprintf(tb->filename, "untitled-%d", untitled_cnt++);
+}
+
+static void tb_destroy(text_buf *t)
+{
+	u32 i, num_lines = tb_num_lines(t);
+	for(i = 0; i < num_lines; ++i)
+	{
+		vector_destroy(tb_line_get(t, i));
+	}
+
+	vector_destroy(&t->lines);
+	_free(t->filename);
+	_free(t);
+}
+
+static void ed_new_file(void)
+{
+	tb_init();
+	ed_render();
+}
+
+static void ed_init(u32 width, u32 height)
+{
+	vector_init(&buffers, 8 * sizeof(text_buf *));
+	tb_init();
 
 	tabsize = 4;
 	show_whitespace = 1;
@@ -1514,6 +1624,7 @@ static void ed_del_prev_word(void)
 {
 	ed_prev_word_internal();
 	ed_sel_clear();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1560,6 +1671,7 @@ static void ed_del_next_word(void)
 {
 	ed_next_word_internal();
 	ed_sel_clear();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1582,6 +1694,7 @@ static void ed_del_cur_line(void)
 	tb->sel.c[1].x = 0;
 	tb->cursor_save_x = 0;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1630,63 +1743,6 @@ static void ed_whitespace(void)
 	ed_render();
 }
 
-static void ed_clear(void)
-{
-	u32 i;
-	u32 num_lines = ed_num_lines();
-	for(i = 0; i < num_lines; ++i)
-	{
-		vector_destroy(ed_line_get(i));
-	}
-
-	vector_clear(&tb->lines);
-}
-
-static void ed_load_text(const char *buf)
-{
-	u32 c;
-	Vector line;
-	const char *linestart, *p;
-	ed_clear();
-	ed_reset_cursor();
-	p = buf;
-	linestart = buf;
-	do
-	{
-		c = *p;
-		if(c == '\0' || c == '\n')
-		{
-			vector_from(&line, linestart, p - linestart);
-			vector_push(&tb->lines, sizeof(line), &line);
-			linestart = p + 1;
-		}
-		++p;
-	}
-	while(c != '\0');
-}
-
-static void ed_load(const char *filename)
-{
-	char *buf;
-	u32 status = textfile_read(filename, &buf);
-	switch(status)
-	{
-	case FILE_READ_FAIL:
-		ed_msg(EDITOR_ERROR, "Failed to open file");
-		return;
-
-	case FILE_READ_NOT_TEXT:
-		ed_msg(EDITOR_ERROR, "Invalid character, binary file?");
-		return;
-	}
-
-	mode = EDITOR_MODE_DEFAULT;
-	tb->filename = _malloc(strlen(filename));
-	strcpy(tb->filename, filename);
-	ed_load_text(buf);
-	_free(buf);
-}
-
 static u32 ed_count_bytes(void)
 {
 	u32 i, len;
@@ -1699,39 +1755,51 @@ static u32 ed_count_bytes(void)
 	return len - 1;
 }
 
+static void ed_save_as(void)
+{
+}
+
 static void ed_save(void)
 {
-	u32 i;
-	u32 len = ed_count_bytes();
-	char *buf = _malloc(len);
-	char *p = buf;
-	u32 num_lines = ed_num_lines();
-	for(i = 0; i < num_lines; ++i)
+	if(!tb->modified)
 	{
-		Vector *cur = ed_line_get(i);
-		u32 line_len = vector_len(cur);
-		memcpy(p, vector_data(cur), line_len);
-		p += line_len;
-		if(i < num_lines - 1)
-		{
-			*p++ = '\n';
-		}
+		return;
 	}
 
-	if(file_write(tb->filename, buf, len))
+	if(tb->exists)
 	{
-		ed_msg(EDITOR_ERROR, "Writing file failed");
+		u32 len = ed_count_bytes();
+		char *buf = _malloc(len);
+		char *p = buf;
+		u32 i, num_lines = ed_num_lines();
+		for(i = 0; i < num_lines; ++i)
+		{
+			Vector *cur = ed_line_get(i);
+			u32 line_len = vector_len(cur);
+			memcpy(p, vector_data(cur), line_len);
+			p += line_len;
+			if(i < num_lines - 1)
+			{
+				*p++ = '\n';
+			}
+		}
+
+		if(file_write(tb->filename, buf, len))
+		{
+			ed_msg(EDITOR_ERROR, "Writing file failed");
+		}
+		else
+		{
+			ed_msg(EDITOR_INFO, "File saved");
+		}
+
+		_free(buf);
+		tb->modified = 0;
 	}
 	else
 	{
-		ed_msg(EDITOR_INFO, "File saved");
+		ed_save_as();
 	}
-
-	_free(buf);
-}
-
-static void ed_save_as(void)
-{
 }
 
 static void ed_ins(const char *s, u32 len, u32 inc)
@@ -1741,6 +1809,7 @@ static void ed_ins(const char *s, u32 len, u32 inc)
 	tb->sel.c[1].x += inc;
 	tb->cursor_save_x = -1;
 	ed_sel_to_cursor();
+	tb->modified = 1;
 	ed_render();
 }
 
@@ -1812,11 +1881,6 @@ static void ed_trailing(void)
 	ed_render();
 }
 
-static void ed_new_file(void)
-{
-
-}
-
 static void ed_close_file(void)
 {
 
@@ -1836,6 +1900,9 @@ static void ed_switch_buf(void)
 
 static void ed_key_press_default(u32 key, u32 cp)
 {
+#ifndef NDEBUG
+	render_cnt = 0;
+#endif
 	switch(key)
 	{
 	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   ed_sel_prev_word();  break;
@@ -1903,6 +1970,8 @@ static void ed_key_press_default(u32 key, u32 cp)
 		}
 		break;
 	}
+
+	assert(render_cnt <= 1);
 }
 
 static void ed_key_press_msg(u32 key, u32 cp)
@@ -1966,8 +2035,13 @@ static void event_init(int argc, char *argv[], u32 w, u32 h)
 
 static u32 event_exit(void)
 {
-	ed_clear();
-	vector_destroy(&tb->lines);
+	u32 i, len = ed_num_buffers();
+	for(i = 0; i < len; ++i)
+	{
+		tb_destroy(tb_get(i));
+	}
+
+	vector_destroy(&buffers);
 	_free(dir_list);
 	return 1;
 }

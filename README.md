@@ -5,6 +5,8 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
+- Ctrl+C and Ctrl+V with no selection copies current line
+
 ### A
 - Finish Navigation bar
 	- Select file and open

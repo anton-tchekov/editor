@@ -573,6 +573,11 @@ static char **dir_sorted(const char *path, u32 *len)
 	count = 0;
 	while((dp = readdir(dir)))
 	{
+		if(!strcmp(dp->d_name, "."))
+		{
+			continue;
+		}
+
 		vector_push(&v, strlen(dp->d_name), dp->d_name);
 		if(dp->d_type == DT_DIR)
 		{

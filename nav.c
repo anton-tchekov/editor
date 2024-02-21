@@ -220,7 +220,6 @@ static void ed_key_press_nav(u32 key, u32 cp)
 		search_file = path_file(nav_buf);
 		if(dir_iter(buf, ed_tab_cmpl_callback))
 		{
-			ed_msg(EDITOR_ERROR, "Failed to open directory");
 			break;
 		}
 
