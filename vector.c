@@ -1,8 +1,7 @@
 typedef struct
 {
-	u32 Capacity;
-	u32 Length;
-	void *Data;
+	u32 capacity, len;
+	void *data;
 } Vector;
 
 static u32 _next_pot(u32 n)
@@ -16,113 +15,108 @@ static u32 _next_pot(u32 n)
 	return power;
 }
 
-static void vector_init(Vector *vector, u32 capacity)
+static void vector_init(Vector *v, u32 capacity)
 {
-	vector->Capacity = capacity;
-	vector->Length = 0;
-	vector->Data = _malloc(capacity);
+	v->capacity = capacity;
+	v->len = 0;
+	v->data = _malloc(capacity);
 }
 
-static void vector_from(Vector *vector, const void *buf, u32 bytes)
+static void vector_from(Vector *v, const void *buf, u32 bytes)
 {
-	vector->Capacity = bytes;
-	vector->Length = bytes;
-	vector->Data = _malloc(vector->Capacity);
-	memcpy(vector->Data, buf, bytes);
+	v->capacity = bytes;
+	v->len = bytes;
+	v->data = _malloc(v->capacity);
+	memcpy(v->data, buf, bytes);
 }
 
-static void vector_makespace(Vector *vector, u32 pos, u32 bytes)
+static void vector_makespace(Vector *v, u32 pos, u32 bytes)
 {
 	u32 new_length;
 	u8 *offset;
-	assert(pos <= vector->Length);
-	new_length = vector->Length + bytes;
-	if(new_length > vector->Capacity)
+	assert(pos <= v->len);
+	new_length = v->len + bytes;
+	if(new_length > v->capacity)
 	{
-		vector->Capacity = _next_pot(new_length);
-		vector->Data = _realloc(vector->Data, vector->Capacity);
+		v->capacity = _next_pot(new_length);
+		v->data = _realloc(v->data, v->capacity);
 	}
 
-	offset = (u8 *)vector->Data + pos;
-	memmove(offset + bytes, offset, vector->Length - pos);
-	vector->Length = new_length;
+	offset = (u8 *)v->data + pos;
+	memmove(offset + bytes, offset, v->len - pos);
+	v->len = new_length;
 }
 
-static void vector_reserve(Vector *vector, u32 capacity)
+static void vector_reserve(Vector *v, u32 capacity)
 {
-	if(vector->Capacity < capacity)
+	if(v->capacity < capacity)
 	{
-		vector->Capacity = _next_pot(capacity);
-		vector->Data = _realloc(vector->Data, vector->Capacity);
+		v->capacity = _next_pot(capacity);
+		v->data = _realloc(v->data, v->capacity);
 	}
 }
 
 static void vector_replace(
-	Vector *vector, u32 index, u32 count, const void *elems, u32 new_count)
+	Vector *v, u32 index, u32 count, const void *elems, u32 new_count)
 {
 	u32 new_length;
 
-	assert(index <= vector->Length);
-	assert(count <= vector->Length);
-	assert(index + count <= vector->Length);
+	assert(index <= v->len);
+	assert(count <= v->len);
+	assert(index + count <= v->len);
 
-	new_length = vector->Length - count + new_count;
-	if(new_length > vector->Capacity)
+	new_length = v->len - count + new_count;
+	if(new_length > v->capacity)
 	{
-		vector->Capacity = _next_pot(new_length);
-		vector->Data = _realloc(vector->Data, vector->Capacity);
+		v->capacity = _next_pot(new_length);
+		v->data = _realloc(v->data, v->capacity);
 	}
 
-	memmove((u8 *)vector->Data + index + new_count,
-		(u8 *)vector->Data + index + count,
-		vector->Length - index - count);
+	memmove((u8 *)v->data + index + new_count,
+		(u8 *)v->data + index + count,
+		v->len - index - count);
 
-	memcpy((u8 *)vector->Data + index, elems, new_count);
-	vector->Length = new_length;
+	memcpy((u8 *)v->data + index, elems, new_count);
+	v->len = new_length;
 }
 
-static void vector_clear(Vector *vector)
+static void vector_destroy(Vector *v)
 {
-	vector->Length = 0;
+	_free(v->data);
 }
 
-static void vector_destroy(Vector *vector)
+static void *vector_get(Vector *v, u32 offset)
 {
-	_free(vector->Data);
+	assert(offset < v->len);
+	return (u8 *)v->data + offset;
 }
 
-static void *vector_get(Vector *vector, u32 offset)
+static void *vector_data(Vector *v)
 {
-	assert(offset < vector->Length);
-	return (u8 *)vector->Data + offset;
+	return v->data;
 }
 
-static void *vector_data(Vector *vector)
+static u32 vector_len(Vector *v)
 {
-	return vector->Data;
-}
-
-static u32 vector_len(Vector *vector)
-{
-	return vector->Length;
+	return v->len;
 }
 
 static void vector_insert(
-	Vector *vector, u32 offset, u32 bytes, const void *elems)
+	Vector *v, u32 offset, u32 bytes, const void *elems)
 {
-	assert(offset <= vector->Length);
-	vector_replace(vector, offset, 0, elems, bytes);
+	assert(offset <= v->len);
+	vector_replace(v, offset, 0, elems, bytes);
 }
 
-static void vector_remove(Vector *vector, u32 offset, u32 bytes)
+static void vector_remove(Vector *v, u32 offset, u32 bytes)
 {
-	assert(offset <= vector->Length);
-	assert(bytes <= vector->Length);
-	assert((offset + bytes) <= vector->Length);
-	vector_replace(vector, offset, bytes, NULL, 0);
+	assert(offset <= v->len);
+	assert(bytes <= v->len);
+	assert((offset + bytes) <= v->len);
+	vector_replace(v, offset, bytes, NULL, 0);
 }
 
-static void vector_push(Vector *vector, u32 bytes, const void *elem)
+static void vector_push(Vector *v, u32 bytes, const void *elem)
 {
-	vector_insert(vector, vector->Length, bytes, elem);
+	vector_insert(v, v->len, bytes, elem);
 }

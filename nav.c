@@ -16,14 +16,14 @@ static void ed_dir_load(void)
 
 static void ed_nav_open(void)
 {
-	mode = EDITOR_MODE_GOTO;
+	mode = ED_MODE_GOTO;
 	ed_dir_load();
 	ed_render();
 }
 
 static void ed_nav_close(void)
 {
-	mode = EDITOR_MODE_DEFAULT;
+	mode = ED_MODE_DEFAULT;
 	ed_render();
 }
 
@@ -178,7 +178,7 @@ static void ed_key_press_nav(u32 key, u32 cp)
 				ed_goto_def(p);
 			}
 
-			mode = EDITOR_MODE_DEFAULT;
+			mode = ED_MODE_DEFAULT;
 		}
 		else
 		{

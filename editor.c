@@ -5,16 +5,17 @@
 
 enum
 {
-	EDITOR_MODE_DEFAULT,
-	EDITOR_MODE_GOTO,
-	EDITOR_MODE_MSG,
-	EDITOR_MODE_COUNT
+	ED_MODE_DEFAULT,
+	ED_MODE_GOTO,
+	ED_MODE_MSG,
+	ED_MODE_UNSAVED,
+	ED_MODE_COUNT
 };
 
 enum
 {
-	EDITOR_INFO,
-	EDITOR_ERROR
+	ED_INFO,
+	ED_ERROR
 };
 
 enum
@@ -24,7 +25,7 @@ enum
 };
 
 #ifndef NDEBUG
-static u8 render_cnt;
+static u32 render_cnt;
 #endif
 
 #define MAX_SEARCH_LEN    256
@@ -343,13 +344,13 @@ static void ed_insert(const char *text)
 		rlen = vector_len(first) - tb->sel.c[1].x;
 		slen = s - p;
 		vector_init(&line, rlen + slen);
-		line.Length = rlen + slen;
+		line.len = rlen + slen;
 		last = vector_data(&line);
 		memcpy(last, p, slen);
 		memcpy(last + slen, (u8 *)vector_data(first) + tb->sel.c[1].x, rlen);
 		lines[y + new_lines] = line;
 
-		first->Length = tb->sel.c[1].x;
+		first->len = tb->sel.c[1].x;
 		tb->sel.c[1].x = slen;
 		tb->sel.c[1].y = y + new_lines;
 
@@ -893,11 +894,11 @@ static void ed_render(void)
 		offset_x = 0;
 	}
 
-	if(mode == EDITOR_MODE_GOTO)
+	if(mode == ED_MODE_GOTO)
 	{
 		start_y = ed_render_goto_line();
 	}
-	else if(mode == EDITOR_MODE_MSG)
+	else if(mode == ED_MODE_MSG)
 	{
 		--end_y;
 		ed_render_msg();
@@ -935,7 +936,7 @@ static void ed_render(void)
 static void ed_msg(u32 type, const char *msg, ...)
 {
 	va_list args;
-	mode = EDITOR_MODE_MSG;
+	mode = ED_MODE_MSG;
 	msg_type = type;
 	va_start(args, msg);
 	vsnprintf(msg_buf, MAX_MSG_LEN, msg, args);
@@ -1457,15 +1458,15 @@ static void ed_load(const char *filename)
 	switch(status)
 	{
 	case FILE_READ_FAIL:
-		ed_msg(EDITOR_ERROR, "Failed to open file");
+		ed_msg(ED_ERROR, "Failed to open file");
 		return;
 
 	case FILE_READ_NOT_TEXT:
-		ed_msg(EDITOR_ERROR, "Invalid character, binary file?");
+		ed_msg(ED_ERROR, "Invalid character, binary file?");
 		return;
 	}
 
-	mode = EDITOR_MODE_DEFAULT;
+	mode = ED_MODE_DEFAULT;
 	tb = _malloc(sizeof(text_buf));
 	vector_push(&buffers, sizeof(text_buf *), &tb);
 	vector_init(&tb->lines, count_char(buf, '\n') + 1);
@@ -1680,7 +1681,7 @@ static void ed_del_cur_line(void)
 	u32 count = ed_num_lines();
 	if(count == 1)
 	{
-		ed_line_get(0)->Length = 0;
+		ed_line_get(0)->len = 0;
 	}
 	else
 	{
@@ -1745,8 +1746,7 @@ static void ed_whitespace(void)
 
 static u32 ed_count_bytes(void)
 {
-	u32 i, len;
-	u32 num_lines = ed_num_lines();
+	u32 i, len, num_lines = ed_num_lines();
 	for(i = 0, len = 0; i < num_lines; ++i)
 	{
 		len += ed_line_len(i) + 1;
@@ -1786,11 +1786,11 @@ static void ed_save(void)
 
 		if(file_write(tb->filename, buf, len))
 		{
-			ed_msg(EDITOR_ERROR, "Writing file failed");
+			ed_msg(ED_ERROR, "Writing file failed");
 		}
 		else
 		{
-			ed_msg(EDITOR_INFO, "File saved");
+			ed_msg(ED_INFO, "File saved");
 		}
 
 		_free(buf);
@@ -1856,26 +1856,35 @@ static void ed_sel_cur_line(void)
 
 static void ed_trailing(void)
 {
-	u32 i, end;
-	end = ed_num_lines();
+	u32 i, len, end = ed_num_lines();
 	for(i = 0; i < end; ++i)
 	{
 		Vector *line = ed_line_get(i);
 		char *data = vector_data(line);
-		u32 len = vector_len(line);
-		for(;;)
+		len = vector_len(line);
+		while(len > 0 && isspace(data[len - 1]))
 		{
-			if(!len)
-			{
-				break;
-			}
-
 			--len;
-			if(!isspace(data[len]))
-			{
-				break;
-			}
 		}
+
+		if(len != line->len)
+		{
+			tb->modified = 1;
+			line->len = len;
+		}
+	}
+
+	len = ed_line_len(tb->sel.c[0].y);
+	if(tb->sel.c[0].x > len)
+	{
+		tb->sel.c[0].x = len;
+	}
+
+	len = ed_line_len(tb->sel.c[1].y);
+	if(tb->sel.c[1].x > len)
+	{
+		tb->cursor_save_x = -1;
+		tb->sel.c[1].x = len;
 	}
 
 	ed_render();
@@ -1894,6 +1903,12 @@ static void ed_quit(void)
 static void ed_switch_buf(void)
 {
 
+}
+
+static void ed_unsaved(void)
+{
+	mode = ED_MODE_UNSAVED;
+	ed_render();
 }
 
 #include "nav.c"
@@ -1958,6 +1973,7 @@ static void ed_key_press_default(u32 key, u32 cp)
 	case MOD_CTRL | KEY_Q:                  ed_quit();           break;
 	case MOD_CTRL | KEY_J:                  ed_whitespace();     break;
 	case MOD_CTRL | KEY_D:                  ed_trailing();       break;
+	case MOD_CTRL | KEY_B:                  ed_unsaved();        break;
 	case MOD_CTRL | KEY_I:                  ed_include();        break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      ed_include_lib();    break;
 	case MOD_CTRL | KEY_A:                  ed_sel_all();        break;
@@ -1976,10 +1992,10 @@ static void ed_key_press_default(u32 key, u32 cp)
 
 static void ed_key_press_msg(u32 key, u32 cp)
 {
-	if((msg_type == EDITOR_ERROR && key == KEY_RETURN) ||
-		(msg_type == EDITOR_INFO))
+	if((msg_type == ED_ERROR && key == KEY_RETURN) ||
+		(msg_type == ED_INFO))
 	{
-		mode = EDITOR_MODE_DEFAULT;
+		mode = ED_MODE_DEFAULT;
 		ed_render();
 	}
 
@@ -1989,7 +2005,7 @@ static void ed_key_press_msg(u32 key, u32 cp)
 static void ed_key_press(u32 key, u32 cp)
 {
 	typedef void (*KeyPressFN)(u32, u32);
-	static const KeyPressFN fns[EDITOR_MODE_COUNT] =
+	static const KeyPressFN fns[ED_MODE_COUNT] =
 	{
 		ed_key_press_default,
 		ed_key_press_nav,

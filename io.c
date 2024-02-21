@@ -478,21 +478,21 @@ static u32 textfile_read(const char *filename, char **out)
 	vector_init(&v, FILE_CHUNK);
 	for(;;)
 	{
-		rb = fread((u8 *)v.Data + v.Length, 1, FILE_CHUNK, fp);
-		if(!is_text((u8 *)v.Data + v.Length, rb))
+		rb = fread((u8 *)v.data + v.len, 1, FILE_CHUNK, fp);
+		if(!is_text((u8 *)v.data + v.len, rb))
 		{
 			vector_destroy(&v);
 			fclose(fp);
 			return FILE_READ_NOT_TEXT;
 		}
 
-		v.Length += rb;
+		v.len += rb;
 		if(rb < FILE_CHUNK)
 		{
 			break;
 		}
 
-		vector_reserve(&v, v.Length + FILE_CHUNK);
+		vector_reserve(&v, v.len + FILE_CHUNK);
 	}
 
 	if(ferror(fp))
@@ -508,7 +508,7 @@ static u32 textfile_read(const char *filename, char **out)
 		vector_push(&v, 1, nt);
 	}
 
-	*out = v.Data;
+	*out = v.data;
 	fclose(fp);
 	return FILE_READ_OK;
 }
@@ -592,8 +592,8 @@ static char **dir_sorted(const char *path, u32 *len)
 
 	closedir(dir);
 	vector_makespace(&v, 0, count * sizeof(char *));
-	strs = (char *)v.Data + count * sizeof(char *);
-	ptrs = v.Data;
+	strs = (char *)v.data + count * sizeof(char *);
+	ptrs = v.data;
 	for(i = 0; i < count; ++i)
 	{
 		ptrs[i] = strs;
