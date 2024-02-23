@@ -66,8 +66,8 @@ static u32 full_w, full_h, offset_x, page_w;
 static u32 cur_buf;
 static u32 untitled_cnt = 1;
 
+static u32 tabsize;
 static u8 in_comment;
-static u8 tabsize;
 static u8 show_linenr;
 static u8 show_whitespace;
 static u8 mode;
@@ -387,22 +387,21 @@ static void ed_line_insert(u32 line, Vector *v)
 	vector_insert(&tb->lines, line * sizeof(Vector), sizeof(Vector), v);
 }
 
-static void ed_render_linenr(void)
+static void ed_render_linenr(u32 start_y, u32 end_y)
 {
 	u32 x, y, lnr_max, lnr_width;
-
-	u32 def = screen_color(COLOR_TABLE_GRAY, COLOR_TABLE_BG);
-	u32 cur = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
-
 	u32 lines = ed_num_lines();
-	u32 lnr = tb->page_y;
+	u32 lnr = tb->page_y + start_y;
 	lnr_max = lnr + full_h;
 	lnr_max = lnr_max < lines ? lnr_max : lines;
 	lnr_width = dec_digit_cnt(lnr_max);
 
-	for(y = 0; y < full_h; ++y)
+	for(y = start_y; y < end_y; ++y)
 	{
-		u32 color = (lnr == tb->sel.c[1].y) ? cur : def;
+		u32 color = (lnr == tb->sel.c[1].y) ?
+			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
+			screen_color(COLOR_TABLE_GRAY, COLOR_TABLE_BG);
+
 		++lnr;
 		if(lnr <= lines)
 		{
@@ -1005,16 +1004,6 @@ static void ed_render(void)
 		tb->page_y = lines - full_h;
 	}
 
-	if(show_linenr)
-	{
-		ed_render_linenr();
-	}
-	else
-	{
-		page_w = full_w;
-		offset_x = 0;
-	}
-
 	if(mode == ED_MODE_GOTO)
 	{
 		start_y = ed_render_goto_line();
@@ -1038,12 +1027,22 @@ static void ed_render(void)
 		vsel.c[1].y = tb->sel.c[0].y;
 	}
 
+	ed_sel_norm(&vsel);
 	if(tb->language == LANGUAGE_C)
 	{
 		in_comment = ed_prev_comment();
 	}
 
-	ed_sel_norm(&vsel);
+	if(show_linenr)
+	{
+		ed_render_linenr(start_y, end_y);
+	}
+	else
+	{
+		page_w = full_w;
+		offset_x = 0;
+	}
+
 	for(y = start_y; y < end_y; ++y)
 	{
 		ed_render_line(y);
@@ -1569,14 +1568,36 @@ static void ed_goto_def(const char *s)
 	}
 }
 
+static u32 ed_switch_to(const char *fname)
+{
+	u32 i, len = ed_num_buffers();
+	for(i = 0; i < len; ++i)
+	{
+		text_buf *cur = tb_get(i);
+		if(!strcmp(cur->filename, fname))
+		{
+			cur_buf = i;
+			tb = cur;
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static void ed_load(const char *filename)
 {
 	u32 c;
 	Vector line;
 	const char *linestart, *p;
 	char *buf;
-	u32 status = textfile_read(filename, &buf);
-	switch(status)
+
+	if(ed_switch_to(filename))
+	{
+		return;
+	}
+
+	switch(textfile_read(filename, &buf))
 	{
 	case FILE_READ_FAIL:
 		ed_msg(ED_ERROR, "Failed to open file");
@@ -2192,7 +2213,19 @@ static void ed_key_press_msg(u32 key, u32 cp)
 
 static void ed_key_press_unsaved(u32 key, u32 cp)
 {
+	switch(key)
+	{
+	case KEY_UP:         break;
+	case KEY_DOWN:       break;
+	case KEY_LEFT:       break;
+	case KEY_RIGHT:      break;
+	case KEY_HOME:       break;
+	case KEY_END:        break;
+	case KEY_PAGE_DOWN:  break;
+	case KEY_PAGE_UP:    break;
+	}
 
+	(void)cp;
 }
 
 static void ed_key_press(u32 key, u32 cp)
