@@ -21,7 +21,9 @@ enum
 enum
 {
 	LANGUAGE_UNKNOWN,
-	LANGUAGE_C
+	LANGUAGE_C,
+	LANGUAGE_ASM6800,
+	LANGUAGE_COUNT
 };
 
 #ifndef NDEBUG
@@ -61,6 +63,7 @@ static Vector buffers;
 
 static u32 full_w, full_h, offset_x, page_w;
 
+static u32 cur_buf;
 static u32 untitled_cnt = 1;
 
 static u8 in_comment;
@@ -529,6 +532,118 @@ static u32 ed_plain(u32 y)
 	return x;
 }
 
+static u32 is_asm_ident(u32 c)
+{
+	return isalpha(c) || c == '.' || c == '_';
+}
+
+static u32 ed_asm6800(u32 y)
+{
+	Vector *lv = ed_line_get(y);
+	u32 len = vector_len(lv);
+	const char *line = vector_data(lv);
+	u32 i = 0;
+	u32 x = 0;
+	while(i < len)
+	{
+		u32 c = line[i];
+		if(c == ';')
+		{
+			for(; i < len; ++i)
+			{
+				x = ed_syntax_sub(line[i], COLOR_TABLE_COMMENT, y, x);
+				if(x >= page_w) { return x; }
+			}
+		}
+		else if(c == '\"' || c == '\'')
+		{
+			u32 save = c;
+			u32 esc = 0;
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
+				screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
+			for(++i; i < len; ++i)
+			{
+				c = line[i];
+				x = ed_syntax_sub(c, COLOR_TABLE_STRING, y, x);
+				if(x >= page_w) { return x; }
+
+				if(esc)
+				{
+					esc = 0;
+				}
+				else if(c == '\\')
+				{
+					esc = 1;
+				}
+				else if(c == save)
+				{
+					break;
+				}
+			}
+			++i;
+		}
+		else if(c == '(' || c == ')')
+		{
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
+				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
+			++i;
+		}
+		else if(isalpha(c) || c == '_')
+		{
+			u32 color, end, start;
+			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
+			end = i;
+			color = screen_color(
+				keyword_detect(&asm_hashmap, line + start, end - start),
+				COLOR_TABLE_BG);
+
+			for(i = start; i < end; ++i)
+			{
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(line[i], color));
+			}
+		}
+		else if(c == '#')
+		{
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(line[i],
+				screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
+			++i;
+		}
+		else if(c == '$')
+		{
+			if(x >= page_w) { return x; }
+			ed_put(x++, y, screen_pack(c,
+				screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+			for(++i; i < len && isxdigit((c = line[i])); ++i)
+			{
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(c,
+					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+			}
+		}
+		else if(isdigit(c))
+		{
+			for(; i < len && isdigit((c = line[i])); ++i)
+			{
+				if(x >= page_w) { return x; }
+				ed_put(x++, y, screen_pack(c,
+					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+			}
+		}
+		else
+		{
+			x = ed_syntax_sub(c, COLOR_TABLE_FG, y, x);
+			if(x >= page_w) { return x; }
+			++i;
+		}
+	}
+
+	return x;
+}
+
 static u32 ed_syntax(u32 y)
 {
 	Vector *lv = ed_line_get(y);
@@ -635,7 +750,9 @@ static u32 ed_syntax(u32 y)
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
 			end = i;
 			color = screen_color(
-				keyword_detect(line + start, end - start), COLOR_TABLE_BG);
+				keyword_detect(&c_hashmap, line + start, end - start),
+				COLOR_TABLE_BG);
+
 			if(color == COLOR_TABLE_FG)
 			{
 				if(c == '(')
@@ -714,6 +831,10 @@ static void ed_render_line(u32 y)
 		case LANGUAGE_C:
 			x = ed_syntax(line);
 			break;
+
+		case LANGUAGE_ASM6800:
+			x = ed_asm6800(line);
+			break;
 		}
 	}
 
@@ -762,7 +883,7 @@ static u32 ed_render_dir(void)
 	for(i = dir_offset; i < end; ++i, ++y)
 	{
 		u32 color = (i == dir_pos) ?
-			screen_color(COLOR_TABLE_INFO, COLOR_TABLE_GRAY) :
+			screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
 
 		u32 x = 0;
@@ -917,7 +1038,7 @@ static void ed_render(void)
 		vsel.c[1].y = tb->sel.c[0].y;
 	}
 
-	if(tb->language != LANGUAGE_UNKNOWN)
+	if(tb->language == LANGUAGE_C)
 	{
 		in_comment = ed_prev_comment();
 	}
@@ -1723,7 +1844,10 @@ static void ed_toggle_line_nr(void)
 
 static void ed_toggle_lang(void)
 {
-	tb->language = !tb->language;
+	if(++tb->language == LANGUAGE_COUNT)
+	{
+		tb->language = 0;
+	}
 	ed_render();
 }
 
@@ -1892,22 +2016,86 @@ static void ed_trailing(void)
 
 static void ed_close_file(void)
 {
+	if(tb->modified)
+	{
 
+	}
+}
+
+static u32 ed_has_unsaved(void)
+{
+	u32 i, len = ed_num_buffers();
+	for(i = 0; i < len; ++i)
+	{
+		if(tb_get(i)->modified)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static void ed_cleanup(void)
+{
+	u32 i, len = ed_num_buffers();
+	for(i = 0; i < len; ++i)
+	{
+		tb_destroy(tb_get(i));
+	}
+
+	vector_destroy(&buffers);
+	_free(dir_list);
+}
+
+static u32 ed_quit_internal(void)
+{
+	if(ed_has_unsaved())
+	{
+		mode = ED_MODE_UNSAVED;
+		ed_render();
+		return 0;
+	}
+
+	ed_cleanup();
+	return 1;
 }
 
 static void ed_quit(void)
 {
-
+	if(ed_quit_internal())
+	{
+		request_exit();
+	}
 }
 
 static void ed_switch_buf(void)
 {
+	u32 cnt = ed_num_buffers();
+	if(cnt == 1)
+	{
+		return;
+	}
 
+	++cur_buf;
+	if(cur_buf == cnt)
+	{
+		cur_buf = 0;
+	}
+
+	tb = tb_get(cur_buf);
+	ed_render();
 }
 
 static void ed_unsaved(void)
 {
 	mode = ED_MODE_UNSAVED;
+	ed_render();
+}
+
+static void event_scroll(i32 y)
+{
+	tb->page_y += 3 * y;
 	ed_render();
 }
 
@@ -2002,6 +2190,11 @@ static void ed_key_press_msg(u32 key, u32 cp)
 	(void)cp;
 }
 
+static void ed_key_press_unsaved(u32 key, u32 cp)
+{
+
+}
+
 static void ed_key_press(u32 key, u32 cp)
 {
 	typedef void (*KeyPressFN)(u32, u32);
@@ -2009,7 +2202,8 @@ static void ed_key_press(u32 key, u32 cp)
 	{
 		ed_key_press_default,
 		ed_key_press_nav,
-		ed_key_press_msg
+		ed_key_press_msg,
+		ed_key_press_unsaved
 	};
 
 	fns[mode](key, cp);
@@ -2034,11 +2228,17 @@ static void event_resize(u32 w, u32 h)
 
 static void event_init(int argc, char *argv[], u32 w, u32 h)
 {
+	char buf[1024];
+
 #ifndef NDEBUG
 	test_run_all();
 #endif
 
-	keyword_init();
+	get_working_dir(buf);
+	printf("%s\n", buf);
+
+	keyword_init(&c_hashmap);
+	keyword_init(&asm_hashmap);
 	ed_init(w, h);
 
 	if(argc == 2)
@@ -2051,13 +2251,5 @@ static void event_init(int argc, char *argv[], u32 w, u32 h)
 
 static u32 event_exit(void)
 {
-	u32 i, len = ed_num_buffers();
-	for(i = 0; i < len; ++i)
-	{
-		tb_destroy(tb_get(i));
-	}
-
-	vector_destroy(&buffers);
-	_free(dir_list);
-	return 1;
+	return ed_quit_internal();
 }

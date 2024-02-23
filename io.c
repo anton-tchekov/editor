@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#include <unistd.h>
 
 #ifndef NDEBUG
 #include <time.h>
@@ -78,6 +79,8 @@ static const u32 _color_table[] =
 	0xFFFF0000, /* Error */
 };
 
+static u32 quit;
+
 static u32 *_pixels;
 static u32 _gfx_width, _gfx_height;
 
@@ -91,6 +94,7 @@ static SDL_Renderer *_renderer;
 static void event_init(int argc, char **argv, u32 w, u32 h);
 static void event_keyboard(u32 key, u32 chr, u32 state);
 static void event_resize(u32 w, u32 h);
+static void event_scroll(i32 y);
 static u32 event_exit(void);
 
 static void allocfail(void)
@@ -530,6 +534,11 @@ static u32 file_write(const char *filename, void *data, size_t len)
 	return 0;
 }
 
+static void get_working_dir(char *buf)
+{
+	assert(getcwd(buf, PATH_MAX));
+}
+
 static u32 dir_iter(const char *path, void (*iter)(const char *, u32))
 {
 	DIR *dir;
@@ -605,13 +614,17 @@ static char **dir_sorted(const char *path, u32 *len)
 	return ptrs;
 }
 
+static void request_exit(void)
+{
+	quit = 1;
+}
+
 #ifndef NDEBUG
 
 static int evilmain(int argc, char *argv[])
 {
 	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
-	static u32 quit;
 	SDL_Event e;
 	init();
 	event_init(argc, argv, _screen_width, _screen_height);
@@ -671,7 +684,6 @@ static int evilmain(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	static u32 quit;
 	SDL_Event e;
 
 #ifndef NDEBUG
@@ -735,6 +747,10 @@ int main(int argc, char *argv[])
 				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
 				event_keyboard(key, key_to_chr(key), KEYSTATE_RELEASED);
 			}
+			break;
+
+		case SDL_MOUSEWHEEL:
+			event_scroll(e.wheel.y);
 			break;
 		}
 	}

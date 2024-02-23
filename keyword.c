@@ -1,13 +1,22 @@
-#define HASHMAP_SIZE       (ARRLEN(_keywords) * 7)
-#define COLLISION_LIMIT   4
+#define C_HASHMAP_SIZE       (ARRLEN(c_keywords) * 7)
+#define ASM_HASHMAP_SIZE     (ARRLEN(asm_keywords) * 8)
+#define COLLISION_LIMIT     4
 
 typedef struct
 {
-	u8 Color;
-	const char *Name;
-} Keyword;
+	u8 color;
+	const char *name;
+} keyword;
 
-static Keyword _keywords[] =
+typedef struct
+{
+	size_t size;
+	i32 *table;
+	size_t num_keywords;
+	keyword *keywords;
+} hashmap;
+
+static keyword c_keywords[] =
 {
 	{ COLOR_TABLE_TYPE, "asm" },
 
@@ -97,9 +106,149 @@ static Keyword _keywords[] =
 	{ COLOR_TABLE_KEYWORD, "fn" },
 };
 
-static i32 _hashmap[HASHMAP_SIZE];
+static i32 c_table[C_HASHMAP_SIZE];
+static hashmap c_hashmap =
+{
+	C_HASHMAP_SIZE, c_table,
+	ARRLEN(c_keywords), c_keywords
+};
 
-static u32 _keyword_hash(const char *word, u32 len)
+static keyword asm_keywords[] =
+{
+	{ COLOR_TABLE_TYPE, "NOP" },
+
+	{ COLOR_TABLE_TYPE, "TAP" },
+	{ COLOR_TABLE_TYPE, "TPA" },
+	{ COLOR_TABLE_TYPE, "INX" },
+	{ COLOR_TABLE_TYPE, "DEX" },
+	{ COLOR_TABLE_TYPE, "CLV" },
+	{ COLOR_TABLE_TYPE, "SEV" },
+	{ COLOR_TABLE_TYPE, "CLC" },
+	{ COLOR_TABLE_TYPE, "SEC" },
+	{ COLOR_TABLE_TYPE, "CLI" },
+	{ COLOR_TABLE_TYPE, "SEI" },
+	{ COLOR_TABLE_TYPE, "SBA" },
+	{ COLOR_TABLE_TYPE, "CBA" },
+
+	{ COLOR_TABLE_TYPE, "TAB" },
+	{ COLOR_TABLE_TYPE, "TBA" },
+	{ COLOR_TABLE_TYPE, "DAA" },
+
+	{ COLOR_TABLE_TYPE, "ABA" },
+
+	{ COLOR_TABLE_TYPE, "BRA" },
+	{ COLOR_TABLE_TYPE, "BHI" },
+	{ COLOR_TABLE_TYPE, "BLS" },
+	{ COLOR_TABLE_TYPE, "BCC" },
+	{ COLOR_TABLE_TYPE, "BCS" },
+	{ COLOR_TABLE_TYPE, "BNE" },
+	{ COLOR_TABLE_TYPE, "BEQ" },
+	{ COLOR_TABLE_TYPE, "BVC" },
+	{ COLOR_TABLE_TYPE, "BVS" },
+	{ COLOR_TABLE_TYPE, "BPL" },
+	{ COLOR_TABLE_TYPE, "BMI" },
+	{ COLOR_TABLE_TYPE, "BGE" },
+	{ COLOR_TABLE_TYPE, "BLT" },
+	{ COLOR_TABLE_TYPE, "BGT" },
+	{ COLOR_TABLE_TYPE, "BLE" },
+	{ COLOR_TABLE_TYPE, "TSX" },
+	{ COLOR_TABLE_TYPE, "INS" },
+	{ COLOR_TABLE_TYPE, "PULA" },
+	{ COLOR_TABLE_TYPE, "PULB" },
+	{ COLOR_TABLE_TYPE, "DES" },
+	{ COLOR_TABLE_TYPE, "TXS" },
+	{ COLOR_TABLE_TYPE, "PSHA" },
+	{ COLOR_TABLE_TYPE, "PSHB" },
+	{ COLOR_TABLE_TYPE, "RTS" },
+	{ COLOR_TABLE_TYPE, "RTI" },
+	{ COLOR_TABLE_TYPE, "WAI" },
+	{ COLOR_TABLE_TYPE, "SWI" },
+
+	{ COLOR_TABLE_TYPE, "NEGA" },
+	{ COLOR_TABLE_TYPE, "COMA" },
+	{ COLOR_TABLE_TYPE, "LSRA" },
+	{ COLOR_TABLE_TYPE, "RORA" },
+	{ COLOR_TABLE_TYPE, "ASRA" },
+	{ COLOR_TABLE_TYPE, "ASLA" },
+	{ COLOR_TABLE_TYPE, "ROLA" },
+	{ COLOR_TABLE_TYPE, "DECA" },
+	{ COLOR_TABLE_TYPE, "INCA" },
+	{ COLOR_TABLE_TYPE, "TSTA" },
+	{ COLOR_TABLE_TYPE, "CLRA" },
+
+	{ COLOR_TABLE_TYPE, "NEGB" },
+	{ COLOR_TABLE_TYPE, "COMB" },
+	{ COLOR_TABLE_TYPE, "LSRB" },
+	{ COLOR_TABLE_TYPE, "RORB" },
+	{ COLOR_TABLE_TYPE, "ASRB" },
+	{ COLOR_TABLE_TYPE, "ASLB" },
+	{ COLOR_TABLE_TYPE, "ROLB" },
+	{ COLOR_TABLE_TYPE, "DECB" },
+	{ COLOR_TABLE_TYPE, "INCB" },
+	{ COLOR_TABLE_TYPE, "TSTB" },
+	{ COLOR_TABLE_TYPE, "CLRB" },
+
+	{ COLOR_TABLE_TYPE, "NEG" },
+	{ COLOR_TABLE_TYPE, "COM" },
+	{ COLOR_TABLE_TYPE, "LSR" },
+	{ COLOR_TABLE_TYPE, "ROR" },
+	{ COLOR_TABLE_TYPE, "ASR" },
+	{ COLOR_TABLE_TYPE, "ASL" },
+	{ COLOR_TABLE_TYPE, "ROL" },
+	{ COLOR_TABLE_TYPE, "DEC" },
+	{ COLOR_TABLE_TYPE, "INC" },
+	{ COLOR_TABLE_TYPE, "TST" },
+	{ COLOR_TABLE_TYPE, "CLR" },
+
+	{ COLOR_TABLE_TYPE, "JMP" },
+
+	{ COLOR_TABLE_TYPE, "SUBA" },
+	{ COLOR_TABLE_TYPE, "CMPA" },
+	{ COLOR_TABLE_TYPE, "SBCA" },
+	{ COLOR_TABLE_TYPE, "ANDA" },
+	{ COLOR_TABLE_TYPE, "BITA" },
+	{ COLOR_TABLE_TYPE, "LDAA" },
+	{ COLOR_TABLE_TYPE, "EORA" },
+	{ COLOR_TABLE_TYPE, "ADCA" },
+	{ COLOR_TABLE_TYPE, "ORA" },
+	{ COLOR_TABLE_TYPE, "ADDA" },
+	{ COLOR_TABLE_TYPE, "CPXA" },
+	{ COLOR_TABLE_TYPE, "STAA" },
+
+	{ COLOR_TABLE_TYPE, "SUBB" },
+	{ COLOR_TABLE_TYPE, "CMPB" },
+	{ COLOR_TABLE_TYPE, "SBCB" },
+	{ COLOR_TABLE_TYPE, "ANDB" },
+	{ COLOR_TABLE_TYPE, "BITB" },
+	{ COLOR_TABLE_TYPE, "LDAB" },
+	{ COLOR_TABLE_TYPE, "EORB" },
+	{ COLOR_TABLE_TYPE, "ADCB" },
+	{ COLOR_TABLE_TYPE, "ORB" },
+	{ COLOR_TABLE_TYPE, "ADDB" },
+	{ COLOR_TABLE_TYPE, "STAB" },
+
+	{ COLOR_TABLE_TYPE, "BSR" },
+	{ COLOR_TABLE_TYPE, "STS" },
+	{ COLOR_TABLE_TYPE, "LDS" },
+	{ COLOR_TABLE_TYPE, "LDX" },
+	{ COLOR_TABLE_TYPE, "STX" },
+	{ COLOR_TABLE_TYPE, "CPX" },
+	{ COLOR_TABLE_TYPE, "JSR" },
+
+	{ COLOR_TABLE_KEYWORD, "EQU" },
+	{ COLOR_TABLE_KEYWORD, "ORG" },
+	{ COLOR_TABLE_KEYWORD, "DC.W" },
+	{ COLOR_TABLE_KEYWORD, "DC.B" }
+};
+
+static i32 asm_table[ASM_HASHMAP_SIZE];
+static hashmap asm_hashmap =
+{
+	ASM_HASHMAP_SIZE, asm_table,
+	ARRLEN(asm_keywords), asm_keywords
+};
+
+static u32 keyword_hash(const char *word, u32 len)
 {
 	u32 i, hash, c;
 	hash = 5381;
@@ -111,47 +260,46 @@ static u32 _keyword_hash(const char *word, u32 len)
 	return hash;
 }
 
-static void keyword_init(void)
+static void keyword_init(hashmap *hm)
 {
 	u32 i, hash;
-
-	for(i = 0; i < HASHMAP_SIZE; ++i)
+	for(i = 0; i < hm->size; ++i)
 	{
-		_hashmap[i] = -1;
+		hm->table[i] = -1;
 	}
 
-	for(i = 0; i < ARRLEN(_keywords); ++i)
+	for(i = 0; i < hm->num_keywords; ++i)
 	{
 #ifndef NDEBUG
 		u32 steps = 0;
 #endif
-		hash = _keyword_hash(_keywords[i].Name, UINT32_MAX);
-		while(_hashmap[hash % HASHMAP_SIZE] != -1)
+		hash = keyword_hash(hm->keywords[i].name, UINT32_MAX);
+		while(hm->table[hash % hm->size] != -1)
 		{
 			++hash;
 			assert(++steps < COLLISION_LIMIT);
 		}
 
-		_hashmap[hash % HASHMAP_SIZE] = i;
+		hm->table[hash % hm->size] = i;
 	}
 }
 
-static u32 keyword_detect(const char *str, u32 len)
+static u32 keyword_detect(hashmap *hm, const char *str, u32 len)
 {
 	u32 i, hash;
 
-	hash = _keyword_hash(str, len);
+	hash = keyword_hash(str, len);
 	for(i = 0; i < COLLISION_LIMIT; ++i)
 	{
-		i32 index = _hashmap[hash % HASHMAP_SIZE];
+		i32 index = hm->table[hash % hm->size];
 		if(index < 0)
 		{
 			break;
 		}
 
-		if(match_part(str, _keywords[index].Name, len))
+		if(match_part(str, hm->keywords[index].name, len))
 		{
-			return _keywords[index].Color;
+			return hm->keywords[index].color;
 		}
 
 		++hash;
