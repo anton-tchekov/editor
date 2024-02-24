@@ -16,7 +16,7 @@ static void ed_dir_load(void)
 
 static void ed_nav_open(void)
 {
-	mode = ED_MODE_GOTO;
+	mode = ED_MODE_NAV;
 	ed_dir_load();
 	ed_render();
 }
@@ -104,27 +104,27 @@ static void ed_key_press_nav(u32 key, u32 cp)
 	switch(key)
 	{
 	case KEY_UP:
-		if(dir_pos > 0)
-		{
-			--dir_pos;
-			if(dir_pos < dir_offset)
-			{
-				--dir_offset;
-			}
-			ed_render();
-		}
+		nav_up();
 		break;
 
 	case KEY_DOWN:
-		if(dir_pos < dir_entries - 1)
-		{
-			++dir_pos;
-			if(dir_pos >= dir_offset + ED_DIR_PAGE)
-			{
-				++dir_offset;
-			}
-			ed_render();
-		}
+		nav_down();
+		break;
+
+	case KEY_PAGE_UP:
+		nav_page_up();
+		break;
+
+	case KEY_PAGE_DOWN:
+		nav_page_down();
+		break;
+
+	case MOD_CTRL | KEY_HOME:
+		nav_first();
+		break;
+
+	case MOD_CTRL | KEY_END:
+		nav_last();
 		break;
 
 	case KEY_LEFT:

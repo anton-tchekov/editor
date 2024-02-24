@@ -6,9 +6,9 @@
 enum
 {
 	ED_MODE_DEFAULT,
-	ED_MODE_GOTO,
+	ED_MODE_NAV,
 	ED_MODE_MSG,
-	ED_MODE_UNSAVED,
+	ED_MODE_OPENED,
 	ED_MODE_COUNT
 };
 
@@ -901,7 +901,41 @@ static u32 ed_render_dir(void)
 	return y;
 }
 
-static u32 ed_render_goto_line(void)
+static u32 ed_render_opened(void)
+{
+	u32 i;
+	u32 y = 0;
+	u32 end = dir_offset + ED_DIR_PAGE;
+	if(end > dir_entries)
+	{
+		end = dir_entries;
+	}
+
+	for(i = dir_offset; i < end; ++i, ++y)
+	{
+		text_buf *t = tb_get(i);
+		u32 color = (i == dir_pos) ?
+			screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
+			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
+
+		u32 x = 0;
+		const char *p = t->filename;
+		screen_set(x++, y, screen_pack(t->modified ? '*' : ' ', color));
+		for(; *p && x < full_w; ++p, ++x)
+		{
+			screen_set(x, y, screen_pack(*p, color));
+		}
+
+		for(; x < full_w; ++x)
+		{
+			screen_set(x, y, screen_pack(' ', color));
+		}
+	}
+
+	return y;
+}
+
+static u32 ed_render_nav(void)
 {
 	const char *prompt = "Location: ";
 	const char *s;
@@ -1004,14 +1038,20 @@ static void ed_render(void)
 		tb->page_y = lines - full_h;
 	}
 
-	if(mode == ED_MODE_GOTO)
+	switch(mode)
 	{
-		start_y = ed_render_goto_line();
-	}
-	else if(mode == ED_MODE_MSG)
-	{
+	case ED_MODE_NAV:
+		start_y = ed_render_nav();
+		break;
+
+	case ED_MODE_MSG:
 		--end_y;
 		ed_render_msg();
+		break;
+
+	case ED_MODE_OPENED:
+		start_y = ed_render_opened();
+		break;
 	}
 
 	vcursor.x = ed_cursor_pos_x(tb->sel.c[1].y, tb->sel.c[1].x);
@@ -2069,11 +2109,19 @@ static void ed_cleanup(void)
 	_free(dir_list);
 }
 
+static void ed_mode_opened(void)
+{
+	mode = ED_MODE_OPENED;
+	dir_pos = 0;
+	dir_offset = 0;
+	dir_entries = ed_num_buffers();
+}
+
 static u32 ed_quit_internal(void)
 {
 	if(ed_has_unsaved())
 	{
-		mode = ED_MODE_UNSAVED;
+		ed_mode_opened();
 		ed_render();
 		return 0;
 	}
@@ -2108,9 +2156,9 @@ static void ed_switch_buf(void)
 	ed_render();
 }
 
-static void ed_unsaved(void)
+static void ed_opened(void)
 {
-	mode = ED_MODE_UNSAVED;
+	ed_mode_opened();
 	ed_render();
 }
 
@@ -2120,6 +2168,97 @@ static void event_scroll(i32 y)
 	ed_render();
 }
 
+static void nav_up_fix_offset(void)
+{
+	if(dir_pos < dir_offset)
+	{
+		dir_offset = dir_pos;
+	}
+}
+
+static void nav_down_fix_offset(void)
+{
+	if(dir_pos >= dir_offset + ED_DIR_PAGE)
+	{
+		dir_offset = (dir_pos < ED_DIR_PAGE) ? 0 : (dir_pos - ED_DIR_PAGE + 1);
+	}
+}
+
+static void nav_up(void)
+{
+	if(dir_pos > 0)
+	{
+		--dir_pos;
+		nav_up_fix_offset();
+		ed_render();
+	}
+}
+
+static void nav_down(void)
+{
+	if(dir_pos < dir_entries - 1)
+	{
+		++dir_pos;
+		nav_down_fix_offset();
+		ed_render();
+	}
+}
+
+static void nav_page_up(void)
+{
+	if(dir_pos == 0)
+	{
+		return;
+	}
+
+	if(dir_pos > ED_DIR_PAGE)
+	{
+		dir_pos -= ED_DIR_PAGE;
+		nav_up_fix_offset();
+	}
+	else
+	{
+		dir_pos = 0;
+		dir_offset = 0;
+	}
+
+	ed_render();
+}
+
+static void nav_page_down(void)
+{
+	if(dir_pos < dir_entries - 1)
+	{
+		dir_pos += ED_DIR_PAGE;
+		if(dir_pos > dir_entries - 1)
+		{
+			dir_pos = dir_entries - 1;
+		}
+		nav_down_fix_offset();
+		ed_render();
+	}
+}
+
+static void nav_first(void)
+{
+	if(dir_pos > 0)
+	{
+		dir_pos = 0;
+		dir_offset = 0;
+		ed_render();
+	}
+}
+
+static void nav_last(void)
+{
+	if(dir_pos < dir_entries - 1)
+	{
+		dir_pos = dir_entries - 1;
+		nav_down_fix_offset();
+		ed_render();
+	}
+}
+
 #include "nav.c"
 
 static void ed_key_press_default(u32 key, u32 cp)
@@ -2127,6 +2266,22 @@ static void ed_key_press_default(u32 key, u32 cp)
 #ifndef NDEBUG
 	render_cnt = 0;
 #endif
+
+	if(!tb)
+	{
+		switch(key)
+		{
+		case MOD_CTRL | KEY_G:  ed_goto();      break;
+		case MOD_CTRL | KEY_O:  ed_open();      break;
+		case MOD_CTRL | KEY_T:
+		case MOD_CTRL | KEY_N:  ed_new_file();  break;
+		case MOD_CTRL | KEY_Q:  ed_quit();      break;
+		case MOD_CTRL | KEY_B:  ed_opened();    break;
+		}
+
+		return;
+	}
+
 	switch(key)
 	{
 	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   ed_sel_prev_word();  break;
@@ -2182,7 +2337,7 @@ static void ed_key_press_default(u32 key, u32 cp)
 	case MOD_CTRL | KEY_Q:                  ed_quit();           break;
 	case MOD_CTRL | KEY_J:                  ed_whitespace();     break;
 	case MOD_CTRL | KEY_D:                  ed_trailing();       break;
-	case MOD_CTRL | KEY_B:                  ed_unsaved();        break;
+	case MOD_CTRL | KEY_B:                  ed_opened();         break;
 	case MOD_CTRL | KEY_I:                  ed_include();        break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      ed_include_lib();    break;
 	case MOD_CTRL | KEY_A:                  ed_sel_all();        break;
@@ -2199,47 +2354,95 @@ static void ed_key_press_default(u32 key, u32 cp)
 	assert(render_cnt <= 1);
 }
 
-static void ed_key_press_msg(u32 key, u32 cp)
+static void ed_mode_default(void)
+{
+	mode = ED_MODE_DEFAULT;
+	ed_render();
+}
+
+static void ed_key_press_msg(u32 key)
 {
 	if((msg_type == ED_ERROR && key == KEY_RETURN) ||
 		(msg_type == ED_INFO))
 	{
-		mode = ED_MODE_DEFAULT;
-		ed_render();
+		ed_mode_default();
 	}
-
-	(void)cp;
 }
 
-static void ed_key_press_unsaved(u32 key, u32 cp)
+static void ed_switch_to_buf(void)
+{
+	cur_buf = dir_pos;
+	tb = tb_get(cur_buf);
+	ed_mode_default();
+}
+
+static void ed_save_buf(void)
+{
+}
+
+/* FIXME ..... */
+static void ed_buf_remove(u32 idx)
+{
+	/*vector_remove();*/
+}
+
+static void ed_discard_buf(void)
+{
+	tb_destroy(tb_get(dir_pos));
+	ed_buf_remove(dir_pos);
+	if(dir_pos == dir_entries - 1)
+	{
+		--dir_pos;
+	}
+
+	--dir_entries;
+	ed_render();
+}
+
+static void ed_key_press_opened(u32 key)
 {
 	switch(key)
 	{
-	case KEY_UP:         break;
-	case KEY_DOWN:       break;
-	case KEY_LEFT:       break;
-	case KEY_RIGHT:      break;
-	case KEY_HOME:       break;
-	case KEY_END:        break;
-	case KEY_PAGE_DOWN:  break;
-	case KEY_PAGE_UP:    break;
+	case MOD_CTRL | KEY_B:
+	case KEY_ESCAPE:             ed_mode_default();  break;
+	case KEY_UP:                 nav_up();           break;
+	case KEY_DOWN:               nav_down();         break;
+	case KEY_PAGE_UP:            nav_page_up();      break;
+	case KEY_PAGE_DOWN:          nav_page_down();    break;
+	case KEY_HOME:               nav_first();        break;
+	case KEY_END:                nav_last();         break;
+	case KEY_RETURN:             ed_switch_to_buf(); break;
+	case MOD_CTRL | KEY_S:       ed_save_buf();      break;
+	case MOD_CTRL | KEY_DELETE:  ed_discard_buf();   break;
 	}
-
-	(void)cp;
 }
 
-static void ed_key_press(u32 key, u32 cp)
+static void ed_key_press(u32 key, u32 chr)
 {
-	typedef void (*KeyPressFN)(u32, u32);
-	static const KeyPressFN fns[ED_MODE_COUNT] =
+	if(key == (MOD_CTRL | MOD_SHIFT | KEY_Q))
 	{
-		ed_key_press_default,
-		ed_key_press_nav,
-		ed_key_press_msg,
-		ed_key_press_unsaved
-	};
+		fprintf(stderr, "Force EXIT\n");
+		exit(1);
+	}
 
-	fns[mode](key, cp);
+	switch(mode)
+	{
+	case ED_MODE_DEFAULT:
+		ed_key_press_default(key, chr);
+		break;
+
+	case ED_MODE_NAV:
+		ed_key_press_nav(key, chr);
+		break;
+
+	case ED_MODE_MSG:
+		ed_key_press_msg(key);
+		break;
+
+	case ED_MODE_OPENED:
+		ed_key_press_opened(key);
+		break;
+	}
 }
 
 static void event_keyboard(u32 key, u32 cp, u32 state)
