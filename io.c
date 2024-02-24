@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <assert.h>
 #include <unistd.h>
@@ -23,6 +24,7 @@
 #include "keys.h"
 #include "terminus16.c"
 
+#define MAX_PATH_LEN         4096
 #define CHAR_WIDTH              8
 #define CHAR_HEIGHT            16
 #define GFX_INITIAL_WIDTH     480
@@ -444,7 +446,7 @@ static void screen_set(u32 x, u32 y, u32 v)
 
 #include "vector.c"
 
-#define FILE_CHUNK (1024)
+#define FILE_CHUNK (16 * 1024)
 
 enum
 {
@@ -471,7 +473,7 @@ static u32 is_text(const u8 *s, size_t len)
 
 static u32 textfile_read(const char *filename, char **out)
 {
-	Vector v;
+	vector v;
 	u32 rb;
 	FILE *fp;
 	if(!(fp = fopen(filename, "r")))
@@ -565,7 +567,7 @@ static int dir_sort_callback(const void *a, const void *b)
 
 static char **dir_sorted(const char *path, u32 *len)
 {
-	Vector v;
+	vector v;
 	DIR *dir;
 	struct dirent *dp;
 	u32 i, count;

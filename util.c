@@ -10,6 +10,16 @@ static u32 is_ident(u32 c)
 	return c == '_' || isalnum(c);
 }
 
+static u32 is_asm_ident(u32 c)
+{
+	return c == '.' || is_ident(c);
+}
+
+static u32 is_ident_start(u32 c)
+{
+	return c == '_' || isalpha(c);
+}
+
 static u32 is_bin(u32 c)
 {
 	return c == '0' || c == '1';
@@ -18,6 +28,21 @@ static u32 is_bin(u32 c)
 static u32 is_oct(u32 c)
 {
 	return c >= '0' && c <= '7';
+}
+
+static u32 is_paren(u32 c)
+{
+	return c == '(' || c == ')';
+}
+
+static u32 is_bracket(u32 c)
+{
+	return c == '[' || c == ']';
+}
+
+static u32 is_brace(u32 c)
+{
+	return c == '{' || c == '}';
 }
 
 static u32 char_type(u32 c)
@@ -160,3 +185,20 @@ static u32 count_char(const char *s, u32 val)
 
 	return cnt;
 }
+
+#if 0
+
+static size_t revstrlen(const char *p)
+{
+	size_t cnt = 0;
+	--p;
+	do
+	{
+		--p;
+		++cnt;
+	}
+	while(*p);
+	return cnt;
+}
+
+#endif

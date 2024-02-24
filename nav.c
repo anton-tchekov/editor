@@ -82,23 +82,6 @@ static u32 ed_set_lnr(const char *s)
 	return 0;
 }
 
-#if 0
-
-static size_t revstrlen(const char *p)
-{
-	size_t cnt = 0;
-	--p;
-	do
-	{
-		--p;
-		++cnt;
-	}
-	while(*p);
-	return cnt;
-}
-
-#endif
-
 static void ed_key_press_nav(u32 key, u32 cp)
 {
 	switch(key)

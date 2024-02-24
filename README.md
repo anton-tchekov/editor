@@ -15,6 +15,7 @@ that is optimized for C projects, is performant, and productive.
 
 ### C
 - Multiple files open at the same time
+- When all files closed, show help screen
 - Create New File (Ctrl+N)
 - Ask to save when exiting
 	- You have the following unsaved files: Display List with

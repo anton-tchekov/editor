@@ -1,7 +1,6 @@
-#include "helpers.c"
+#include "util.c"
 #include "keyword.c"
 #include "test.c"
-#include <string.h>
 
 enum
 {
@@ -47,7 +46,7 @@ typedef struct
 
 typedef struct
 {
-	Vector lines;
+	vector lines;
 	selection sel;
 	char *filename;
 	u32 page_y;
@@ -59,7 +58,7 @@ typedef struct
 
 static selection vsel;
 static cursor vcursor;
-static Vector buffers;
+static vector buffers;
 
 static u32 full_w, full_h, offset_x, page_w;
 
@@ -152,7 +151,7 @@ static u32 ed_num_buffers(void)
 
 static u32 tb_num_lines(text_buf *t)
 {
-	return vector_len(&t->lines) / sizeof(Vector);
+	return vector_len(&t->lines) / sizeof(vector);
 }
 
 static u32 ed_num_lines(void)
@@ -160,17 +159,17 @@ static u32 ed_num_lines(void)
 	return tb_num_lines(tb);
 }
 
-static Vector *tb_line_get(text_buf *t, u32 i)
+static vector *tb_line_get(text_buf *t, u32 i)
 {
-	return (Vector *)vector_get(&t->lines, i * sizeof(Vector));
+	return (vector *)vector_get(&t->lines, i * sizeof(vector));
 }
 
-static Vector *ed_line_get(u32 i)
+static vector *ed_line_get(u32 i)
 {
 	return tb_line_get(tb, i);
 }
 
-static Vector *ed_cur_line(void)
+static vector *ed_cur_line(void)
 {
 	return ed_line_get(tb->sel.c[1].y);
 }
@@ -232,7 +231,7 @@ static char *ed_sel_get(selection *sel, u32 *out_len)
 	}
 	else
 	{
-		Vector *line = ed_line_get(y1);
+		vector *line = ed_line_get(y1);
 		len = vector_len(line) - x1;
 		memcpy(p, (u8 *)vector_data(line) + x1, len);
 		p += len;
@@ -262,14 +261,14 @@ static void ed_remove_lines(u32 y1, u32 y2)
 		vector_destroy(ed_line_get(i));
 	}
 
-	vector_remove(&tb->lines, y1 * sizeof(Vector),
-		(y2 - y1 + 1) * sizeof(Vector));
+	vector_remove(&tb->lines, y1 * sizeof(vector),
+		(y2 - y1 + 1) * sizeof(vector));
 }
 
 static void ed_sel_delete(void)
 {
 	u32 x1, y1, x2, y2;
-	Vector *line;
+	vector *line;
 	selection nsel = tb->sel;
 	ed_sel_norm(&nsel);
 
@@ -287,7 +286,7 @@ static void ed_sel_delete(void)
 	}
 	else
 	{
-		Vector *last = ed_line_get(y2);
+		vector *last = ed_line_get(y2);
 		vector_replace(line, x1, vector_len(line) - x1,
 			(u8 *)vector_data(last) + x2, vector_len(last) - x2);
 		ed_remove_lines(y1 + 1, y2);
@@ -304,7 +303,7 @@ static void ed_sel_clear(void)
 
 static void ed_ins_lines(u32 y, u32 count)
 {
-	vector_makespace(&tb->lines, y * sizeof(Vector), count * sizeof(Vector));
+	vector_makespace(&tb->lines, y * sizeof(vector), count * sizeof(vector));
 }
 
 static void ed_insert(const char *text)
@@ -336,7 +335,7 @@ static void ed_insert(const char *text)
 	{
 		char *last;
 		u32 slen, rlen;
-		Vector line, *first, *lines;
+		vector line, *first, *lines;
 
 		/* Insert new lines in advance to avoid quadratic complexity */
 		ed_ins_lines(y + 1, new_lines);
@@ -379,12 +378,12 @@ static void ed_insert(const char *text)
 static void ed_line_remove(u32 line)
 {
 	vector_destroy(ed_line_get(line));
-	vector_remove(&tb->lines, line * sizeof(Vector), sizeof(Vector));
+	vector_remove(&tb->lines, line * sizeof(vector), sizeof(vector));
 }
 
-static void ed_line_insert(u32 line, Vector *v)
+static void ed_line_insert(u32 line, vector *v)
 {
-	vector_insert(&tb->lines, line * sizeof(Vector), sizeof(Vector), v);
+	vector_insert(&tb->lines, line * sizeof(vector), sizeof(vector), v);
 }
 
 static void ed_render_linenr(u32 start_y, u32 end_y)
@@ -518,7 +517,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 
 static u32 ed_plain(u32 y)
 {
-	Vector *lv = ed_line_get(y);
+	vector *lv = ed_line_get(y);
 	const char *line = vector_data(lv);
 	u32 len = vector_len(lv);
 	u32 i, x;
@@ -531,14 +530,9 @@ static u32 ed_plain(u32 y)
 	return x;
 }
 
-static u32 is_asm_ident(u32 c)
-{
-	return isalpha(c) || c == '.' || c == '_';
-}
-
 static u32 ed_asm6800(u32 y)
 {
-	Vector *lv = ed_line_get(y);
+	vector *lv = ed_line_get(y);
 	u32 len = vector_len(lv);
 	const char *line = vector_data(lv);
 	u32 i = 0;
@@ -582,14 +576,14 @@ static u32 ed_asm6800(u32 y)
 			}
 			++i;
 		}
-		else if(c == '(' || c == ')')
+		else if(is_paren(c))
 		{
 			if(x >= page_w) { return x; }
 			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
 			++i;
 		}
-		else if(isalpha(c) || c == '_')
+		else if(is_ident_start(c))
 		{
 			u32 color, end, start;
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
@@ -645,7 +639,7 @@ static u32 ed_asm6800(u32 y)
 
 static u32 ed_syntax(u32 y)
 {
-	Vector *lv = ed_line_get(y);
+	vector *lv = ed_line_get(y);
 	u32 len = vector_len(lv);
 	const char *line = vector_data(lv);
 	u32 incflag = 0;
@@ -722,28 +716,28 @@ static u32 ed_syntax(u32 y)
 			}
 			++i;
 		}
-		else if(c == '(' || c == ')')
+		else if(is_paren(c))
 		{
 			if(x >= page_w) { return x; }
 			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
 			++i;
 		}
-		else if(c == '[' || c == ']')
+		else if(is_bracket(c))
 		{
 			if(x >= page_w) { return x; }
 			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_BRACKET, COLOR_TABLE_BG)));
 			++i;
 		}
-		else if(c == '{' || c == '}')
+		else if(is_brace(c))
 		{
 			if(x >= page_w) { return x; }
 			ed_put(x++, y, screen_pack(c,
 				screen_color(COLOR_TABLE_BRACE, COLOR_TABLE_BG)));
 			++i;
 		}
-		else if(isalpha(c) || c == '_')
+		else if(is_ident_start(c))
 		{
 			u32 color, end, start;
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
@@ -989,7 +983,7 @@ static u32 ed_prev_comment(void)
 	for(; i < tb->page_y; ++i)
 	{
 		i32 p;
-		Vector *line = ed_line_get(i);
+		vector *line = ed_line_get(i);
 		const char *data = vector_data(line);
 		i32 len = vector_len(line);
 		for(p = 0; p < len - 1; ++p)
@@ -1112,13 +1106,13 @@ static void ed_backspace(void)
 	}
 	else
 	{
-		Vector *line = ed_cur_line();
+		vector *line = ed_cur_line();
 		if(tb->sel.c[1].x == 0)
 		{
 			if(tb->sel.c[1].y > 0)
 			{
 				/* Merge with previous line */
-				Vector *prev = ed_line_get(--tb->sel.c[1].y);
+				vector *prev = ed_line_get(--tb->sel.c[1].y);
 				tb->sel.c[1].x = vector_len(prev);
 				vector_push(prev, vector_len(line), vector_data(line));
 				ed_line_remove(tb->sel.c[1].y + 1);
@@ -1145,7 +1139,7 @@ static void ed_delete(void)
 	}
 	else
 	{
-		Vector *line = ed_cur_line();
+		vector *line = ed_cur_line();
 		u32 line_len = vector_len(line);
 		if(tb->sel.c[1].x >= line_len)
 		{
@@ -1155,7 +1149,7 @@ static void ed_delete(void)
 			{
 				/* Merge with next line */
 				u32 next_idx = tb->sel.c[1].y + 1;
-				Vector *next = ed_line_get(next_idx);
+				vector *next = ed_line_get(next_idx);
 				vector_push(line, vector_len(next), vector_data(next));
 				ed_line_remove(next_idx);
 			}
@@ -1189,7 +1183,7 @@ static void ed_enter(void)
 {
 	u32 len;
 	char *str;
-	Vector new_line, *cur;
+	vector new_line, *cur;
 
 	ed_sel_clear();
 
@@ -1217,7 +1211,7 @@ static void ed_enter(void)
 
 static void ed_enter_after(void)
 {
-	Vector new_line;
+	vector new_line;
 	vector_init(&new_line, 8);
 	ed_line_insert(++tb->sel.c[1].y, &new_line);
 	tb->sel.c[1].x = 0;
@@ -1229,7 +1223,7 @@ static void ed_enter_after(void)
 
 static void ed_enter_before(void)
 {
-	Vector new_line;
+	vector new_line;
 	vector_init(&new_line, 8);
 	ed_line_insert(tb->sel.c[1].y, &new_line);
 	tb->sel.c[1].x = 0;
@@ -1241,7 +1235,7 @@ static void ed_enter_before(void)
 
 static void ed_home_internal(void)
 {
-	Vector *line = ed_cur_line();
+	vector *line = ed_cur_line();
 	char *buf = vector_data(line);
 	u32 len = vector_len(line);
 	u32 i = 0;
@@ -1284,7 +1278,7 @@ static void ed_end(void)
 
 static void ed_move_vertical(u32 prev_y)
 {
-	Vector *line = ed_cur_line();
+	vector *line = ed_cur_line();
 	u32 len = vector_len(line);
 	const char *buf = vector_data(line);
 	u32 i, x, max_x;
@@ -1588,7 +1582,7 @@ static void ed_goto_def(const char *s)
 	u32 sl = strlen(s);
 	for(i = 0; i < len; ++i)
 	{
-		Vector *line = ed_line_get(i);
+		vector *line = ed_line_get(i);
 		u32 ll = vector_len(line);
 		const char *buf = vector_data(line);
 		i32 offset;
@@ -1628,7 +1622,7 @@ static u32 ed_switch_to(const char *fname)
 static void ed_load(const char *filename)
 {
 	u32 c;
-	Vector line;
+	vector line;
 	const char *linestart, *p;
 	char *buf;
 
@@ -1677,11 +1671,11 @@ static void ed_load(const char *filename)
 
 static void tb_init(void)
 {
-	Vector line;
+	vector line;
 	tb = _malloc(sizeof(text_buf));
 	vector_push(&buffers, sizeof(text_buf *), &tb);
 
-	vector_init(&tb->lines, 32 * sizeof(Vector));
+	vector_init(&tb->lines, 32 * sizeof(vector));
 	vector_init(&line, 8);
 	vector_push(&tb->lines, sizeof(line), &line);
 
@@ -1959,7 +1953,7 @@ static void ed_save(void)
 		u32 i, num_lines = ed_num_lines();
 		for(i = 0; i < num_lines; ++i)
 		{
-			Vector *cur = ed_line_get(i);
+			vector *cur = ed_line_get(i);
 			u32 line_len = vector_len(cur);
 			memcpy(p, vector_data(cur), line_len);
 			p += line_len;
@@ -2044,7 +2038,7 @@ static void ed_trailing(void)
 	u32 i, len, end = ed_num_lines();
 	for(i = 0; i < end; ++i)
 	{
-		Vector *line = ed_line_get(i);
+		vector *line = ed_line_get(i);
 		char *data = vector_data(line);
 		len = vector_len(line);
 		while(len > 0 && isspace(data[len - 1]))
@@ -2419,6 +2413,7 @@ static void ed_key_press_opened(u32 key)
 
 static void ed_key_press(u32 key, u32 chr)
 {
+	/* TODO: Temporary workaround */
 	if(key == (MOD_CTRL | MOD_SHIFT | KEY_Q))
 	{
 		fprintf(stderr, "Force EXIT\n");
