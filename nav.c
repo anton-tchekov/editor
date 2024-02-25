@@ -78,7 +78,7 @@ static u32 ed_set_lnr(const char *s)
 		return 1;
 	}
 
-	ed_gotoxy(0, lnr - 1);
+	tb_gotoxy(tb, 0, lnr - 1);
 	return 0;
 }
 
@@ -158,7 +158,7 @@ static void ed_key_press_nav(u32 key, u32 cp)
 			++p;
 			if(ed_set_lnr(p))
 			{
-				ed_goto_def(p);
+				tb_goto_def(tb, p);
 			}
 
 			mode = ED_MODE_DEFAULT;

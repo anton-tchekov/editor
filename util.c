@@ -186,6 +186,33 @@ static u32 count_char(const char *s, u32 val)
 	return cnt;
 }
 
+static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
+{
+	u32 i;
+	if(len < sl)
+	{
+		return -1;
+	}
+
+	for(i = 0; i < len - sl; ++i)
+	{
+		if(!memcmp(haystack + i, needle, sl))
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+static char *_strdup(const char *s)
+{
+	size_t len = strlen(s) + 1;
+	char *p = _malloc(len);
+	memcpy(p, s, len);
+	return p;
+}
+
 #if 0
 
 static size_t revstrlen(const char *p)

@@ -93,9 +93,9 @@ static SDL_Texture *_framebuffer;
 static SDL_Window *_window;
 static SDL_Renderer *_renderer;
 
-static void event_init(int argc, char **argv, u32 w, u32 h);
+static void event_init(int argc, char **argv);
 static void event_keyboard(u32 key, u32 chr, u32 state);
-static void event_resize(u32 w, u32 h);
+static void event_resize(void);
 static void event_scroll(i32 y);
 static u32 event_exit(void);
 
@@ -178,7 +178,7 @@ static void resize_internal(u32 w, u32 h)
 static void resize(u32 w, u32 h)
 {
 	resize_internal(w, h);
-	event_resize(_screen_width, _screen_height);
+	event_resize();
 }
 
 static void init(void)
@@ -629,7 +629,7 @@ static int evilmain(int argc, char *argv[])
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
 	SDL_Event e;
 	init();
-	event_init(argc, argv, _screen_width, _screen_height);
+	event_init(argc, argv);
 	srand(time(NULL));
 	while(!quit)
 	{
@@ -696,7 +696,7 @@ int main(int argc, char *argv[])
 #endif
 
 	init();
-	event_init(argc, argv, _screen_width, _screen_height);
+	event_init(argc, argv);
 	while(!quit)
 	{
 		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
