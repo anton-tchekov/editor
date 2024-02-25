@@ -16,12 +16,9 @@ that is optimized for C projects, is performant, and productive.
 ### C
 - Multiple files open at the same time
 - When all files closed, show help screen
-- Create New File (Ctrl+N)
 - Ask to save when exiting
-	- You have the following unsaved files: Display List with
-		discard and save option next to every file
+	- You have the following unsaved files: Display List with every file
 	- Save all, Discard All, Cancel
-	- Modified flag for each open file needed
 
 ### D
 - Mouse support
@@ -29,3 +26,4 @@ that is optimized for C projects, is performant, and productive.
 - Add UTF-8 german umlaut and cyrillic support
 - Undo / Redo
 - Multiple cursors
+- Double font size

@@ -24,7 +24,6 @@
 #include "keys.h"
 #include "terminus16.c"
 
-#define MAX_PATH_LEN         4096
 #define CHAR_WIDTH              8
 #define CHAR_HEIGHT            16
 #define GFX_INITIAL_WIDTH     480
@@ -93,6 +92,7 @@ static SDL_Texture *_framebuffer;
 static SDL_Window *_window;
 static SDL_Renderer *_renderer;
 
+static void event_click(u32 x, u32 y);
 static void event_init(int argc, char **argv);
 static void event_keyboard(u32 key, u32 chr, u32 state);
 static void event_resize(void);
@@ -536,9 +536,17 @@ static u32 file_write(const char *filename, void *data, size_t len)
 	return 0;
 }
 
-static void get_working_dir(char *buf)
+static char *get_working_dir(char *buf)
 {
+	size_t len;
 	assert(getcwd(buf, PATH_MAX));
+	len = strlen(buf);
+	if(!len || (len > 0 && buf[len - 1] != '/'))
+	{
+		strcpy(buf + len, "/");
+	}
+
+	return buf + len;
 }
 
 static u32 dir_iter(const char *path, void (*iter)(const char *, u32))
@@ -753,6 +761,14 @@ int main(int argc, char *argv[])
 
 		case SDL_MOUSEWHEEL:
 			event_scroll(e.wheel.y);
+			break;
+
+		case SDL_MOUSEBUTTONDOWN:
+			{
+				int x, y;
+				SDL_GetMouseState(&x, &y);
+				event_click(x / CHAR_WIDTH, y / CHAR_HEIGHT);
+			}
 			break;
 		}
 	}

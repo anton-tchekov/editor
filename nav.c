@@ -14,17 +14,10 @@ static void ed_dir_load(void)
 	dir_list = dir_sorted(buf, &dir_entries);
 }
 
-static void ed_nav_open(void)
+static void ed_mode_nav(void)
 {
 	mode = ED_MODE_NAV;
 	ed_dir_load();
-	ed_render();
-}
-
-static void ed_nav_close(void)
-{
-	mode = ED_MODE_DEFAULT;
-	ed_render();
 }
 
 static void ed_goto(void)
@@ -32,14 +25,14 @@ static void ed_goto(void)
 	nav_buf[0] = ':';
 	nav_cursor = 1;
 	nav_len = 1;
-	ed_nav_open();
+	ed_mode_nav();
 }
 
 static void ed_open(void)
 {
 	nav_len = 0;
 	nav_cursor = 0;
-	ed_nav_open();
+	ed_mode_nav();
 }
 
 static void ed_tab_cmpl_callback(const char *fname, u32 is_dir)
@@ -82,6 +75,90 @@ static u32 ed_set_lnr(const char *s)
 	return 0;
 }
 
+static void nav_up_fix_offset(void)
+{
+	if(dir_pos < dir_offset)
+	{
+		dir_offset = dir_pos;
+	}
+}
+
+static void nav_down_fix_offset(void)
+{
+	if(dir_pos >= dir_offset + ED_DIR_PAGE)
+	{
+		dir_offset = (dir_pos < ED_DIR_PAGE) ? 0 : (dir_pos - ED_DIR_PAGE + 1);
+	}
+}
+
+static void nav_up(void)
+{
+	if(dir_pos > 0)
+	{
+		--dir_pos;
+		nav_up_fix_offset();
+	}
+}
+
+static void nav_down(void)
+{
+	if(dir_pos < dir_entries - 1)
+	{
+		++dir_pos;
+		nav_down_fix_offset();
+	}
+}
+
+static void nav_page_up(void)
+{
+	if(dir_pos == 0)
+	{
+		return;
+	}
+
+	if(dir_pos > ED_DIR_PAGE)
+	{
+		dir_pos -= ED_DIR_PAGE;
+		nav_up_fix_offset();
+	}
+	else
+	{
+		dir_pos = 0;
+		dir_offset = 0;
+	}
+}
+
+static void nav_page_down(void)
+{
+	if(dir_pos < dir_entries - 1)
+	{
+		dir_pos += ED_DIR_PAGE;
+		if(dir_pos > dir_entries - 1)
+		{
+			dir_pos = dir_entries - 1;
+		}
+		nav_down_fix_offset();
+	}
+}
+
+static void nav_first(void)
+{
+	if(dir_pos > 0)
+	{
+		dir_pos = 0;
+		dir_offset = 0;
+	}
+}
+
+static void nav_last(void)
+{
+	if(dir_pos < dir_entries - 1)
+	{
+		dir_pos = dir_entries - 1;
+		nav_down_fix_offset();
+	}
+}
+
 static void ed_key_press_nav(u32 key, u32 cp)
 {
 	switch(key)
@@ -115,7 +192,6 @@ static void ed_key_press_nav(u32 key, u32 cp)
 		{
 			--nav_cursor;
 		}
-		ed_render();
 		break;
 
 	case KEY_RIGHT:
@@ -123,17 +199,14 @@ static void ed_key_press_nav(u32 key, u32 cp)
 		{
 			++nav_cursor;
 		}
-		ed_render();
 		break;
 
 	case KEY_HOME:
 		nav_cursor = 0;
-		ed_render();
 		break;
 
 	case KEY_END:
 		nav_cursor = nav_len;
-		ed_render();
 		break;
 
 	case KEY_RETURN:
@@ -141,7 +214,7 @@ static void ed_key_press_nav(u32 key, u32 cp)
 		char *p;
 		if(!nav_len)
 		{
-			ed_nav_close();
+			ed_mode_default();
 			break;
 		}
 
@@ -161,14 +234,12 @@ static void ed_key_press_nav(u32 key, u32 cp)
 				tb_goto_def(tb, p);
 			}
 
-			mode = ED_MODE_DEFAULT;
+			ed_mode_default();
 		}
 		else
 		{
 			ed_load(nav_buf);
 		}
-
-		ed_render();
 		break;
 	}
 
@@ -179,7 +250,6 @@ static void ed_key_press_nav(u32 key, u32 cp)
 			memmove(p - 1, p, nav_len - nav_cursor);
 			--nav_cursor;
 			--nav_len;
-			ed_render();
 		}
 		break;
 
@@ -189,7 +259,6 @@ static void ed_key_press_nav(u32 key, u32 cp)
 			char *p = nav_buf + nav_cursor;
 			memmove(p, p + 1,  - nav_cursor - 1);
 			--nav_len;
-			ed_render();
 		}
 		break;
 
@@ -210,14 +279,13 @@ static void ed_key_press_nav(u32 key, u32 cp)
 		{
 			strcpy(search_file, same);
 			nav_cursor = nav_len = strlen(nav_buf);
-			ed_render();
 		}
 		break;
 	}
 
 	case MOD_CTRL | KEY_G:
 	case KEY_ESCAPE:
-		ed_nav_close();
+		ed_mode_default();
 		break;
 
 	default:
@@ -232,7 +300,6 @@ static void ed_key_press_nav(u32 key, u32 cp)
 			memmove(p + 1, p, nav_len - nav_cursor);
 			nav_buf[nav_cursor++] = cp;
 			++nav_len;
-			ed_render();
 		}
 		break;
 	}

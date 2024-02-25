@@ -512,7 +512,7 @@ static void tb_sel_cur_line(textbuf *t)
 	}
 }
 
-static void tb_remove_trailing_space(textbuf *t)
+static void tb_trailing(textbuf *t)
 {
 	u32 i, len, end = tb_num_lines(t);
 	for(i = 0; i < end; ++i)
@@ -964,4 +964,56 @@ static void tb_bottom(textbuf *t)
 {
 	tb_sel_bottom(t);
 	tb_sel_to_cursor(t);
+}
+
+static void tb_scroll(textbuf *t, i32 offset)
+{
+	t->page_y += offset;
+}
+
+static void tb_copy(textbuf *t)
+{
+	u32 len;
+	char *text = tb_sel_get(t, &len);
+	clipboard_store(text);
+	_free(text);
+}
+
+static void tb_cut(textbuf *t)
+{
+	tb_copy(t);
+	tb_sel_delete(t);
+}
+
+static void tb_paste(textbuf *t)
+{
+	char *text = clipboard_load();
+	tb_insert(t, text);
+	free(text);
+}
+
+static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
+{
+	const char *line;
+	u32 i, x, len;
+	vector *v;
+
+	v = tb_get_line(t, y);
+	line = vector_data(v);
+	len = vector_len(v);
+	for(i = 0, x = 0; x < col && i < len; ++i)
+	{
+		x = tb_chr_x_inc(line[i], x);
+	}
+
+	return i;
+}
+
+static void tb_click(textbuf *t, u32 x, u32 y)
+{
+	y = umin(y + t->page_y, tb_num_lines(t) - 1);
+	t->sel.c[1].y = y;
+	t->sel.c[1].x = tb_col_to_idx(t, y, x - offset_x);
+	tb_sel_to_cursor(t);
+	t->cursor_save_x = -1;
 }

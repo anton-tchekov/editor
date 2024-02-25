@@ -213,6 +213,11 @@ static char *_strdup(const char *s)
 	return p;
 }
 
+static u32 umin(u32 a, u32 b)
+{
+	return a < b ? a : b;
+}
+
 #if 0
 
 static size_t revstrlen(const char *p)
