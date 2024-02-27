@@ -29,6 +29,7 @@
 #define GFX_INITIAL_WIDTH     480
 #define GFX_INITIAL_HEIGHT    320
 #define WINDOW_TITLE             "Editor"
+#define DBL_CLICK_MS          500
 
 enum
 {
@@ -92,7 +93,10 @@ static SDL_Texture *_framebuffer;
 static SDL_Window *_window;
 static SDL_Renderer *_renderer;
 
-static void event_click(u32 x, u32 y);
+static void event_dblclick(u32 x, u32 y);
+static void event_tripleclick(u32 x, u32 y);
+static void event_mousemove(u32 x, u32 y);
+static void event_mousedown(u32 x, u32 y);
 static void event_init(int argc, char **argv);
 static void event_keyboard(u32 key, u32 chr, u32 state);
 static void event_resize(void);
@@ -694,6 +698,8 @@ static int evilmain(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+	u32 triple_click, dbl_click;
+	int down = 0;
 	SDL_Event e;
 
 #ifndef NDEBUG
@@ -765,9 +771,47 @@ int main(int argc, char *argv[])
 
 		case SDL_MOUSEBUTTONDOWN:
 			{
+				u32 time;
 				int x, y;
+				down = 1;
 				SDL_GetMouseState(&x, &y);
-				event_click(x / CHAR_WIDTH, y / CHAR_HEIGHT);
+				time = SDL_GetTicks();
+				x /= CHAR_WIDTH;
+				y /= CHAR_HEIGHT;
+				if(time < triple_click + DBL_CLICK_MS)
+				{
+					dbl_click = 0;
+					triple_click = 0;
+					event_tripleclick(x, y);
+				}
+				else if(time < dbl_click + DBL_CLICK_MS)
+				{
+					triple_click = dbl_click;
+					dbl_click = 0;
+					event_dblclick(x, y);
+				}
+				else
+				{
+					dbl_click = time;
+					event_mousedown(x, y);
+				}
+			}
+			break;
+
+		case SDL_MOUSEBUTTONUP:
+			down = 0;
+			break;
+
+		case SDL_MOUSEMOTION:
+			{
+				dbl_click = 0;
+				triple_click = 0;
+				if(down)
+				{
+					int x, y;
+					SDL_GetMouseState(&x, &y);
+					event_mousemove(x / CHAR_WIDTH, y / CHAR_HEIGHT);
+				}
 			}
 			break;
 		}

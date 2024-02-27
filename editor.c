@@ -183,34 +183,45 @@ static void ed_cleanup(void)
 #include "nav.c"
 #include "opened.c"
 
-static u32 ed_quit_internal(void)
+static void ed_quit(void)
 {
 	if(bf_has_modified())
 	{
 		ed_mode_opened();
-		return 0;
+		return;
 	}
 
 	ed_cleanup();
-	return 1;
-}
-
-static void ed_quit(void)
-{
-	if(ed_quit_internal())
-	{
-		request_exit();
-	}
+	request_exit();
 }
 
 static void event_scroll(i32 y)
 {
-	tb_scroll(tb, 3 * y);
+	tb_scroll(tb, -3 * y);
+	ed_render();
 }
 
-static void event_click(u32 x, u32 y)
+static void event_dblclick(u32 x, u32 y)
 {
-	tb_click(tb, x, y);
+	tb_double_click(tb, x, y);
+	ed_render();
+}
+
+static void event_tripleclick(u32 x, u32 y)
+{
+	tb_triple_click(tb, x, y);
+	ed_render();
+}
+
+static void event_mousedown(u32 x, u32 y)
+{
+	tb_mouse_cursor(tb, x, y);
+	ed_render();
+}
+
+static void event_mousemove(u32 x, u32 y)
+{
+	tb_mouse_sel(tb, x, y);
 	ed_render();
 }
 
@@ -221,10 +232,10 @@ static void ed_key_press_default(u32 key, u32 cp)
 		switch(key)
 		{
 		case MOD_CTRL | KEY_G:
-		case MOD_CTRL | KEY_O:  ed_open();   break;
+		case MOD_CTRL | KEY_O:  ed_open();        break;
 		case MOD_CTRL | KEY_T:
-		case MOD_CTRL | KEY_N:  ed_new();    break;
-		case MOD_CTRL | KEY_Q:  ed_quit();   break;
+		case MOD_CTRL | KEY_N:  ed_new();         break;
+		case MOD_CTRL | KEY_Q:  ed_quit();        break;
 		case MOD_CTRL | KEY_B:  ed_mode_opened(); break;
 		}
 		return;
@@ -355,5 +366,13 @@ static void event_init(int argc, char *argv[])
 
 static u32 event_exit(void)
 {
-	return ed_quit_internal();
+	if(bf_has_modified())
+	{
+		ed_mode_opened();
+		ed_render();
+		return 0;
+	}
+
+	ed_cleanup();
+	return 1;
 }

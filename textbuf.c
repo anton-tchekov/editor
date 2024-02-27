@@ -97,6 +97,19 @@ static void tb_sel_to_cursor(textbuf *t)
 	t->sel.c[0] = t->sel.c[1];
 }
 
+static void tb_scroll_to_cursor(textbuf *t)
+{
+	if(t->sel.c[1].y < t->page_y)
+	{
+		t->page_y = t->sel.c[1].y;
+	}
+
+	if(t->sel.c[1].y >= t->page_y + _screen_height)
+	{
+		t->page_y = t->sel.c[1].y - _screen_height + 1;
+	}
+}
+
 static void tb_ins_line(textbuf *t, u32 line, vector *v)
 {
 	vector_insert(&t->lines, line * sizeof(vector), sizeof(vector), v);
@@ -278,6 +291,8 @@ static void tb_delete(textbuf *t)
 
 		t->cursor_save_x = -1;
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_backspace(textbuf *t)
@@ -309,6 +324,8 @@ static void tb_backspace(textbuf *t)
 		t->cursor_save_x = -1;
 		tb_sel_to_cursor(t);
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_char(textbuf *t, u32 c)
@@ -321,6 +338,7 @@ static void tb_char(textbuf *t, u32 c)
 	t->cursor_save_x = -1;
 	tb_sel_to_cursor(t);
 	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_sel_home(textbuf *t)
@@ -332,6 +350,7 @@ static void tb_sel_home(textbuf *t)
 	while(i < len && isspace(buf[i])) { ++i; }
 	t->sel.c[1].x = (t->sel.c[1].x == i) ? 0 : i;
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_home(textbuf *t)
@@ -349,6 +368,7 @@ static void tb_enter_before(textbuf *t)
 	t->cursor_save_x = 0;
 	tb_sel_to_cursor(t);
 	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_enter_after(textbuf *t)
@@ -360,6 +380,7 @@ static void tb_enter_after(textbuf *t)
 	t->cursor_save_x = 0;
 	tb_sel_to_cursor(t);
 	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_enter(textbuf *t)
@@ -389,12 +410,14 @@ static void tb_enter(textbuf *t)
 	t->cursor_save_x = 0;
 	tb_sel_to_cursor(t);
 	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_sel_end(textbuf *t)
 {
 	t->sel.c[1].x = tb_cur_line_len(t);
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_end(textbuf *t)
@@ -423,6 +446,7 @@ static void tb_del_cur_line(textbuf *t)
 	t->cursor_save_x = 0;
 	tb_sel_to_cursor(t);
 	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_toggle_lang(textbuf *t)
@@ -474,6 +498,7 @@ static void tb_ins(textbuf *t, const char *s, u32 len, u32 inc)
 	t->cursor_save_x = -1;
 	tb_sel_to_cursor(t);
 	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_ins_comment(textbuf *t)
@@ -510,6 +535,8 @@ static void tb_sel_cur_line(textbuf *t)
 
 		t->sel.c[1].x = last_line_len;
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_trailing(textbuf *t)
@@ -715,6 +742,8 @@ static void tb_sel_up(textbuf *t)
 		--t->sel.c[1].y;
 		tb_move_vertical(t, prev_y);
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_up(textbuf *t)
@@ -736,6 +765,8 @@ static void tb_sel_down(textbuf *t)
 		++t->sel.c[1].y;
 		tb_move_vertical(t, prev_y);
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_down(textbuf *t)
@@ -758,6 +789,8 @@ static void tb_sel_page_up(textbuf *t)
 		t->sel.c[1].x = 0;
 		t->cursor_save_x = 0;
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_page_up(textbuf *t)
@@ -781,6 +814,8 @@ static void tb_sel_page_down(textbuf *t)
 	{
 		tb_move_vertical(t, prev_y);
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_page_down(textbuf *t)
@@ -812,6 +847,7 @@ static void tb_sel_prev_word(textbuf *t)
 	}
 
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_del_prev_word(textbuf *t)
@@ -851,6 +887,7 @@ static void tb_sel_next_word(textbuf *t)
 	}
 
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_del_next_word(textbuf *t)
@@ -895,6 +932,7 @@ static void tb_sel_left(textbuf *t)
 	}
 
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_left(textbuf *t)
@@ -908,6 +946,8 @@ static void tb_left(textbuf *t)
 		tb_sel_left(t);
 		tb_sel_to_cursor(t);
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_sel_right(textbuf *t)
@@ -926,6 +966,7 @@ static void tb_sel_right(textbuf *t)
 	}
 
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_right(textbuf *t)
@@ -939,12 +980,15 @@ static void tb_right(textbuf *t)
 		tb_sel_right(t);
 		tb_sel_to_cursor(t);
 	}
+
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_sel_top(textbuf *t)
 {
 	cursor_zero(&t->sel.c[1]);
 	t->cursor_save_x = 0;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_top(textbuf *t)
@@ -958,17 +1002,13 @@ static void tb_sel_bottom(textbuf *t)
 	t->sel.c[1].y = tb_num_lines(t) - 1;
 	t->sel.c[1].x = tb_cur_line_len(t);
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_bottom(textbuf *t)
 {
 	tb_sel_bottom(t);
 	tb_sel_to_cursor(t);
-}
-
-static void tb_scroll(textbuf *t, i32 offset)
-{
-	t->page_y += offset;
 }
 
 static void tb_copy(textbuf *t)
@@ -983,6 +1023,7 @@ static void tb_cut(textbuf *t)
 {
 	tb_copy(t);
 	tb_sel_delete(t);
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_paste(textbuf *t)
@@ -990,6 +1031,18 @@ static void tb_paste(textbuf *t)
 	char *text = clipboard_load();
 	tb_insert(t, text);
 	free(text);
+	tb_scroll_to_cursor(t);
+}
+
+static void tb_scroll(textbuf *t, i32 offset)
+{
+	i32 y = t->page_y + offset;
+	if(y < 0)
+	{
+		y = 0;
+	}
+
+	t->page_y = y;
 }
 
 static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
@@ -1009,11 +1062,61 @@ static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
 	return i;
 }
 
-static void tb_click(textbuf *t, u32 x, u32 y)
+static void tb_sel_cur_word(textbuf *t)
 {
-	y = umin(y + t->page_y, tb_num_lines(t) - 1);
-	t->sel.c[1].y = y;
-	t->sel.c[1].x = tb_col_to_idx(t, y, x - offset_x);
-	tb_sel_to_cursor(t);
+	u32 x1 = t->sel.c[1].x;
+	u32 x2 = x1;
+	vector *line = tb_cur_line(t);
+	const char *buf = vector_data(line);
+	u32 len = vector_len(line);
+
+	if(isspace(buf[x1]))
+	{
+		while(x1 > 0 && isspace(buf[x1 - 1])) { --x1; }
+		while(x2 < len && isspace(buf[x2])) { ++x2; }
+	}
+	else
+	{
+		while(x1 > 0 && is_ident(buf[x1 - 1])) { --x1; }
+		while(x2 < len && is_ident(buf[x2])) { ++x2; }
+	}
+
+	t->sel.c[0].x = x1;
+	t->sel.c[1].x = x2;
 	t->cursor_save_x = -1;
+}
+
+static u32 tb_cursor_to_line(textbuf *t, u32 y)
+{
+	return umin(y + t->page_y, tb_num_lines(t) - 1);
+}
+
+static void tb_mouse_sel(textbuf *t, u32 x, u32 y)
+{
+	t->sel.c[1].y = y = tb_cursor_to_line(t, y);
+	x = (x > offset_x) ? (x - offset_x) : 0;
+	t->sel.c[1].x = tb_col_to_idx(t, y, x);
+	t->cursor_save_x = -1;
+}
+
+static void tb_mouse_cursor(textbuf *t, u32 x, u32 y)
+{
+	tb_sel_to_cursor(t);
+	tb_mouse_sel(t, x, y);
+	tb_sel_to_cursor(t);
+}
+
+static void tb_double_click(textbuf *t, u32 x, u32 y)
+{
+	tb_mouse_sel(t, x, y);
+	tb_sel_to_cursor(t);
+	tb_sel_cur_word(t);
+	(void)x;
+}
+
+static void tb_triple_click(textbuf *t, u32 x, u32 y)
+{
+	t->sel.c[1].y = tb_cursor_to_line(t, y);
+	tb_sel_cur_line(t);
+	(void)x;
 }

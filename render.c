@@ -609,17 +609,6 @@ static u32 ed_prev_comment(void)
 static void ed_render_buffer(u32 start_y, u32 end_y)
 {
 	u32 lines = tb_num_lines(tb);
-
-	if(tb->sel.c[1].y < tb->page_y)
-	{
-		tb->page_y = tb->sel.c[1].y;
-	}
-
-	if(tb->sel.c[1].y >= tb->page_y + _screen_height)
-	{
-		tb->page_y = tb->sel.c[1].y - _screen_height + 1;
-	}
-
 	if(lines > _screen_height && tb->page_y + _screen_height >= lines)
 	{
 		tb->page_y = lines - _screen_height;
