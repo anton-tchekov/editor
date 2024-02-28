@@ -209,6 +209,7 @@ static void default_key_press(u32 key, u32 cp)
 		case MOD_CTRL | KEY_T:
 		case MOD_CTRL | KEY_N:  ed_new();      break;
 		case MOD_CTRL | KEY_Q:  ed_quit();     break;
+		case MOD_CTRL | KEY_B:
 		case MOD_CTRL | KEY_P:  mode_opened(); break;
 		}
 		return;
@@ -269,6 +270,7 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | KEY_Q:                  ed_quit();              break;
 	case MOD_CTRL | KEY_J:                  ed_whitespace();        break;
 	case MOD_CTRL | KEY_D:                  tb_trailing(tb);        break;
+	case MOD_CTRL | KEY_B:
 	case MOD_CTRL | KEY_P:                  mode_opened();          break;
 	case MOD_CTRL | KEY_I:                  tb_ins_include(tb);     break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      tb_ins_include_lib(tb); break;
