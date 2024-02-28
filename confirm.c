@@ -1,15 +1,11 @@
-static void mode_confirm(const char *msg, ...)
+static void mode_confirm(void (*callback)(u32), const char *msg, ...)
 {
 	va_list args;
 	mode = ED_MODE_CONFIRM;
 	va_start(args, msg);
 	vsnprintf(confirm_buf, sizeof(confirm_buf), msg, args);
 	va_end(args);
-}
-
-static void confirm_result(u32 yes)
-{
-	mode_default();
+	confirm_result = callback;
 }
 
 static void confirm_key_press(u32 key)

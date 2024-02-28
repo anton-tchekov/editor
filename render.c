@@ -673,7 +673,7 @@ static void ed_render(void)
 		break;
 
 	case ED_MODE_GOTO:
-		ed_render_nav(&fld_goto, "Line: ");
+		ed_render_nav(&fld_goto, "Location: ");
 		start_y = 1;
 		break;
 

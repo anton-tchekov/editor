@@ -554,6 +554,11 @@ static u32 get_working_dir(char *buf)
 	return len;
 }
 
+static u32 file_exists(const char *fname)
+{
+	return access(fname, F_OK) == 0;
+}
+
 static u32 dir_iter(const char *path, void (*iter)(const char *, u32))
 {
 	DIR *dir;

@@ -125,3 +125,32 @@ static void bf_discard_cur(void)
 		tb = bf_get(cur_buf);
 	}
 }
+
+static u32 bf_opened_and_modified(const char *name)
+{
+	u32 i, len = bf_count();
+	for(i = 0; i < len; ++i)
+	{
+		textbuf *cur = bf_get(i);
+		if(!strcmp(cur->filename, name))
+		{
+			return cur->modified;
+		}
+	}
+
+	return 0;
+}
+
+static void bf_close_other(const char *name, u32 id)
+{
+	u32 i, len = bf_count();
+	for(i = 0; i < len; ++i)
+	{
+		textbuf *cur = bf_get(i);
+		if(!strcmp(cur->filename, name) && i != id)
+		{
+			bf_discard(i);
+			return;
+		}
+	}
+}

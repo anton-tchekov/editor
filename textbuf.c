@@ -62,6 +62,12 @@ static textbuf *tb_new(const char *name, const char *text,
 	return t;
 }
 
+static void tb_change_filename(textbuf *t, const char *name)
+{
+	_free(t->filename);
+	t->filename = _strdup(name);
+}
+
 static vector *tb_get_line(textbuf *t, u32 i)
 {
 	return (vector *)vector_get(&t->lines, i * sizeof(vector));

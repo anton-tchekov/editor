@@ -46,9 +46,10 @@ static u8 show_whitespace;
 #include "textbuf.c"
 
 static u8 msg_type;
-static char msg_buf[80];
-static char confirm_buf[80];
-static char nav_buf[256];
+static char msg_buf[256];
+static char confirm_buf[256];
+static void (*confirm_result)(u32);
+static char nav_buf[PATH_MAX];
 static char goto_buf[16];
 
 static field fld_goto = { goto_buf, sizeof(goto_buf), 0, 0 };
@@ -180,7 +181,7 @@ static void ed_save(void)
 	}
 	else
 	{
-		ed_save_as();
+		mode_save_as();
 	}
 }
 
@@ -208,7 +209,7 @@ static void default_key_press(u32 key, u32 cp)
 		case MOD_CTRL | KEY_T:
 		case MOD_CTRL | KEY_N:  ed_new();      break;
 		case MOD_CTRL | KEY_Q:  ed_quit();     break;
-		case MOD_CTRL | KEY_B:  mode_opened(); break;
+		case MOD_CTRL | KEY_P:  mode_opened(); break;
 		}
 		return;
 	}
@@ -260,7 +261,7 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | KEY_X:                  tb_cut(tb);             break;
 	case MOD_CTRL | KEY_V:                  tb_paste(tb);           break;
 	case MOD_CTRL | KEY_S:                  ed_save();              break;
-	case MOD_CTRL | MOD_SHIFT | KEY_S:      ed_save_as();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_S:      mode_save_as();           break;
 	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();          break;
 	case MOD_CTRL | KEY_T:
 	case MOD_CTRL | KEY_N:                  ed_new();               break;
@@ -268,7 +269,7 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | KEY_Q:                  ed_quit();              break;
 	case MOD_CTRL | KEY_J:                  ed_whitespace();        break;
 	case MOD_CTRL | KEY_D:                  tb_trailing(tb);        break;
-	case MOD_CTRL | KEY_B:                  mode_opened();          break;
+	case MOD_CTRL | KEY_P:                  mode_opened();          break;
 	case MOD_CTRL | KEY_I:                  tb_ins_include(tb);     break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      tb_ins_include_lib(tb); break;
 	case MOD_CTRL | MOD_SHIFT | KEY_A:      tb_ins_comment(tb);     break;
