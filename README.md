@@ -10,7 +10,6 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 - Nav Bar Select file and open
-- Save As (Warn on overwrite)
 - Search and replace in file / whole folder
 
 ## Interesting Stuff

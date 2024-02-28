@@ -330,11 +330,19 @@ static void event_mousedown(u32 x, u32 y)
 
 static void event_mousemove(u32 x, u32 y)
 {
+	static u32 last_x = -1, last_y = -1;
 	if(!tb)
 	{
 		return;
 	}
 
+	if(last_x == x && last_y == y)
+	{
+		return;
+	}
+
+	last_x = x;
+	last_y = y;
 	tb_mouse_sel(tb, x, y);
 	ed_render();
 }

@@ -816,6 +816,7 @@ int main(int argc, char *argv[])
 				{
 					int x, y;
 					SDL_GetMouseState(&x, &y);
+					if(x < 0 || y < 0) { break; }
 					event_mousemove(x / CHAR_WIDTH, y / CHAR_HEIGHT);
 				}
 			}
