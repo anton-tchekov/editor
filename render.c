@@ -635,13 +635,31 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 
 static void ed_render_blank(u32 start_y, u32 end_y)
 {
-	u32 x;
+	const char *help =
+		" Editor \"Haven't come up with a good name yet\" V0.9\0"
+		"   by Anton Tchekov\0"
+		"\0"
+		" CTRL+N or CTRL+T to create a new buffer\0"
+		" CTRL+O to open file\0"
+		" CTRL+S to save\0"
+		" CTRL+W to discard buffer\0"
+		" CTRL+B to view open buffers\0"
+		" CTRL+G to go to line number or symbol definiton\0\1";
+
+	u32 x, color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
 	for(; start_y < end_y; ++start_y)
 	{
-		for(x = 0; x < _screen_width; ++x)
+		if(start_y < 20 || *help == 1)
 		{
-			screen_set(x, start_y, screen_pack(' ',
-				screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
+			for(x = 0; x < _screen_width; ++x)
+			{
+				screen_set(x, start_y, screen_pack(' ', color));
+			}
+		}
+		else
+		{
+			ed_render_line_str(help, 0, start_y, color);
+			help += strlen(help) + 1;
 		}
 	}
 }
