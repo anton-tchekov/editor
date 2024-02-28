@@ -543,7 +543,7 @@ static u32 file_write(const char *filename, void *data, size_t len)
 static u32 get_working_dir(char *buf)
 {
 	size_t len;
-	assert(getcwd(buf, PATH_MAX));
+	getcwd(buf, PATH_MAX);
 	len = strlen(buf);
 	if(!len || (len > 0 && buf[len - 1] != '/'))
 	{
@@ -702,9 +702,13 @@ static int fuzzmain(void)
 
 #endif
 
+#ifndef NDEBUG
 int main(int argc, char *argv[])
+#else
+int main(void)
+#endif
 {
-	u32 triple_click, dbl_click;
+	u32 triple_click = 0, dbl_click = 0;
 	int down = 0;
 	SDL_Event e;
 
