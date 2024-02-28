@@ -54,7 +54,7 @@ static void field_delete(field *f)
 	if(f->cursor < f->len)
 	{
 		char *p = f->buf + f->cursor;
-		memmove(p, p + 1,  - f->cursor - 1);
+		memmove(p, p + 1, f->len - f->cursor - 1);
 		--f->len;
 	}
 }

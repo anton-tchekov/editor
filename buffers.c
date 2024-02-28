@@ -55,6 +55,7 @@ static u32 bf_num_unsaved(void)
 
 static void bf_switch_id(u32 i)
 {
+	if(!tb) { return; }
 	cur_buf = i;
 	tb = bf_get(i);
 }

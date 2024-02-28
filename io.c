@@ -641,7 +641,7 @@ static void request_exit(void)
 
 #ifndef NDEBUG
 
-static int evilmain(void)
+static int fuzzmain(void)
 {
 	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
@@ -709,9 +709,9 @@ int main(int argc, char *argv[])
 	SDL_Event e;
 
 #ifndef NDEBUG
-	if(argc == 2 && !strcmp(argv[1], "evil"))
+	if(argc == 2 && !strcmp(argv[1], "fuzz"))
 	{
-		return evilmain();
+		return fuzzmain();
 	}
 #endif
 
