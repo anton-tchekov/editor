@@ -9,6 +9,7 @@ enum
 	ED_MODE_GOTO,
 	ED_MODE_SAVE_AS,
 	ED_MODE_OPENED,
+	ED_MODE_CONFIRM,
 	ED_MODE_COUNT
 };
 
@@ -27,12 +28,12 @@ enum
 	LANGUAGE_COUNT
 };
 
-#define MAX_SEARCH_LEN    256
-#define MAX_MSG_LEN        80
-#define ED_DIR_PAGE        12
+#define DROPDOWN_PAGE      12
 #define COMMENT_LOOKBACK   10
 
 #include "cursor.c"
+#include "dropdown.c"
+#include "field.c"
 
 static u32 offset_x, page_w;
 
@@ -45,16 +46,15 @@ static u8 show_whitespace;
 #include "textbuf.c"
 
 static u8 msg_type;
-static char msg_buf[MAX_MSG_LEN];
+static char msg_buf[80];
+static char confirm_buf[80];
+static char nav_buf[256];
+static char goto_buf[16];
 
-static u32 nav_cursor, nav_len;
-static char nav_buf[MAX_SEARCH_LEN];
-
-static u8 first_compare;
-static char *search_file, same[MAX_SEARCH_LEN];
-
+static field fld_goto = { goto_buf, sizeof(goto_buf), 0, 0 };
+static field fld_nav = { nav_buf, sizeof(nav_buf), 0, 0 };
+static dropdown dropdown_nav;
 static char **dir_list;
-static u32 dir_entries, dir_offset, dir_pos;
 
 static vector buffers;
 static u32 cur_buf;
@@ -64,7 +64,7 @@ static textbuf *tb;
 #include "buffers.c"
 #include "render.c"
 
-static void ed_mode_default(void)
+static void mode_default(void)
 {
 	mode = ED_MODE_DEFAULT;
 }
@@ -75,7 +75,7 @@ static void ed_msg(u32 type, const char *msg, ...)
 	msg_show = 1;
 	msg_type = type;
 	va_start(args, msg);
-	vsnprintf(msg_buf, MAX_MSG_LEN, msg, args);
+	vsnprintf(msg_buf, sizeof(msg_buf), msg, args);
 	va_end(args);
 }
 
@@ -102,7 +102,7 @@ static void ed_load(const char *filename)
 	t = tb_new(filename, buf, 1, LANGUAGE_DEFAULT);
 	bf_insert_cur(t);
 	_free(buf);
-	ed_mode_default();
+	mode_default();
 }
 
 static void ed_new(void)
@@ -112,7 +112,7 @@ static void ed_new(void)
 	snprintf(name, sizeof(name), "untitled-%d", untitled_cnt++);
 	t = tb_new(name, NULL, 0, LANGUAGE_DEFAULT);
 	bf_insert_cur(t);
-	ed_mode_default();
+	mode_default();
 }
 
 static void ed_init(void)
@@ -121,7 +121,7 @@ static void ed_init(void)
 	tabsize = 4;
 	show_whitespace = 1;
 	show_linenr = 1;
-	nav_len = get_working_dir(nav_buf);
+	fld_nav.len = get_working_dir(nav_buf);
 }
 
 static void ed_toggle_line_nr(void)
@@ -143,7 +143,17 @@ static void ed_whitespace(void)
 	show_whitespace = !show_whitespace;
 }
 
+static void ed_cleanup(void)
+{
+	bf_destroy();
+	_free(dir_list);
+}
+
+#include "confirm.c"
 #include "nav.c"
+#include "goto.c"
+#include "open.c"
+#include "save_as.c"
 
 static void ed_save(void)
 {
@@ -173,24 +183,103 @@ static void ed_save(void)
 	}
 }
 
-static void ed_cleanup(void)
-{
-	bf_destroy();
-	_free(dir_list);
-}
-
 #include "opened.c"
 
 static void ed_quit(void)
 {
 	if(bf_has_modified())
 	{
-		ed_mode_opened();
+		mode_opened();
 		return;
 	}
 
 	ed_cleanup();
 	request_exit();
+}
+
+static void default_key_press(u32 key, u32 cp)
+{
+	if(!tb)
+	{
+		switch(key)
+		{
+		case MOD_CTRL | KEY_O:  mode_open();   break;
+		case MOD_CTRL | KEY_T:
+		case MOD_CTRL | KEY_N:  ed_new();      break;
+		case MOD_CTRL | KEY_Q:  ed_quit();     break;
+		case MOD_CTRL | KEY_B:  mode_opened(); break;
+		}
+		return;
+	}
+
+	switch(key)
+	{
+	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   tb_sel_prev_word(tb);   break;
+	case MOD_CTRL | KEY_LEFT:               tb_prev_word(tb);       break;
+	case MOD_SHIFT | KEY_LEFT:              tb_sel_left(tb);        break;
+	case KEY_LEFT:                          tb_left(tb);            break;
+	case MOD_CTRL | MOD_SHIFT | KEY_RIGHT:  tb_sel_next_word(tb);   break;
+	case MOD_CTRL | KEY_RIGHT:              tb_next_word(tb);       break;
+	case MOD_SHIFT | KEY_RIGHT:             tb_sel_right(tb);       break;
+	case KEY_RIGHT:                         tb_right(tb);           break;
+	case MOD_CTRL | KEY_UP:                 tb_move_up(tb);         break;
+	case MOD_SHIFT | KEY_UP:                tb_sel_up(tb);          break;
+	case KEY_UP:                            tb_up(tb);              break;
+	case MOD_CTRL | KEY_DOWN:               tb_move_down(tb);       break;
+	case MOD_SHIFT | KEY_DOWN:              tb_sel_down(tb);        break;
+	case KEY_DOWN:                          tb_down(tb);            break;
+	case MOD_SHIFT | KEY_PAGE_UP:           tb_sel_page_up(tb);     break;
+	case KEY_PAGE_UP:                       tb_page_up(tb);         break;
+	case MOD_SHIFT | KEY_PAGE_DOWN:         tb_sel_page_down(tb);   break;
+	case KEY_PAGE_DOWN:                     tb_page_down(tb);       break;
+	case MOD_CTRL | MOD_SHIFT | KEY_HOME:   tb_sel_top(tb);         break;
+	case MOD_CTRL | KEY_HOME:               tb_top(tb);             break;
+	case MOD_SHIFT | KEY_HOME:              tb_sel_home(tb);        break;
+	case KEY_HOME:                          tb_home(tb);            break;
+	case MOD_CTRL | MOD_SHIFT | KEY_END:    tb_sel_bottom(tb);      break;
+	case MOD_CTRL | KEY_END:                tb_bottom(tb);          break;
+	case MOD_SHIFT | KEY_END:               tb_sel_end(tb);         break;
+	case KEY_END:                           tb_end(tb);             break;
+	case MOD_SHIFT | KEY_RETURN:
+	case KEY_RETURN:                        tb_enter(tb);           break;
+	case MOD_CTRL | KEY_RETURN:             tb_enter_after(tb);     break;
+	case MOD_CTRL | MOD_SHIFT | KEY_RETURN: tb_enter_before(tb);    break;
+	case MOD_CTRL | KEY_BACKSPACE:          tb_del_prev_word(tb);   break;
+	case MOD_SHIFT | KEY_BACKSPACE:
+	case KEY_BACKSPACE:                     tb_backspace(tb);       break;
+	case MOD_CTRL | KEY_DELETE:             tb_del_next_word(tb);   break;
+	case MOD_SHIFT | KEY_DELETE:            tb_del_cur_line(tb);    break;
+	case KEY_DELETE:                        tb_delete(tb);          break;
+	case MOD_CTRL | KEY_L:                  tb_sel_cur_line(tb);    break;
+	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr();    break;
+	case MOD_CTRL | KEY_K:                  tb_toggle_lang(tb);     break;
+	case MOD_CTRL | KEY_G:                  mode_goto();            break;
+	case MOD_CTRL | KEY_O:                  mode_open();            break;
+	case MOD_CTRL | KEY_C:                  tb_copy(tb);            break;
+	case MOD_CTRL | KEY_X:                  tb_cut(tb);             break;
+	case MOD_CTRL | KEY_V:                  tb_paste(tb);           break;
+	case MOD_CTRL | KEY_S:                  ed_save();              break;
+	case MOD_CTRL | MOD_SHIFT | KEY_S:      ed_save_as();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();          break;
+	case MOD_CTRL | KEY_T:
+	case MOD_CTRL | KEY_N:                  ed_new();               break;
+	case MOD_CTRL | KEY_W:                  bf_discard_cur();       break;
+	case MOD_CTRL | KEY_Q:                  ed_quit();              break;
+	case MOD_CTRL | KEY_J:                  ed_whitespace();        break;
+	case MOD_CTRL | KEY_D:                  tb_trailing(tb);        break;
+	case MOD_CTRL | KEY_B:                  mode_opened();          break;
+	case MOD_CTRL | KEY_I:                  tb_ins_include(tb);     break;
+	case MOD_CTRL | MOD_SHIFT | KEY_I:      tb_ins_include_lib(tb); break;
+	case MOD_CTRL | MOD_SHIFT | KEY_A:      tb_ins_comment(tb);     break;
+	case MOD_CTRL | KEY_A:                  tb_sel_all(tb);         break;
+	case MOD_CTRL | KEY_TAB:                bf_cycle();             break;
+	default:
+		if(isprint(cp) || cp == '\t')
+		{
+			tb_char(tb, cp);
+		}
+		break;
+	}
 }
 
 static void event_scroll(i32 y)
@@ -248,127 +337,41 @@ static void event_mousemove(u32 x, u32 y)
 	ed_render();
 }
 
-static void ed_key_press_default(u32 key, u32 cp)
-{
-	if(!tb)
-	{
-		switch(key)
-		{
-		case MOD_CTRL | KEY_O:  ed_open();        break;
-		case MOD_CTRL | KEY_T:
-		case MOD_CTRL | KEY_N:  ed_new();         break;
-		case MOD_CTRL | KEY_Q:  ed_quit();        break;
-		case MOD_CTRL | KEY_B:  ed_mode_opened(); break;
-		}
-		return;
-	}
-
-	switch(key)
-	{
-	case MOD_CTRL | MOD_SHIFT | KEY_LEFT:   tb_sel_prev_word(tb);   break;
-	case MOD_CTRL | KEY_LEFT:               tb_prev_word(tb);       break;
-	case MOD_SHIFT | KEY_LEFT:              tb_sel_left(tb);        break;
-	case KEY_LEFT:                          tb_left(tb);            break;
-	case MOD_CTRL | MOD_SHIFT | KEY_RIGHT:  tb_sel_next_word(tb);   break;
-	case MOD_CTRL | KEY_RIGHT:              tb_next_word(tb);       break;
-	case MOD_SHIFT | KEY_RIGHT:             tb_sel_right(tb);       break;
-	case KEY_RIGHT:                         tb_right(tb);           break;
-	case MOD_CTRL | KEY_UP:                 tb_move_up(tb);         break;
-	case MOD_SHIFT | KEY_UP:                tb_sel_up(tb);          break;
-	case KEY_UP:                            tb_up(tb);              break;
-	case MOD_CTRL | KEY_DOWN:               tb_move_down(tb);       break;
-	case MOD_SHIFT | KEY_DOWN:              tb_sel_down(tb);        break;
-	case KEY_DOWN:                          tb_down(tb);            break;
-	case MOD_SHIFT | KEY_PAGE_UP:           tb_sel_page_up(tb);     break;
-	case KEY_PAGE_UP:                       tb_page_up(tb);         break;
-	case MOD_SHIFT | KEY_PAGE_DOWN:         tb_sel_page_down(tb);   break;
-	case KEY_PAGE_DOWN:                     tb_page_down(tb);       break;
-	case MOD_CTRL | MOD_SHIFT | KEY_HOME:   tb_sel_top(tb);         break;
-	case MOD_CTRL | KEY_HOME:               tb_top(tb);             break;
-	case MOD_SHIFT | KEY_HOME:              tb_sel_home(tb);        break;
-	case KEY_HOME:                          tb_home(tb);            break;
-	case MOD_CTRL | MOD_SHIFT | KEY_END:    tb_sel_bottom(tb);      break;
-	case MOD_CTRL | KEY_END:                tb_bottom(tb);          break;
-	case MOD_SHIFT | KEY_END:               tb_sel_end(tb);         break;
-	case KEY_END:                           tb_end(tb);             break;
-	case MOD_SHIFT | KEY_RETURN:
-	case KEY_RETURN:                        tb_enter(tb);           break;
-	case MOD_CTRL | KEY_RETURN:             tb_enter_after(tb);     break;
-	case MOD_CTRL | MOD_SHIFT | KEY_RETURN: tb_enter_before(tb);    break;
-	case MOD_CTRL | KEY_BACKSPACE:          tb_del_prev_word(tb);   break;
-	case MOD_SHIFT | KEY_BACKSPACE:
-	case KEY_BACKSPACE:                     tb_backspace(tb);       break;
-	case MOD_CTRL | KEY_DELETE:             tb_del_next_word(tb);   break;
-	case MOD_SHIFT | KEY_DELETE:            tb_del_cur_line(tb);    break;
-	case KEY_DELETE:                        tb_delete(tb);          break;
-	case MOD_CTRL | KEY_L:                  tb_sel_cur_line(tb);    break;
-	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr();    break;
-	case MOD_CTRL | KEY_K:                  tb_toggle_lang(tb);     break;
-	case MOD_CTRL | KEY_G:                  ed_goto();              break;
-	case MOD_CTRL | KEY_O:                  ed_open();              break;
-	case MOD_CTRL | KEY_C:                  tb_copy(tb);            break;
-	case MOD_CTRL | KEY_X:                  tb_cut(tb);             break;
-	case MOD_CTRL | KEY_V:                  tb_paste(tb);           break;
-	case MOD_CTRL | KEY_S:                  ed_save();              break;
-	case MOD_CTRL | MOD_SHIFT | KEY_S:      ed_save_as();           break;
-	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();          break;
-	case MOD_CTRL | KEY_T:
-	case MOD_CTRL | KEY_N:                  ed_new();               break;
-	case MOD_CTRL | KEY_W:                  bf_discard_cur();       break;
-	case MOD_CTRL | KEY_Q:                  ed_quit();              break;
-	case MOD_CTRL | KEY_J:                  ed_whitespace();        break;
-	case MOD_CTRL | KEY_D:                  tb_trailing(tb);        break;
-	case MOD_CTRL | KEY_B:                  ed_mode_opened();       break;
-	case MOD_CTRL | KEY_I:                  tb_ins_include(tb);     break;
-	case MOD_CTRL | MOD_SHIFT | KEY_I:      tb_ins_include_lib(tb); break;
-	case MOD_CTRL | MOD_SHIFT | KEY_A:      tb_ins_comment(tb);     break;
-	case MOD_CTRL | KEY_A:                  tb_sel_all(tb);         break;
-	case MOD_CTRL | KEY_TAB:                bf_cycle();             break;
-	default:
-		if(isprint(cp) || cp == '\t')
-		{
-			tb_char(tb, cp);
-		}
-		break;
-	}
-}
-
-static void ed_key_press(u32 key, u32 chr)
-{
-	switch(mode)
-	{
-	case ED_MODE_DEFAULT:
-		ed_key_press_default(key, chr);
-		break;
-
-	case ED_MODE_OPEN:
-		ed_key_press_open(key, chr);
-		break;
-
-	case ED_MODE_GOTO:
-		ed_key_press_goto(key, chr);
-		break;
-
-	case ED_MODE_SAVE_AS:
-		ed_key_press_save_as(key, chr);
-		break;
-
-	case ED_MODE_OPENED:
-		ed_key_press_opened(key);
-		break;
-	}
-
-	ed_render();
-}
-
-static void event_keyboard(u32 key, u32 cp, u32 state)
+static void event_keyboard(u32 key, u32 chr, u32 state)
 {
 	if(state == KEYSTATE_RELEASED)
 	{
 		return;
 	}
 
-	ed_key_press(key, cp);
+	switch(mode)
+	{
+	case ED_MODE_DEFAULT:
+		default_key_press(key, chr);
+		break;
+
+	case ED_MODE_OPEN:
+		open_key_press(key, chr);
+		break;
+
+	case ED_MODE_GOTO:
+		goto_key_press(key, chr);
+		break;
+
+	case ED_MODE_SAVE_AS:
+		save_as_key_press(key, chr);
+		break;
+
+	case ED_MODE_OPENED:
+		opened_key_press(key);
+		break;
+
+	case ED_MODE_CONFIRM:
+		confirm_key_press(key);
+		break;
+	}
+
+	ed_render();
 }
 
 static void event_resize(void)
@@ -381,7 +384,6 @@ static void event_init(void)
 #ifndef NDEBUG
 	test_run_all();
 #endif
-
 	keyword_init(&c_hashmap);
 	keyword_init(&asm_hashmap);
 	ed_init();
@@ -392,7 +394,7 @@ static u32 event_exit(void)
 {
 	if(bf_has_modified())
 	{
-		ed_mode_opened();
+		mode_opened();
 		ed_render();
 		return 0;
 	}

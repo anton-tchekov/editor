@@ -1,90 +1,98 @@
-static void ed_mode_opened(void)
+static void mode_opened(void)
 {
 	mode = ED_MODE_OPENED;
-	dir_entries = bf_count();
-	dir_pos = cur_buf;
-	dir_offset = 0;
-	nav_down_fix_offset();
+	dropdown_nav.count = bf_count();
+	dropdown_nav.pos = cur_buf;
+	dropdown_nav.offset = 0;
+	dropdown_down_fix_offset(&dropdown_nav);
 }
 
-static void opened_up(void)
+static void opened_up(dropdown *d)
 {
-	nav_up();
-	bf_switch_id(dir_pos);
+	dropdown_up(d);
+	bf_switch_id(d->pos);
 }
 
-static void opened_down(void)
+static void opened_down(dropdown *d)
 {
-	nav_down();
-	bf_switch_id(dir_pos);
+	dropdown_down(d);
+	bf_switch_id(d->pos);
 }
 
-static void opened_page_up(void)
+static void opened_page_up(dropdown *d)
 {
-	nav_page_up();
-	bf_switch_id(dir_pos);
+	dropdown_page_up(d);
+	bf_switch_id(d->pos);
 }
 
-static void opened_page_down(void)
+static void opened_page_down(dropdown *d)
 {
-	nav_page_down();
-	bf_switch_id(dir_pos);
+	dropdown_page_down(d);
+	bf_switch_id(d->pos);
 }
 
-static void opened_first(void)
+static void opened_first(dropdown *d)
 {
-	nav_first();
-	bf_switch_id(dir_pos);
+	dropdown_first(d);
+	bf_switch_id(d->pos);
 }
 
-static void opened_last(void)
+static void opened_last(dropdown *d)
 {
-	nav_last();
-	bf_switch_id(dir_pos);
+	dropdown_last(d);
+	bf_switch_id(d->pos);
 }
 
-static void opened_discard(void)
+static void opened_discard(dropdown *d)
 {
-	if(!dir_entries)
+	if(!d->count)
 	{
 		return;
 	}
 
-	bf_discard(dir_pos);
-	--dir_entries;
-	if(!dir_entries)
+	bf_discard(d->pos);
+	--d->count;
+	if(!d->count)
 	{
 		tb = NULL;
 		return;
 	}
 
-	if(dir_offset > 0 && dir_offset + ED_DIR_PAGE >= dir_entries)
+	if(d->offset > 0 && d->offset + DROPDOWN_PAGE >= d->count)
 	{
-		--dir_offset;
+		--d->offset;
 	}
 
-	if(dir_pos == dir_entries)
+	if(d->pos == d->count)
 	{
-		--dir_pos;
+		--d->pos;
 	}
 
-	bf_switch_id(dir_pos);
+	bf_switch_id(d->pos);
 }
 
-static void ed_key_press_opened(u32 key)
+static void opened_key_press(u32 key)
 {
+	if(key == KEY_RETURN || key == KEY_ESCAPE)
+	{
+		mode_default();
+		return;
+	}
+
+	if(key == (MOD_CTRL | KEY_S))
+	{
+		ed_save();
+		return;
+	}
+
 	switch(key)
 	{
-	case MOD_CTRL | KEY_B:
-	case KEY_RETURN:
-	case KEY_ESCAPE:        ed_mode_default();   break;
-	case MOD_CTRL | KEY_S:  ed_save();           break;
-	case KEY_UP:            opened_up();         break;
-	case KEY_DOWN:          opened_down();       break;
-	case KEY_PAGE_UP:       opened_page_up();    break;
-	case KEY_PAGE_DOWN:     opened_page_down();  break;
-	case KEY_HOME:          opened_first();      break;
-	case KEY_END:           opened_last();       break;
-	case MOD_CTRL | KEY_W:  opened_discard();    break;
+	case KEY_UP:           opened_up(&dropdown_nav);        break;
+	case KEY_DOWN:         opened_down(&dropdown_nav);      break;
+	case KEY_PAGE_UP:      opened_page_up(&dropdown_nav);   break;
+	case KEY_PAGE_DOWN:    opened_page_down(&dropdown_nav); break;
+	case KEY_HOME:         opened_first(&dropdown_nav);     break;
+	case KEY_END:          opened_last(&dropdown_nav);      break;
+	case MOD_CTRL | KEY_W: opened_discard(&dropdown_nav);   break;
 	}
 }

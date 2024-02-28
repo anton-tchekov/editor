@@ -480,21 +480,20 @@ static void ed_render_msg(void)
 			msg_type ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO));
 }
 
+static u32 dropdown_color(dropdown *d, u32 i)
+{
+	return (i == d->pos) ?
+		screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
+		screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
+}
+
 static u32 ed_render_dir(void)
 {
-	u32 i;
-	u32 y = 1;
-	u32 end = dir_offset + ED_DIR_PAGE;
-	if(end > dir_entries)
+	u32 i, y, end;
+	end = umin(dropdown_nav.offset + DROPDOWN_PAGE, dropdown_nav.count);
+	for(y = 1, i = dropdown_nav.offset; i < end; ++i, ++y)
 	{
-		end = dir_entries;
-	}
-
-	for(i = dir_offset; i < end; ++i, ++y)
-	{
-		ed_render_line_str(dir_list[i], 0, y, (i == dir_pos) ?
-			screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
-			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY));
+		ed_render_line_str(dir_list[i], 0, y, dropdown_color(&dropdown_nav, i));
 	}
 
 	return y;
@@ -503,26 +502,20 @@ static u32 ed_render_dir(void)
 static u32 ed_render_opened(void)
 {
 	char buf[64];
-	u32 i, y;
-	u32 end = dir_offset + ED_DIR_PAGE;
-	if(end > dir_entries)
-	{
-		end = dir_entries;
-	}
+	u32 i, y, end;
+	end = umin(dropdown_nav.offset + DROPDOWN_PAGE, dropdown_nav.count);
 
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
-		dir_entries, (dir_entries == 1 ? "" : "s"), bf_num_unsaved());
+		dropdown_nav.count, (dropdown_nav.count == 1 ? "" : "s"),
+		bf_num_unsaved());
 
 	ed_render_line_str(buf, 0, 0,
 		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
 
-	for(y = 1, i = dir_offset; i < end; ++i, ++y)
+	for(y = 1, i = dropdown_nav.offset; i < end; ++i, ++y)
 	{
 		textbuf *t = bf_get(i);
-		u32 color = (i == dir_pos) ?
-			screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
-			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
-
+		u32 color = dropdown_color(&dropdown_nav, i);
 		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
 		ed_render_line_str(t->filename, 1, y, color);
 	}
@@ -530,7 +523,7 @@ static u32 ed_render_opened(void)
 	return y;
 }
 
-static u32 ed_render_nav(const char *prompt)
+static void ed_render_nav(field *f, const char *prompt)
 {
 	const char *s;
 	u32 x, i, c, color;
@@ -543,13 +536,17 @@ static u32 ed_render_nav(const char *prompt)
 
 	for(s = nav_buf, i = 0; x < _screen_width; ++x, ++s, ++i)
 	{
-		screen_set(x, 0, screen_pack((i < nav_len) ? *s : ' ',
-			(i == nav_cursor) ?
+		screen_set(x, 0, screen_pack((i < f->len) ? *s : ' ',
+			(i == f->cursor) ?
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
 			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG)));
 	}
+}
 
-	return ed_render_dir();
+static void ed_render_confirm(void)
+{
+	ed_render_line_str(confirm_buf, 0, 0,
+		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
 }
 
 static u32 ed_prev_comment(void)
@@ -671,19 +668,27 @@ static void ed_render(void)
 	switch(mode)
 	{
 	case ED_MODE_OPEN:
-		start_y = ed_render_nav("Open: ");
+		ed_render_nav(&fld_nav, "Open: ");
+		start_y = ed_render_dir();
 		break;
 
 	case ED_MODE_GOTO:
-		start_y = ed_render_nav("Line: ");
+		ed_render_nav(&fld_goto, "Line: ");
+		start_y = 1;
 		break;
 
 	case ED_MODE_SAVE_AS:
-		start_y = ed_render_nav("Save As: ");
+		ed_render_nav(&fld_nav, "Save As: ");
+		start_y = ed_render_dir();
 		break;
 
 	case ED_MODE_OPENED:
 		start_y = ed_render_opened();
+		break;
+
+	case ED_MODE_CONFIRM:
+		ed_render_confirm();
+		start_y = 1;
 		break;
 	}
 
