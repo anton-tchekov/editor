@@ -195,30 +195,55 @@ static void ed_quit(void)
 
 static void event_scroll(i32 y)
 {
+	if(!tb)
+	{
+		return;
+	}
+
 	tb_scroll(tb, -3 * y);
 	ed_render();
 }
 
 static void event_dblclick(u32 x, u32 y)
 {
+	if(!tb)
+	{
+		return;
+	}
+
 	tb_double_click(tb, x, y);
 	ed_render();
 }
 
 static void event_tripleclick(u32 x, u32 y)
 {
+	if(!tb)
+	{
+		return;
+	}
+
 	tb_triple_click(tb, x, y);
 	ed_render();
 }
 
 static void event_mousedown(u32 x, u32 y)
 {
+	if(!tb)
+	{
+		return;
+	}
+
 	tb_mouse_cursor(tb, x, y);
 	ed_render();
 }
 
 static void event_mousemove(u32 x, u32 y)
 {
+	if(!tb)
+	{
+		return;
+	}
+
 	tb_mouse_sel(tb, x, y);
 	ed_render();
 }
