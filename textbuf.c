@@ -409,7 +409,7 @@ static void tb_enter(textbuf *t)
 	tb_ins_line(t, t->sel.c[1].y + 1, &new_line);
 
 	/* Remove characters after cursor on current line */
-	vector_remove(cur, t->sel.c[1].x, len);
+	vector_remove(tb_cur_line(t), t->sel.c[1].x, len);
 
 	++t->sel.c[1].y;
 	t->sel.c[1].x = 0;
