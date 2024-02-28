@@ -16,6 +16,7 @@ static void confirm_key_press(u32 key)
 {
 	switch(key)
 	{
+	case KEY_Z:
 	case KEY_Y:
 		confirm_result(1);
 		break;

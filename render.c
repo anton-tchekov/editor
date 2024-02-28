@@ -534,7 +534,7 @@ static void ed_render_nav(field *f, const char *prompt)
 		screen_set(x, 0, screen_pack(c, color));
 	}
 
-	for(s = nav_buf, i = 0; x < _screen_width; ++x, ++s, ++i)
+	for(s = f->buf, i = 0; x < _screen_width; ++x, ++s, ++i)
 	{
 		screen_set(x, 0, screen_pack((i < f->len) ? *s : ' ',
 			(i == f->cursor) ?

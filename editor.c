@@ -121,7 +121,7 @@ static void ed_init(void)
 	tabsize = 4;
 	show_whitespace = 1;
 	show_linenr = 1;
-	fld_nav.len = get_working_dir(nav_buf);
+	fld_nav.len = get_working_dir(fld_nav.buf);
 }
 
 static void ed_toggle_line_nr(void)
@@ -175,6 +175,7 @@ static void ed_save(void)
 			ed_msg(ED_INFO, "File saved");
 			tb->modified = 0;
 		}
+
 		_free(buf);
 	}
 	else
