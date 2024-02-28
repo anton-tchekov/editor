@@ -2,37 +2,35 @@ static void ed_dir_load(void)
 {
 	char buf[MAX_SEARCH_LEN];
 
+	nav_cursor = nav_len;
+
 	dir_pos = 0;
 	dir_offset = 0;
 	dir_entries = 0;
 
 	nav_buf[nav_len] = '\0';
-	strcpy(buf, nav_base);
+	strcpy(buf, nav_buf);
 	path_dir(buf);
-
 	_free(dir_list);
 	dir_list = dir_sorted(buf, &dir_entries);
 }
 
-static void ed_mode_nav(void)
+static void ed_open(void)
 {
-	mode = ED_MODE_NAV;
+	mode = ED_MODE_OPEN;
 	ed_dir_load();
 }
 
 static void ed_goto(void)
 {
-	nav_buf[0] = ':';
-	nav_cursor = 1;
-	nav_len = 1;
-	ed_mode_nav();
+	mode = ED_MODE_GOTO;
+	nav_cursor = nav_len = 0;
 }
 
-static void ed_open(void)
+static void ed_save_as(void)
 {
-	nav_len = 0;
-	nav_cursor = 0;
-	ed_mode_nav();
+	mode = ED_MODE_SAVE_AS;
+	ed_dir_load();
 }
 
 static void ed_tab_cmpl_callback(const char *fname, u32 is_dir)
@@ -159,148 +157,188 @@ static void nav_last(void)
 	}
 }
 
-static void ed_key_press_nav(u32 key, u32 cp)
+static void nav_left(void)
+{
+	if(nav_cursor > 0)
+	{
+		--nav_cursor;
+	}
+}
+
+static void nav_right(void)
+{
+	if(nav_cursor < nav_len)
+	{
+		++nav_cursor;
+	}
+}
+
+static void nav_home(void)
+{
+	nav_cursor = 0;
+}
+
+static void nav_end(void)
+{
+	nav_cursor = nav_len;
+}
+
+static void nav_backspace(void)
+{
+	if(nav_cursor > 0)
+	{
+		char *p = nav_buf + nav_cursor;
+		memmove(p - 1, p, nav_len - nav_cursor);
+		--nav_cursor;
+		--nav_len;
+	}
+}
+
+static void nav_delete(void)
+{
+	if(nav_cursor < nav_len)
+	{
+		char *p = nav_buf + nav_cursor;
+		memmove(p, p + 1,  - nav_cursor - 1);
+		--nav_len;
+	}
+}
+
+static void nav_char(u32 c)
+{
+	if(nav_len >= MAX_SEARCH_LEN - 1)
+	{
+		return;
+	}
+
+	if(isprint(c))
+	{
+		char *p = nav_buf + nav_cursor;
+		memmove(p + 1, p, nav_len - nav_cursor);
+		nav_buf[nav_cursor++] = c;
+		++nav_len;
+	}
+}
+
+static void open_return(void)
+{
+	if(!nav_len)
+	{
+		ed_mode_default();
+		return;
+	}
+
+	nav_buf[nav_len] = '\0';
+	ed_load(nav_buf);
+}
+
+static void goto_return(void)
+{
+	nav_buf[nav_len] = '\0';
+	if(ed_set_lnr(nav_buf))
+	{
+		tb_goto_def(tb, nav_buf);
+	}
+
+	ed_mode_default();
+}
+
+static void save_as_return(void)
+{
+
+}
+
+static void load_save_tab(void)
+{
+	char buf[MAX_SEARCH_LEN];
+	nav_buf[nav_len] = '\0';
+	strcpy(buf, nav_buf);
+	path_dir(buf);
+	first_compare = 1;
+	search_file = path_file(nav_buf);
+	if(dir_iter(buf, ed_tab_cmpl_callback))
+	{
+		return;
+	}
+
+	if(!first_compare)
+	{
+		strcpy(search_file, same);
+		nav_cursor = nav_len = strlen(nav_buf);
+	}
+}
+
+static void ed_key_press_open(u32 key, u32 c)
 {
 	switch(key)
 	{
-	case KEY_UP:
-		nav_up();
-		break;
-
-	case KEY_DOWN:
-		nav_down();
-		break;
-
-	case KEY_PAGE_UP:
-		nav_page_up();
-		break;
-
-	case KEY_PAGE_DOWN:
-		nav_page_down();
-		break;
-
-	case MOD_CTRL | KEY_HOME:
-		nav_first();
-		break;
-
-	case MOD_CTRL | KEY_END:
-		nav_last();
-		break;
-
-	case KEY_LEFT:
-		if(nav_cursor > 0)
-		{
-			--nav_cursor;
-		}
-		break;
-
-	case KEY_RIGHT:
-		if(nav_cursor < nav_len)
-		{
-			++nav_cursor;
-		}
-		break;
-
-	case KEY_HOME:
-		nav_cursor = 0;
-		break;
-
-	case KEY_END:
-		nav_cursor = nav_len;
-		break;
-
-	case KEY_RETURN:
-	{
-		char *p;
-		if(!nav_len)
-		{
-			ed_mode_default();
-			break;
-		}
-
-		nav_buf[nav_len] = '\0';
-		p = memchr(nav_buf, ':', nav_len);
-		if(p)
-		{
-			*p = '\0';
-			if(p != nav_buf)
-			{
-				ed_load(nav_buf);
-			}
-
-			++p;
-			if(ed_set_lnr(p))
-			{
-				tb_goto_def(tb, p);
-			}
-
-			ed_mode_default();
-		}
-		else
-		{
-			ed_load(nav_buf);
-		}
-		break;
-	}
-
-	case KEY_BACKSPACE:
-		if(nav_cursor > 0)
-		{
-			char *p = nav_buf + nav_cursor;
-			memmove(p - 1, p, nav_len - nav_cursor);
-			--nav_cursor;
-			--nav_len;
-		}
-		break;
-
-	case KEY_DELETE:
-		if(nav_cursor < nav_len)
-		{
-			char *p = nav_buf + nav_cursor;
-			memmove(p, p + 1,  - nav_cursor - 1);
-			--nav_len;
-		}
-		break;
-
-	case KEY_TAB:
-	{
-		char buf[MAX_SEARCH_LEN];
-		nav_buf[nav_len] = '\0';
-		strcpy(buf, nav_base);
-		path_dir(buf);
-		first_compare = 1;
-		search_file = path_file(nav_buf);
-		if(dir_iter(buf, ed_tab_cmpl_callback))
-		{
-			break;
-		}
-
-		if(!first_compare)
-		{
-			strcpy(search_file, same);
-			nav_cursor = nav_len = strlen(nav_buf);
-		}
-		break;
-	}
-
+	case KEY_UP:                    nav_up();          break;
+	case KEY_DOWN:                  nav_down();        break;
+	case KEY_PAGE_UP:               nav_page_up();     break;
+	case KEY_PAGE_DOWN:             nav_page_down();   break;
+	case MOD_CTRL | KEY_HOME:       nav_first();       break;
+	case MOD_CTRL | KEY_END:        nav_last();        break;
+	case KEY_LEFT:                  nav_left();        break;
+	case KEY_RIGHT:                 nav_right();       break;
+	case KEY_HOME:                  nav_home();        break;
+	case KEY_END:                   nav_end();         break;
+	case MOD_SHIFT | KEY_RETURN:
+	case KEY_RETURN:                open_return();     break;
+	case MOD_SHIFT | KEY_BACKSPACE:
+	case KEY_BACKSPACE:             nav_backspace();   break;
+	case KEY_DELETE:                nav_delete();      break;
+	case KEY_TAB:                   load_save_tab();   break;
 	case MOD_CTRL | KEY_G:
-	case KEY_ESCAPE:
-		ed_mode_default();
-		break;
+	case KEY_ESCAPE:                ed_mode_default(); break;
+	default:                        nav_char(c);       break;
+	}
+}
 
-	default:
-		if(nav_len >= MAX_SEARCH_LEN - 1)
-		{
-			break;
-		}
+static void ed_key_press_goto(u32 key, u32 c)
+{
+	switch(key)
+	{
+	case KEY_UP:                    nav_up();          break;
+	case KEY_DOWN:                  nav_down();        break;
+	case KEY_PAGE_UP:               nav_page_up();     break;
+	case KEY_PAGE_DOWN:             nav_page_down();   break;
+	case MOD_CTRL | KEY_HOME:       nav_first();       break;
+	case MOD_CTRL | KEY_END:        nav_last();        break;
+	case KEY_LEFT:                  nav_left();        break;
+	case KEY_RIGHT:                 nav_right();       break;
+	case KEY_HOME:                  nav_home();        break;
+	case KEY_END:                   nav_end();         break;
+	case MOD_SHIFT | KEY_RETURN:
+	case KEY_RETURN:                goto_return();     break;
+	case MOD_SHIFT | KEY_BACKSPACE:
+	case KEY_BACKSPACE:             nav_backspace();   break;
+	case KEY_DELETE:                nav_delete();      break;
+	case KEY_ESCAPE:                ed_mode_default(); break;
+	default:                        nav_char(c);       break;
+	}
+}
 
-		if(isprint(cp))
-		{
-			char *p = nav_buf + nav_cursor;
-			memmove(p + 1, p, nav_len - nav_cursor);
-			nav_buf[nav_cursor++] = cp;
-			++nav_len;
-		}
-		break;
+static void ed_key_press_save_as(u32 key, u32 c)
+{
+	switch(key)
+	{
+	case KEY_UP:                    nav_up();          break;
+	case KEY_DOWN:                  nav_down();        break;
+	case KEY_PAGE_UP:               nav_page_up();     break;
+	case KEY_PAGE_DOWN:             nav_page_down();   break;
+	case MOD_CTRL | KEY_HOME:       nav_first();       break;
+	case MOD_CTRL | KEY_END:        nav_last();        break;
+	case KEY_LEFT:                  nav_left();        break;
+	case KEY_RIGHT:                 nav_right();       break;
+	case KEY_HOME:                  nav_home();        break;
+	case KEY_END:                   nav_end();         break;
+	case MOD_SHIFT | KEY_RETURN:
+	case KEY_RETURN:                save_as_return();  break;
+	case MOD_SHIFT | KEY_BACKSPACE:
+	case KEY_BACKSPACE:             nav_backspace();   break;
+	case KEY_DELETE:                nav_delete();      break;
+	case KEY_TAB:                   load_save_tab();   break;
+	case KEY_ESCAPE:                ed_mode_default(); break;
+	default:                        nav_char(c);       break;
 	}
 }

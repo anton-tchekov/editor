@@ -460,23 +460,24 @@ static void ed_render_line(u32 y)
 	}
 }
 
-static void ed_render_msg(void)
+static void ed_render_line_str(const char *s, u32 x, u32 y, u32 color)
 {
-	const char *s = msg_buf;
-	u32 x, c;
-	u32 y = _screen_height - 1;
-	u32 color = screen_color(COLOR_TABLE_FG,
-		msg_type ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO);
-
-	for(x = 0; (c = *s); ++x, ++s)
+	for(; *s && x < _screen_width; ++s, ++x)
 	{
-		screen_set(x, y, screen_pack(c, color));
+		screen_set(x, y, screen_pack(*s, color));
 	}
 
 	for(; x < _screen_width; ++x)
 	{
 		screen_set(x, y, screen_pack(' ', color));
 	}
+}
+
+static void ed_render_msg(void)
+{
+	ed_render_line_str(msg_buf, 0, _screen_height - 1,
+		screen_color(COLOR_TABLE_FG,
+			msg_type ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO));
 }
 
 static u32 ed_render_dir(void)
@@ -491,21 +492,9 @@ static u32 ed_render_dir(void)
 
 	for(i = dir_offset; i < end; ++i, ++y)
 	{
-		u32 color = (i == dir_pos) ?
+		ed_render_line_str(dir_list[i], 0, y, (i == dir_pos) ?
 			screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
-			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
-
-		u32 x = 0;
-		const char *p = dir_list[i];
-		for(; *p && x < _screen_width; ++p, ++x)
-		{
-			screen_set(x, y, screen_pack(*p, color));
-		}
-
-		for(; x < _screen_width; ++x)
-		{
-			screen_set(x, y, screen_pack(' ', color));
-		}
+			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY));
 	}
 
 	return y;
@@ -513,41 +502,36 @@ static u32 ed_render_dir(void)
 
 static u32 ed_render_opened(void)
 {
-	u32 i;
-	u32 y = 0;
+	char buf[64];
+	u32 i, y;
 	u32 end = dir_offset + ED_DIR_PAGE;
 	if(end > dir_entries)
 	{
 		end = dir_entries;
 	}
 
-	for(i = dir_offset; i < end; ++i, ++y)
+	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
+		dir_entries, (dir_entries == 1 ? "" : "s"), bf_num_unsaved());
+
+	ed_render_line_str(buf, 0, 0,
+		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
+
+	for(y = 1, i = dir_offset; i < end; ++i, ++y)
 	{
 		textbuf *t = bf_get(i);
 		u32 color = (i == dir_pos) ?
 			screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
 
-		u32 x = 0;
-		const char *p = t->filename;
-		screen_set(x++, y, screen_pack(t->modified ? '*' : ' ', color));
-		for(; *p && x < _screen_width; ++p, ++x)
-		{
-			screen_set(x, y, screen_pack(*p, color));
-		}
-
-		for(; x < _screen_width; ++x)
-		{
-			screen_set(x, y, screen_pack(' ', color));
-		}
+		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
+		ed_render_line_str(t->filename, 1, y, color);
 	}
 
 	return y;
 }
 
-static u32 ed_render_nav(void)
+static u32 ed_render_nav(const char *prompt)
 {
-	const char *prompt = "Location: ";
 	const char *s;
 	u32 x, i, c, color;
 
@@ -668,8 +652,16 @@ static void ed_render(void)
 	u32 end_y = _screen_height;
 	switch(mode)
 	{
-	case ED_MODE_NAV:
-		start_y = ed_render_nav();
+	case ED_MODE_OPEN:
+		start_y = ed_render_nav("Open: ");
+		break;
+
+	case ED_MODE_GOTO:
+		start_y = ed_render_nav("Line: ");
+		break;
+
+	case ED_MODE_SAVE_AS:
+		start_y = ed_render_nav("Save As: ");
 		break;
 
 	case ED_MODE_OPENED:

@@ -642,6 +642,11 @@ static void tb_insert(textbuf *t, const char *text)
 	t->modified = 1;
 }
 
+static u32 tb_line_hidden(textbuf *t, u32 y)
+{
+	return (y >= t->page_y + _screen_height) || (y < t->page_y);
+}
+
 static void tb_gotoxy(textbuf *t, u32 x, u32 y)
 {
 	u32 num_lines = tb_num_lines(t);
@@ -651,14 +656,15 @@ static void tb_gotoxy(textbuf *t, u32 x, u32 y)
 	}
 
 	t->sel.c[1].y = y;
-	if(t->sel.c[1].y > _screen_height / 2)
+	if(tb_line_hidden(t, y))
 	{
-		t->page_y = t->sel.c[1].y - _screen_height / 2;
+		t->page_y = y - _screen_height / 2;
 	}
 
 	t->sel.c[1].x = x;
 	tb_sel_to_cursor(t);
 	t->cursor_save_x = -1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_goto_def(textbuf *t, const char *s)

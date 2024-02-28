@@ -5,7 +5,9 @@
 enum
 {
 	ED_MODE_DEFAULT,
-	ED_MODE_NAV,
+	ED_MODE_OPEN,
+	ED_MODE_GOTO,
+	ED_MODE_SAVE_AS,
 	ED_MODE_OPENED,
 	ED_MODE_COUNT
 };
@@ -46,7 +48,7 @@ static u8 msg_type;
 static char msg_buf[MAX_MSG_LEN];
 
 static u32 nav_cursor, nav_len;
-static char *nav_buf, nav_base[MAX_SEARCH_LEN];
+static char nav_buf[MAX_SEARCH_LEN];
 
 static u8 first_compare;
 static char *search_file, same[MAX_SEARCH_LEN];
@@ -116,11 +118,10 @@ static void ed_new(void)
 static void ed_init(void)
 {
 	bf_init();
-	ed_new();
 	tabsize = 4;
 	show_whitespace = 1;
 	show_linenr = 1;
-	nav_buf = get_working_dir(nav_base);
+	nav_len = get_working_dir(nav_buf);
 }
 
 static void ed_toggle_line_nr(void)
@@ -142,9 +143,7 @@ static void ed_whitespace(void)
 	show_whitespace = !show_whitespace;
 }
 
-static void ed_save_as(void)
-{
-}
+#include "nav.c"
 
 static void ed_save(void)
 {
@@ -180,7 +179,6 @@ static void ed_cleanup(void)
 	_free(dir_list);
 }
 
-#include "nav.c"
 #include "opened.c"
 
 static void ed_quit(void)
@@ -231,7 +229,6 @@ static void ed_key_press_default(u32 key, u32 cp)
 	{
 		switch(key)
 		{
-		case MOD_CTRL | KEY_G:
 		case MOD_CTRL | KEY_O:  ed_open();        break;
 		case MOD_CTRL | KEY_T:
 		case MOD_CTRL | KEY_N:  ed_new();         break;
@@ -319,8 +316,16 @@ static void ed_key_press(u32 key, u32 chr)
 		ed_key_press_default(key, chr);
 		break;
 
-	case ED_MODE_NAV:
-		ed_key_press_nav(key, chr);
+	case ED_MODE_OPEN:
+		ed_key_press_open(key, chr);
+		break;
+
+	case ED_MODE_GOTO:
+		ed_key_press_goto(key, chr);
+		break;
+
+	case ED_MODE_SAVE_AS:
+		ed_key_press_save_as(key, chr);
 		break;
 
 	case ED_MODE_OPENED:
@@ -346,7 +351,7 @@ static void event_resize(void)
 	ed_render();
 }
 
-static void event_init(int argc, char *argv[])
+static void event_init(void)
 {
 #ifndef NDEBUG
 	test_run_all();
@@ -355,12 +360,6 @@ static void event_init(int argc, char *argv[])
 	keyword_init(&c_hashmap);
 	keyword_init(&asm_hashmap);
 	ed_init();
-
-	if(argc == 2)
-	{
-		ed_load(argv[1]);
-	}
-
 	ed_render();
 }
 

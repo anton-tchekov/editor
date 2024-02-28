@@ -38,6 +38,21 @@ static u32 bf_has_modified(void)
 	return 0;
 }
 
+static u32 bf_num_unsaved(void)
+{
+	u32 cnt = 0;
+	u32 i, len = bf_count();
+	for(i = 0; i < len; ++i)
+	{
+		if(bf_get(i)->modified)
+		{
+			++cnt;
+		}
+	}
+
+	return cnt;
+}
+
 static void bf_switch_id(u32 i)
 {
 	cur_buf = i;
@@ -85,11 +100,16 @@ static void bf_insert_cur(textbuf *t)
 	tb = t;
 }
 
+static void bf_discard(u32 i)
+{
+	tb_destroy(bf_get(i));
+	vector_remove(&buffers, i * sizeof(textbuf *), sizeof(textbuf *));
+}
+
 static void bf_discard_cur(void)
 {
 	u32 cnt;
-	tb_destroy(bf_get(cur_buf));
-	vector_remove(&buffers, cur_buf * sizeof(textbuf *), sizeof(textbuf *));
+	bf_discard(cur_buf);
 	cnt = bf_count();
 	if(!cnt)
 	{

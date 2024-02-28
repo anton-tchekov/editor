@@ -45,14 +45,30 @@ static void opened_last(void)
 
 static void opened_discard(void)
 {
-	bf_discard_cur();
-	if(dir_pos == dir_entries - 1)
+	if(!dir_entries)
+	{
+		return;
+	}
+
+	bf_discard(dir_pos);
+	--dir_entries;
+	if(!dir_entries)
+	{
+		tb = NULL;
+		return;
+	}
+
+	if(dir_offset > 0 && dir_offset + ED_DIR_PAGE >= dir_entries)
+	{
+		--dir_offset;
+	}
+
+	if(dir_pos == dir_entries)
 	{
 		--dir_pos;
 	}
 
-	--dir_entries;
-	/* TODO: BUGG!! */
+	bf_switch_id(dir_pos);
 }
 
 static void ed_key_press_opened(u32 key)

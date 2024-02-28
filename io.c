@@ -97,7 +97,7 @@ static void event_dblclick(u32 x, u32 y);
 static void event_tripleclick(u32 x, u32 y);
 static void event_mousemove(u32 x, u32 y);
 static void event_mousedown(u32 x, u32 y);
-static void event_init(int argc, char **argv);
+static void event_init(void);
 static void event_keyboard(u32 key, u32 chr, u32 state);
 static void event_resize(void);
 static void event_scroll(i32 y);
@@ -540,7 +540,7 @@ static u32 file_write(const char *filename, void *data, size_t len)
 	return 0;
 }
 
-static char *get_working_dir(char *buf)
+static u32 get_working_dir(char *buf)
 {
 	size_t len;
 	assert(getcwd(buf, PATH_MAX));
@@ -548,9 +548,10 @@ static char *get_working_dir(char *buf)
 	if(!len || (len > 0 && buf[len - 1] != '/'))
 	{
 		strcpy(buf + len, "/");
+		++len;
 	}
 
-	return buf + len;
+	return len;
 }
 
 static u32 dir_iter(const char *path, void (*iter)(const char *, u32))
@@ -635,13 +636,13 @@ static void request_exit(void)
 
 #ifndef NDEBUG
 
-static int evilmain(int argc, char *argv[])
+static int evilmain(void)
 {
 	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
 	SDL_Event e;
 	init();
-	event_init(argc, argv);
+	event_init();
 	srand(time(NULL));
 	while(!quit)
 	{
@@ -705,12 +706,12 @@ int main(int argc, char *argv[])
 #ifndef NDEBUG
 	if(argc == 2 && !strcmp(argv[1], "evil"))
 	{
-		return evilmain(1, argv);
+		return evilmain();
 	}
 #endif
 
 	init();
-	event_init(argc, argv);
+	event_init();
 	while(!quit)
 	{
 		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
