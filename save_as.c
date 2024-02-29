@@ -41,6 +41,7 @@ static void save_as_return(void)
 		return;
 	}
 
+	field_add_nt(&fld_nav);
 	if(file_exists(fld_nav.buf))
 	{
 		mode_confirm(save_as_confirm,

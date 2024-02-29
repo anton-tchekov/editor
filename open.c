@@ -12,7 +12,7 @@ static void open_return(void)
 		return;
 	}
 
-	fld_nav.buf[fld_nav.len] = '\0';
+	field_add_nt(&fld_nav);
 	ed_load(fld_nav.buf);
 }
 

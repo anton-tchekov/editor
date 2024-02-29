@@ -9,8 +9,8 @@ static void mode_goto(void)
 static void goto_return(void)
 {
 	u32 lnr;
-	fld_goto.buf[fld_goto.len] = '\0';
 	mode_default();
+	field_add_nt(&fld_goto);
 	lnr = conv_lnr_str(fld_goto.buf);
 	if(lnr)
 	{

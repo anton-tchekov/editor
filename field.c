@@ -6,6 +6,11 @@ typedef struct
 	u32 max, cursor, len;
 } field;
 
+static void field_add_nt(field *f)
+{
+	f->buf[f->len] = '\0';
+}
+
 static void field_reset(field *f)
 {
 	f->cursor = 0;

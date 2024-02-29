@@ -533,13 +533,7 @@ static void tb_sel_cur_line(textbuf *t)
 	}
 	else
 	{
-		u32 last_line_len = tb_line_len(t, last_line);
-		if(t->sel.c[1].x == last_line_len)
-		{
-			return;
-		}
-
-		t->sel.c[1].x = last_line_len;
+		t->sel.c[1].x = tb_line_len(t, last_line);
 	}
 
 	tb_scroll_to_cursor(t);
@@ -709,10 +703,11 @@ static u32 tb_chr_x_inc(u32 c, u32 x)
 
 static u32 tb_cursor_pos_x(textbuf *t, u32 y, u32 end)
 {
-	u32 i;
-	u32 x = 0;
-	const char *line = tb_line_data(t, y);
-	for(i = 0; i < end; ++i)
+	u32 i, x;
+	const char *line;
+
+	line = tb_line_data(t, y);
+	for(i = 0, x = 0; i < end; ++i)
 	{
 		x = tb_chr_x_inc(line[i], x);
 	}

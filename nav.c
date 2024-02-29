@@ -8,7 +8,7 @@ static void ed_dir_load(void)
 	char buf[sizeof(nav_buf)];
 	field_end(&fld_nav);
 	dropdown_reset(&dropdown_nav);
-	fld_nav.buf[fld_nav.len] = '\0';
+	field_add_nt(&fld_nav);
 	strcpy(buf, fld_nav.buf);
 	path_dir(buf);
 	_free(dir_list);
@@ -46,7 +46,7 @@ static void tab_cmpl_callback(const char *fname, u32 is_dir)
 static void load_save_tab(void)
 {
 	char buf[sizeof(nav_buf)];
-	fld_nav.buf[fld_nav.len] = '\0';
+	field_add_nt(&fld_nav);
 	strcpy(buf, fld_nav.buf);
 	path_dir(buf);
 	first_compare = 1;
