@@ -13,3 +13,6 @@ run:
 
 clean:
 	rm -f editor
+
+install:
+	sudo cp editor /usr/bin/editor
