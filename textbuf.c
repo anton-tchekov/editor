@@ -8,6 +8,7 @@ typedef struct
 	u8 language;
 	u8 modified;
 	u8 exists;
+	u8 insert;
 } textbuf;
 
 static u32 tb_num_lines(textbuf *t)
@@ -31,6 +32,7 @@ static textbuf *tb_new(const char *name, const char *text,
 	t->language = lang;
 	t->modified = 0;
 	t->exists = on_disk;
+	t->insert = 0;
 	tb_reset_cursor(t);
 	if(text)
 	{
@@ -60,6 +62,11 @@ static textbuf *tb_new(const char *name, const char *text,
 	}
 
 	return t;
+}
+
+static void tb_toggle_insert(textbuf *t)
+{
+	t->insert = !t->insert;
 }
 
 static void tb_change_filename(textbuf *t, const char *name)
@@ -298,6 +305,7 @@ static void tb_delete(textbuf *t)
 		t->cursor_save_x = -1;
 	}
 
+	t->modified = 1;
 	tb_scroll_to_cursor(t);
 }
 
@@ -331,15 +339,28 @@ static void tb_backspace(textbuf *t)
 		tb_sel_to_cursor(t);
 	}
 
+	t->modified = 1;
 	tb_scroll_to_cursor(t);
 }
 
 static void tb_char(textbuf *t, u32 c)
 {
-	u8 ins[1];
+	vector *line;
+
 	tb_sel_clear(t);
-	ins[0] = c;
-	vector_insert(tb_cur_line(t), t->sel.c[1].x, 1, ins);
+	line = tb_cur_line(t);
+	if(t->insert && t->sel.c[1].x < vector_len(line))
+	{
+		char *buf = vector_data(line);
+		buf[t->sel.c[1].x] = c;
+	}
+	else
+	{
+		u8 ins[1];
+		ins[0] = c;
+		vector_insert(line, t->sel.c[1].x, 1, ins);
+	}
+
 	++t->sel.c[1].x;
 	t->cursor_save_x = -1;
 	tb_sel_to_cursor(t);

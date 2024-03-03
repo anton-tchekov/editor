@@ -139,6 +139,8 @@ static keyword asm_keywords[] =
 	{ COLOR_TABLE_TYPE, "BRA" },
 	{ COLOR_TABLE_TYPE, "BHI" },
 	{ COLOR_TABLE_TYPE, "BLS" },
+	{ COLOR_TABLE_TYPE, "BLO" },
+	{ COLOR_TABLE_TYPE, "BHS" },
 	{ COLOR_TABLE_TYPE, "BCC" },
 	{ COLOR_TABLE_TYPE, "BCS" },
 	{ COLOR_TABLE_TYPE, "BNE" },

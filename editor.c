@@ -253,6 +253,7 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | KEY_DELETE:             tb_del_next_word(tb);   break;
 	case MOD_SHIFT | KEY_DELETE:            tb_del_cur_line(tb);    break;
 	case KEY_DELETE:                        tb_delete(tb);          break;
+	case KEY_INSERT:                        tb_toggle_insert(tb);   break;
 	case MOD_CTRL | KEY_L:                  tb_sel_cur_line(tb);    break;
 	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr();    break;
 	case MOD_CTRL | KEY_K:                  tb_toggle_lang(tb);     break;
@@ -262,7 +263,7 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | KEY_X:                  tb_cut(tb);             break;
 	case MOD_CTRL | KEY_V:                  tb_paste(tb);           break;
 	case MOD_CTRL | KEY_S:                  ed_save();              break;
-	case MOD_CTRL | MOD_SHIFT | KEY_S:      mode_save_as();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_S:      mode_save_as();         break;
 	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();          break;
 	case MOD_CTRL | KEY_T:
 	case MOD_CTRL | KEY_N:                  ed_new();               break;
