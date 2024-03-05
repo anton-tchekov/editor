@@ -130,12 +130,7 @@ static void path_dir(char *s)
 		}
 	}
 
-	if(slash == s)
-	{
-		slash[0] = '.';
-	}
-
-	slash[1] = '\0';
+	strcpy(slash, "/");
 }
 
 static char *path_file(char *s)
@@ -151,6 +146,43 @@ static char *path_file(char *s)
 	}
 
 	return slash;
+}
+
+static void path_updir(char *s)
+{
+	u32 c;
+	char *p, *slash;
+	for(p = s, slash = s; (c = *p); ++p)
+	{
+		if(c == '/')
+		{
+			slash = p;
+		}
+	}
+
+	if(slash != s)
+	{
+		for(p = slash - 1; p > s; --p)
+		{
+			if(*p == '/')
+			{
+				break;
+			}
+		}
+	}
+
+	strcpy(p, "/");
+}
+
+static u32 last_char_is(const char *s, u32 c)
+{
+	u32 len = strlen(s);
+	if(len == 0)
+	{
+		return 0;
+	}
+
+	return (u32)s[len - 1] == c;
 }
 
 static u32 starts_with(const char *str, const char *prefix)

@@ -1148,3 +1148,55 @@ static void tb_triple_click(textbuf *t, u32 x, u32 y)
 	tb_sel_cur_line(t);
 	(void)x;
 }
+
+static u32 tb_matches(textbuf *t, u32 x, u32 y, const char *q)
+{
+	u32 qc, tc;
+	vector *line = tb_get_line(t, y);
+	for(; (qc = *q); ++q)
+	{
+		if(x >= vector_len(line))
+		{
+			tc = '\n';
+			if(y >= tb_num_lines(t))
+			{
+				/* Restart search from the beginning of file */
+				return 0;
+			}
+
+			x = 0;
+			++y;
+			line = tb_get_line(t, y);
+		}
+		else
+		{
+			tc = ((const char *)vector_data(line))[x];
+		}
+
+		if(qc != tc)
+		{
+			/* No match */
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static void tb_find_next(textbuf *t, const char *q)
+{
+	u32 x, y;
+	cursor *last;
+
+	last = sel_last(&t->sel);
+	x = last->x;
+	y = last->y;
+
+	for(;;)
+	{
+		if(tb_matches(t, x, y, q))
+		{
+			return;
+		}
+	}
+}

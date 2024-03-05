@@ -61,3 +61,8 @@ static void sel_norm(selection *sel)
 		cursor_swap(&sel->c[0], &sel->c[1]);
 	}
 }
+
+static cursor *sel_last(selection *sel)
+{
+	return cursor_unordered(&sel->c[0], &sel->c[1]) ? &sel->c[1] : &sel->c[0];
+}

@@ -10,6 +10,7 @@ enum
 	ED_MODE_SAVE_AS,
 	ED_MODE_OPENED,
 	ED_MODE_CONFIRM,
+	ED_MODE_SEARCH,
 	ED_MODE_COUNT
 };
 
@@ -39,6 +40,10 @@ static u32 offset_x, page_w;
 
 static u8 msg_show;
 static u8 mode;
+
+static u8 search_dir;
+static u8 replace;
+
 static u32 tabsize;
 static u8 show_linenr;
 static u8 show_whitespace;
@@ -155,6 +160,7 @@ static void ed_cleanup(void)
 #include "goto.c"
 #include "open.c"
 #include "save_as.c"
+#include "search.c"
 
 static void ed_save(void)
 {
@@ -278,6 +284,10 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | MOD_SHIFT | KEY_A:      tb_ins_comment(tb);     break;
 	case MOD_CTRL | KEY_A:                  tb_sel_all(tb);         break;
 	case MOD_CTRL | KEY_TAB:                bf_cycle();             break;
+	case MOD_CTRL | KEY_F:                  mode_search();          break;
+	case MOD_CTRL | MOD_SHIFT | KEY_F:      mode_search_in_dir();   break;
+	case MOD_CTRL | KEY_H:                  mode_replace();         break;
+	case MOD_CTRL | MOD_SHIFT | KEY_H:      mode_replace_in_dir();  break;
 	default:
 		if(isprint(cp) || cp == '\t')
 		{
