@@ -21,6 +21,7 @@ static u32 escape_seq(char *out, const char *s)
 		*out++ = c;
 	}
 
+	*out = '\0';
 	return 0;
 }
 

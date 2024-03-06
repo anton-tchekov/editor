@@ -367,11 +367,26 @@ static void tb_home(textbuf *t)
 	tb_sel_to_cursor(t);
 }
 
-/* TODO: BUGS */
+typedef struct
+{
+	u32 a, b;
+} range;
+
+static range indent_sel(selection *s)
+{
+	range ret;
+	selection nsel;
+
+	nsel = *s;
+	sel_norm(&nsel);
+	ret.a = nsel.c[0].y;
+	ret.b = (nsel.c[1].x > 0) ? nsel.c[1].y : (nsel.c[1].y - 1);
+	return ret;
+}
+
 static void tb_fix_sel_unindent(textbuf *t, cursor *c)
 {
-	u32 start = tb_line_start(t, c->y);
-	if(c->x >= start)
+	if(c->x >= tb_line_start(t, c->y) && c->x > 0)
 	{
 		--c->x;
 	}
@@ -380,10 +395,16 @@ static void tb_fix_sel_unindent(textbuf *t, cursor *c)
 static void tb_sel_unindent(textbuf *t)
 {
 	u32 y1, y2;
-	selection nsel = t->sel;
-	sel_norm(&nsel);
-	y1 = nsel.c[0].y;
-	y2 = nsel.c[1].y;
+	range ri;
+
+	if(t->sel.c[0].y == t->sel.c[1].y)
+	{
+		return;
+	}
+
+	ri = indent_sel(&t->sel);
+	y1 = ri.a;
+	y2 = ri.b;
 	for(; y1 <= y2; ++y1)
 	{
 		vector *line = tb_get_line(t, y1);
@@ -395,12 +416,14 @@ static void tb_sel_unindent(textbuf *t)
 
 	tb_fix_sel_unindent(t, &t->sel.c[0]);
 	tb_fix_sel_unindent(t, &t->sel.c[1]);
+	t->cursor_save_x = -1;
+	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_fix_sel_indent(textbuf *t, cursor *c)
 {
-	u32 start = tb_line_start(t, c->y);
-	if(c->x > start)
+	if(c->x > tb_line_start(t, c->y))
 	{
 		++c->x;
 	}
@@ -411,11 +434,12 @@ static void tb_char(textbuf *t, u32 c)
 	if(c == '\t' && t->sel.c[0].y != t->sel.c[1].y)
 	{
 		/* Indent selection */
+		range ri;
 		u32 y1, y2;
-		selection nsel = t->sel;
-		sel_norm(&nsel);
-		y1 = nsel.c[0].y;
-		y2 = nsel.c[1].y;
+
+		ri = indent_sel(&t->sel);
+		y1 = ri.a;
+		y2 = ri.b;
 		for(; y1 <= y2; ++y1)
 		{
 			vector *line = tb_get_line(t, y1);

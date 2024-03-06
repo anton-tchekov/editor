@@ -212,7 +212,7 @@ static keyword asm_keywords[] =
 	{ COLOR_TABLE_TYPE, "LDAA" },
 	{ COLOR_TABLE_TYPE, "EORA" },
 	{ COLOR_TABLE_TYPE, "ADCA" },
-	{ COLOR_TABLE_TYPE, "ORA" },
+	{ COLOR_TABLE_TYPE, "ORAA" },
 	{ COLOR_TABLE_TYPE, "ADDA" },
 	{ COLOR_TABLE_TYPE, "CPXA" },
 	{ COLOR_TABLE_TYPE, "STAA" },
@@ -225,7 +225,7 @@ static keyword asm_keywords[] =
 	{ COLOR_TABLE_TYPE, "LDAB" },
 	{ COLOR_TABLE_TYPE, "EORB" },
 	{ COLOR_TABLE_TYPE, "ADCB" },
-	{ COLOR_TABLE_TYPE, "ORB" },
+	{ COLOR_TABLE_TYPE, "ORAB" },
 	{ COLOR_TABLE_TYPE, "ADDB" },
 	{ COLOR_TABLE_TYPE, "STAB" },
 

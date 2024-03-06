@@ -43,6 +43,9 @@ static u8 mode;
 
 static u8 search_dir;
 static u8 replace;
+static u8 match_case;
+static u8 whole_words;
+static u8 use_escseq;
 
 static u32 tabsize;
 static u8 show_linenr;

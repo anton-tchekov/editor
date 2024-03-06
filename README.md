@@ -9,6 +9,7 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
+- Comment bug
 - Nav Bar Select file and open
 - Search and replace in file / whole folder
 - Undo / Redo
