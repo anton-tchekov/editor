@@ -288,6 +288,7 @@ static void default_key_press(u32 key, u32 cp)
 	case MOD_CTRL | MOD_SHIFT | KEY_F:      mode_search_in_dir();   break;
 	case MOD_CTRL | KEY_H:                  mode_replace();         break;
 	case MOD_CTRL | MOD_SHIFT | KEY_H:      mode_replace_in_dir();  break;
+	case MOD_SHIFT | KEY_TAB:               tb_sel_unindent(tb);    break;
 	default:
 		if(isprint(cp) || cp == '\t')
 		{

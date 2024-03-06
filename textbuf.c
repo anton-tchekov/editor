@@ -343,38 +343,19 @@ static void tb_backspace(textbuf *t)
 	tb_scroll_to_cursor(t);
 }
 
-static void tb_char(textbuf *t, u32 c)
+static u32 tb_line_start(textbuf *t, u32 y)
 {
-	vector *line;
-
-	tb_sel_clear(t);
-	line = tb_cur_line(t);
-	if(t->insert && t->sel.c[1].x < vector_len(line))
-	{
-		char *buf = vector_data(line);
-		buf[t->sel.c[1].x] = c;
-	}
-	else
-	{
-		u8 ins[1];
-		ins[0] = c;
-		vector_insert(line, t->sel.c[1].x, 1, ins);
-	}
-
-	++t->sel.c[1].x;
-	t->cursor_save_x = -1;
-	tb_sel_to_cursor(t);
-	t->modified = 1;
-	tb_scroll_to_cursor(t);
-}
-
-static void tb_sel_home(textbuf *t)
-{
-	vector *line = tb_cur_line(t);
+	vector *line = tb_get_line(t, y);
 	char *buf = vector_data(line);
 	u32 len = vector_len(line);
 	u32 i = 0;
 	while(i < len && isspace(buf[i])) { ++i; }
+	return i;
+}
+
+static void tb_sel_home(textbuf *t)
+{
+	u32 i = tb_line_start(t, t->sel.c[1].y);
 	t->sel.c[1].x = (t->sel.c[1].x == i) ? 0 : i;
 	t->cursor_save_x = -1;
 	tb_scroll_to_cursor(t);
@@ -384,6 +365,93 @@ static void tb_home(textbuf *t)
 {
 	tb_sel_home(t);
 	tb_sel_to_cursor(t);
+}
+
+/* TODO: BUGS */
+static void tb_fix_sel_unindent(textbuf *t, cursor *c)
+{
+	u32 start = tb_line_start(t, c->y);
+	if(c->x >= start)
+	{
+		--c->x;
+	}
+}
+
+static void tb_sel_unindent(textbuf *t)
+{
+	u32 y1, y2;
+	selection nsel = t->sel;
+	sel_norm(&nsel);
+	y1 = nsel.c[0].y;
+	y2 = nsel.c[1].y;
+	for(; y1 <= y2; ++y1)
+	{
+		vector *line = tb_get_line(t, y1);
+		if(vector_len(line) > 0 && ((char *)vector_data(line))[0] == '\t')
+		{
+			vector_remove(line, 0, 1);
+		}
+	}
+
+	tb_fix_sel_unindent(t, &t->sel.c[0]);
+	tb_fix_sel_unindent(t, &t->sel.c[1]);
+}
+
+static void tb_fix_sel_indent(textbuf *t, cursor *c)
+{
+	u32 start = tb_line_start(t, c->y);
+	if(c->x > start)
+	{
+		++c->x;
+	}
+}
+
+static void tb_char(textbuf *t, u32 c)
+{
+	if(c == '\t' && t->sel.c[0].y != t->sel.c[1].y)
+	{
+		/* Indent selection */
+		u32 y1, y2;
+		selection nsel = t->sel;
+		sel_norm(&nsel);
+		y1 = nsel.c[0].y;
+		y2 = nsel.c[1].y;
+		for(; y1 <= y2; ++y1)
+		{
+			vector *line = tb_get_line(t, y1);
+			if(vector_len(line) > 0)
+			{
+				vector_insert(line, 0, 1, "\t");
+			}
+		}
+
+		tb_fix_sel_indent(t, &t->sel.c[0]);
+		tb_fix_sel_indent(t, &t->sel.c[1]);
+	}
+	else
+	{
+		vector *line;
+		tb_sel_clear(t);
+		line = tb_cur_line(t);
+		if(t->insert && t->sel.c[1].x < vector_len(line))
+		{
+			char *buf = vector_data(line);
+			buf[t->sel.c[1].x] = c;
+		}
+		else
+		{
+			u8 ins[1];
+			ins[0] = c;
+			vector_insert(line, t->sel.c[1].x, 1, ins);
+		}
+
+		++t->sel.c[1].x;
+		tb_sel_to_cursor(t);
+	}
+
+	t->cursor_save_x = -1;
+	t->modified = 1;
+	tb_scroll_to_cursor(t);
 }
 
 static void tb_enter_before(textbuf *t)

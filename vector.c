@@ -101,8 +101,7 @@ static u32 vector_len(vector *v)
 	return v->len;
 }
 
-static void vector_insert(
-	vector *v, u32 offset, u32 bytes, const void *elems)
+static void vector_insert(vector *v, u32 offset, u32 bytes, const void *elems)
 {
 	assert(offset <= v->len);
 	vector_replace(v, offset, 0, elems, bytes);
