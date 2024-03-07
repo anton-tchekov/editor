@@ -28,3 +28,9 @@ static void open_key_press(u32 key, u32 c)
 	case KEY_ESCAPE:             mode_default();  break;
 	}
 }
+
+static u32 open_render(void)
+{
+	ed_render_nav(&fld_nav, "Open: ");
+	return ed_render_dir();
+}

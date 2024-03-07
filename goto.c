@@ -1,5 +1,5 @@
 /* Go to line or symbol definition */
-static char _goto_buf[16];
+static char _goto_buf[64];
 static field _goto_fld = { _goto_buf, sizeof(_goto_buf), 0, 0 };
 
 static void mode_goto(void)

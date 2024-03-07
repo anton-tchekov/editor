@@ -46,9 +46,6 @@ static u8 show_whitespace;
 
 #include "textbuf.c"
 
-static char confirm_buf[256];
-static void (*confirm_result)(u32);
-
 static char nav_path[PATH_MAX];
 static char nav_buf[256];
 static field fld_nav = { nav_buf, sizeof(nav_buf), 0, 0 };
@@ -69,6 +66,7 @@ static void mode_default(void)
 #include "buffers.c"
 #include "render.c"
 #include "goto.c"
+#include "confirm.c"
 #include "msg.c"
 
 static void ed_render(void)
@@ -78,8 +76,7 @@ static void ed_render(void)
 	switch(mode)
 	{
 	case ED_MODE_OPEN:
-		ed_render_nav(&fld_nav, "Open: ");
-		start_y = ed_render_dir();
+		start_y = open_render();
 		break;
 
 	case ED_MODE_GOTO:
@@ -87,17 +84,15 @@ static void ed_render(void)
 		break;
 
 	case ED_MODE_SAVE_AS:
-		ed_render_nav(&fld_nav, "Save As: ");
-		start_y = ed_render_dir();
+		start_y = save_as_render();
 		break;
 
 	case ED_MODE_OPENED:
-		start_y = ed_render_opened();
+		start_y = opened_render();
 		break;
 
 	case ED_MODE_CONFIRM:
-		ed_render_confirm();
-		start_y = 1;
+		start_y = confirm_render();
 		break;
 	}
 
@@ -182,7 +177,6 @@ static void ed_cleanup(void)
 	_free(dir_list);
 }
 
-#include "confirm.c"
 #include "nav.c"
 #include "open.c"
 #include "save_as.c"

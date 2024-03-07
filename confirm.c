@@ -1,11 +1,14 @@
-static void mode_confirm(void (*callback)(u32), const char *msg, ...)
+static char _confirm_buf[256];
+static void (*_confirm_callback)(u32);
+
+static void confirm(void (*callback)(u32), const char *msg, ...)
 {
 	va_list args;
 	mode = ED_MODE_CONFIRM;
 	va_start(args, msg);
-	vsnprintf(confirm_buf, sizeof(confirm_buf), msg, args);
+	vsnprintf(_confirm_buf, sizeof(_confirm_buf), msg, args);
 	va_end(args);
-	confirm_result = callback;
+	_confirm_callback = callback;
 }
 
 static void confirm_key_press(u32 key)
@@ -14,12 +17,19 @@ static void confirm_key_press(u32 key)
 	{
 	case KEY_Z:
 	case KEY_Y:
-		confirm_result(1);
+		_confirm_callback(1);
 		break;
 
 	case KEY_ESCAPE:
 	case KEY_N:
-		confirm_result(0);
+		_confirm_callback(0);
 		break;
 	}
+}
+
+static u32 confirm_render(void)
+{
+	ed_render_line_str(_confirm_buf, 0, 0,
+		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
+	return 1;
 }

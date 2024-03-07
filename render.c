@@ -492,30 +492,6 @@ static u32 ed_render_dir(void)
 	return y;
 }
 
-static u32 ed_render_opened(void)
-{
-	char buf[64];
-	u32 i, y, end;
-	end = umin(dropdown_nav.offset + DROPDOWN_PAGE, dropdown_nav.count);
-
-	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
-		dropdown_nav.count, (dropdown_nav.count == 1 ? "" : "s"),
-		bf_num_unsaved());
-
-	ed_render_line_str(buf, 0, 0,
-		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
-
-	for(y = 1, i = dropdown_nav.offset; i < end; ++i, ++y)
-	{
-		textbuf *t = bf_get(i);
-		u32 color = dropdown_color(&dropdown_nav, i);
-		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
-		ed_render_line_str(t->filename, 1, y, color);
-	}
-
-	return y;
-}
-
 static void ed_render_nav(field *f, const char *prompt)
 {
 	const char *s;
@@ -534,12 +510,6 @@ static void ed_render_nav(field *f, const char *prompt)
 			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
 			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG)));
 	}
-}
-
-static void ed_render_confirm(void)
-{
-	ed_render_line_str(confirm_buf, 0, 0,
-		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
 }
 
 static u32 ed_prev_comment(void)

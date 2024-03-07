@@ -44,7 +44,7 @@ static void save_as_return(void)
 	field_add_nt(&fld_nav);
 	if(file_exists(fld_nav.buf))
 	{
-		mode_confirm(save_as_confirm,
+		confirm(save_as_confirm,
 			"Overwrite existing file %s? [Y/N]", fld_nav.buf);
 		return;
 	}
@@ -63,4 +63,10 @@ static void save_as_key_press(u32 key, u32 c)
 	case KEY_TAB:                load_save_tab();  break;
 	case KEY_ESCAPE:             mode_default();   break;
 	}
+}
+
+static u32 save_as_render(void)
+{
+	ed_render_nav(&fld_nav, "Save As: ");
+	return ed_render_dir();
 }

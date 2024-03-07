@@ -96,3 +96,30 @@ static void opened_key_press(u32 key)
 	case MOD_CTRL | KEY_W: opened_discard(&dropdown_nav);   break;
 	}
 }
+
+static void opened_render_title(void)
+{
+	char buf[64];
+	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
+		dropdown_nav.count, (dropdown_nav.count == 1 ? "" : "s"),
+		bf_num_unsaved());
+
+	ed_render_line_str(buf, 0, 0,
+		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
+}
+
+static u32 opened_render(void)
+{
+	u32 i, y, end;
+	opened_render_title();
+	end = umin(dropdown_nav.offset + DROPDOWN_PAGE, dropdown_nav.count);
+	for(y = 1, i = dropdown_nav.offset; i < end; ++i, ++y)
+	{
+		textbuf *t = bf_get(i);
+		u32 color = dropdown_color(&dropdown_nav, i);
+		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
+		ed_render_line_str(t->filename, 1, y, color);
+	}
+
+	return y;
+}
