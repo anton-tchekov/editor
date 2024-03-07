@@ -49,9 +49,6 @@ static u8 show_whitespace;
 static char confirm_buf[256];
 static void (*confirm_result)(u32);
 
-static char goto_buf[16];
-static field fld_goto = { goto_buf, sizeof(goto_buf), 0, 0 };
-
 static char nav_path[PATH_MAX];
 static char nav_buf[256];
 static field fld_nav = { nav_buf, sizeof(nav_buf), 0, 0 };
@@ -64,8 +61,14 @@ static u32 cur_buf;
 static u32 untitled_cnt = 1;
 static textbuf *tb;
 
+static void mode_default(void)
+{
+	mode = ED_MODE_DEFAULT;
+}
+
 #include "buffers.c"
 #include "render.c"
+#include "goto.c"
 #include "msg.c"
 
 static void ed_render(void)
@@ -80,8 +83,7 @@ static void ed_render(void)
 		break;
 
 	case ED_MODE_GOTO:
-		ed_render_nav(&fld_goto, "Location: ");
-		start_y = 1;
+		start_y = goto_render();
 		break;
 
 	case ED_MODE_SAVE_AS:
@@ -108,11 +110,6 @@ static void ed_render(void)
 	{
 		ed_render_blank(start_y, end_y);
 	}
-}
-
-static void mode_default(void)
-{
-	mode = ED_MODE_DEFAULT;
 }
 
 static void ed_load(const char *filename)
@@ -187,7 +184,6 @@ static void ed_cleanup(void)
 
 #include "confirm.c"
 #include "nav.c"
-#include "goto.c"
 #include "open.c"
 #include "save_as.c"
 #include "search.c"
