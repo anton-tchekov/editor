@@ -65,47 +65,8 @@ static void mode_default(void)
 
 #include "buffers.c"
 #include "render.c"
-#include "goto.c"
 #include "confirm.c"
 #include "msg.c"
-
-static void ed_render(void)
-{
-	u32 start_y, end_y;
-	start_y = 0;
-	switch(mode)
-	{
-	case ED_MODE_OPEN:
-		start_y = open_render();
-		break;
-
-	case ED_MODE_GOTO:
-		start_y = goto_render();
-		break;
-
-	case ED_MODE_SAVE_AS:
-		start_y = save_as_render();
-		break;
-
-	case ED_MODE_OPENED:
-		start_y = opened_render();
-		break;
-
-	case ED_MODE_CONFIRM:
-		start_y = confirm_render();
-		break;
-	}
-
-	end_y = msg_render();
-	if(tb)
-	{
-		ed_render_buffer(start_y, end_y);
-	}
-	else
-	{
-		ed_render_blank(start_y, end_y);
-	}
-}
 
 static void ed_load(const char *filename)
 {
@@ -177,10 +138,11 @@ static void ed_cleanup(void)
 	_free(dir_list);
 }
 
+#include "goto.c"
 #include "nav.c"
+#include "search.c"
 #include "open.c"
 #include "save_as.c"
-#include "search.c"
 
 static void ed_save(void)
 {
@@ -212,6 +174,44 @@ static void ed_save(void)
 }
 
 #include "opened.c"
+
+static void ed_render(void)
+{
+	u32 start_y, end_y;
+	start_y = 0;
+	switch(mode)
+	{
+	case ED_MODE_OPEN:
+		start_y = open_render();
+		break;
+
+	case ED_MODE_GOTO:
+		start_y = goto_render();
+		break;
+
+	case ED_MODE_SAVE_AS:
+		start_y = save_as_render();
+		break;
+
+	case ED_MODE_OPENED:
+		start_y = opened_render();
+		break;
+
+	case ED_MODE_CONFIRM:
+		start_y = confirm_render();
+		break;
+	}
+
+	end_y = msg_render();
+	if(tb)
+	{
+		ed_render_buffer(start_y, end_y);
+	}
+	else
+	{
+		ed_render_blank(start_y, end_y);
+	}
+}
 
 static void ed_quit(void)
 {
