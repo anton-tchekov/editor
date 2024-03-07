@@ -1,16 +1,21 @@
+static vector _buffers;
+static u32 _cur_buf;
+static u32 _untitled_cnt = 1;
+static textbuf *_tb;
+
 static void bf_init(void)
 {
-	vector_init(&buffers, 8 * sizeof(textbuf *));
+	vector_init(&_buffers, 8 * sizeof(textbuf *));
 }
 
 static u32 bf_count(void)
 {
-	return vector_len(&buffers) / sizeof(textbuf *);
+	return vector_len(&_buffers) / sizeof(textbuf *);
 }
 
 static textbuf *bf_get(u32 i)
 {
-	return *(textbuf **)vector_get(&buffers, i * sizeof(textbuf *));
+	return *(textbuf **)vector_get(&_buffers, i * sizeof(textbuf *));
 }
 
 static void bf_destroy(void)
@@ -21,7 +26,7 @@ static void bf_destroy(void)
 		tb_destroy(bf_get(i));
 	}
 
-	vector_destroy(&buffers);
+	vector_destroy(&_buffers);
 }
 
 static u32 bf_has_modified(void)
@@ -55,9 +60,9 @@ static u32 bf_num_unsaved(void)
 
 static void bf_switch_id(u32 i)
 {
-	if(!tb) { return; }
-	cur_buf = i;
-	tb = bf_get(i);
+	if(!_tb) { return; }
+	_cur_buf = i;
+	_tb = bf_get(i);
 }
 
 static u32 bf_switch_name(char *name)
@@ -68,8 +73,8 @@ static u32 bf_switch_name(char *name)
 		textbuf *cur = bf_get(i);
 		if(!strcmp(cur->filename, name))
 		{
-			cur_buf = i;
-			tb = cur;
+			_cur_buf = i;
+			_tb = cur;
 			return 1;
 		}
 	}
@@ -85,45 +90,45 @@ static void bf_cycle(void)
 		return;
 	}
 
-	++cur_buf;
-	if(cur_buf >= cnt)
+	++_cur_buf;
+	if(_cur_buf >= cnt)
 	{
-		cur_buf = 0;
+		_cur_buf = 0;
 	}
 
-	tb = bf_get(cur_buf);
+	_tb = bf_get(_cur_buf);
 }
 
 static void bf_insert_cur(textbuf *t)
 {
-	vector_push(&buffers, sizeof(textbuf *), &t);
-	cur_buf = bf_count() - 1;
-	tb = t;
+	vector_push(&_buffers, sizeof(textbuf *), &t);
+	_cur_buf = bf_count() - 1;
+	_tb = t;
 }
 
 static void bf_discard(u32 i)
 {
 	tb_destroy(bf_get(i));
-	vector_remove(&buffers, i * sizeof(textbuf *), sizeof(textbuf *));
+	vector_remove(&_buffers, i * sizeof(textbuf *), sizeof(textbuf *));
 }
 
 static void bf_discard_cur(void)
 {
 	u32 cnt;
-	bf_discard(cur_buf);
+	bf_discard(_cur_buf);
 	cnt = bf_count();
 	if(!cnt)
 	{
-		tb = NULL;
+		_tb = NULL;
 	}
 	else
 	{
-		if(cur_buf >= cnt)
+		if(_cur_buf >= cnt)
 		{
-			cur_buf = 0;
+			_cur_buf = 0;
 		}
 
-		tb = bf_get(cur_buf);
+		_tb = bf_get(_cur_buf);
 	}
 }
 

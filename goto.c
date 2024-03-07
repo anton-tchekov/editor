@@ -1,31 +1,28 @@
 /* Go to line or symbol definition */
-static char _goto_buf[64];
-static field _goto_fld = { _goto_buf, sizeof(_goto_buf), 0, 0 };
-
 static void mode_goto(void)
 {
 	_mode = ED_MODE_GOTO;
-	field_reset(&_goto_fld);
+	field_reset(&_fld);
 }
 
 static void goto_return(void)
 {
 	u32 lnr;
 	mode_default();
-	field_add_nt(&_goto_fld);
-	lnr = conv_lnr_str(_goto_fld.buf);
+	field_add_nt(&_fld);
+	lnr = conv_lnr_str(_fld.buf);
 	if(lnr)
 	{
-		tb_gotoxy(tb, 0, lnr - 1);
+		tb_gotoxy(_tb, 0, lnr - 1);
 		return;
 	}
 
-	tb_goto_def(tb, _goto_fld.buf);
+	tb_goto_def(_tb, _fld.buf);
 }
 
 static void goto_key_press(u32 key, u32 c)
 {
-	field_key(&_goto_fld, key, c);
+	field_key(&_fld, key, c);
 	key &= 0xFF;
 	if(key == KEY_RETURN)
 	{
@@ -39,6 +36,6 @@ static void goto_key_press(u32 key, u32 c)
 
 static u32 goto_render(void)
 {
-	ed_render_nav(&_goto_fld, 0, "Location: ");
+	field_render(&_fld, 0, 1, "Location: ");
 	return 1;
 }

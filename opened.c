@@ -1,10 +1,10 @@
 static void mode_opened(void)
 {
 	_mode = ED_MODE_OPENED;
-	dropdown_nav.count = bf_count();
-	dropdown_nav.pos = cur_buf;
-	dropdown_nav.offset = 0;
-	dropdown_down_fix_offset(&dropdown_nav);
+	_dd.count = bf_count();
+	_dd.pos = _cur_buf;
+	_dd.offset = 0;
+	dropdown_down_fix_offset(&_dd);
 }
 
 static void opened_up(dropdown *d)
@@ -54,7 +54,7 @@ static void opened_discard(dropdown *d)
 	--d->count;
 	if(!d->count)
 	{
-		tb = NULL;
+		_tb = NULL;
 		return;
 	}
 
@@ -78,14 +78,14 @@ static void opened_key_press(u32 key)
 	case KEY_ESCAPE:
 	case KEY_RETURN:       mode_default();                  break;
 	case MOD_CTRL | KEY_S: ed_save();                       break;
-	case MOD_CTRL | KEY_W: opened_discard(&dropdown_nav);   break;
+	case MOD_CTRL | KEY_W: opened_discard(&_dd);   break;
 	case MOD_CTRL | KEY_O: mode_open();                     break;
-	case KEY_UP:           opened_up(&dropdown_nav);        break;
-	case KEY_DOWN:         opened_down(&dropdown_nav);      break;
-	case KEY_PAGE_UP:      opened_page_up(&dropdown_nav);   break;
-	case KEY_PAGE_DOWN:    opened_page_down(&dropdown_nav); break;
-	case KEY_HOME:         opened_first(&dropdown_nav);     break;
-	case KEY_END:          opened_last(&dropdown_nav);      break;
+	case KEY_UP:           opened_up(&_dd);        break;
+	case KEY_DOWN:         opened_down(&_dd);      break;
+	case KEY_PAGE_UP:      opened_page_up(&_dd);   break;
+	case KEY_PAGE_DOWN:    opened_page_down(&_dd); break;
+	case KEY_HOME:         opened_first(&_dd);     break;
+	case KEY_END:          opened_last(&_dd);      break;
 	}
 }
 
@@ -93,8 +93,8 @@ static void opened_render_title(void)
 {
 	char buf[64];
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
-		dropdown_nav.count,
-		(dropdown_nav.count == 1 ? "" : "s"),
+		_dd.count,
+		(_dd.count == 1 ? "" : "s"),
 		bf_num_unsaved());
 
 	ed_render_line_str(buf, 0, 0, ptp(PT_FG, PT_INFO));
@@ -104,11 +104,11 @@ static u32 opened_render(void)
 {
 	u32 i, y, end;
 	opened_render_title();
-	end = umin(dropdown_nav.offset + DROPDOWN_PAGE, dropdown_nav.count);
-	for(y = 1, i = dropdown_nav.offset; i < end; ++i, ++y)
+	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
+	for(y = 1, i = _dd.offset; i < end; ++i, ++y)
 	{
 		textbuf *t = bf_get(i);
-		u32 color = dropdown_color(&dropdown_nav, i);
+		u32 color = dropdown_color(&_dd, i);
 		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
 		ed_render_line_str(t->filename, 1, y, color);
 	}

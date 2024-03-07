@@ -81,7 +81,7 @@ static u32 _color_table[] =
 	0xFFFF0000, /* Error */
 };
 
-static u32 quit;
+static u32 _quit;
 
 static u32 *_pixels;
 static u32 _gfx_width, _gfx_height;
@@ -109,13 +109,13 @@ static void allocfail(void)
 	exit(1);
 }
 
-static u32 alloc_cnt, free_cnt;
+static u32 _alloc_cnt, _free_cnt;
 
 static void *_malloc(size_t size)
 {
 	void *p = malloc(size);
 	if(!p) { allocfail(); }
-	++alloc_cnt;
+	++_alloc_cnt;
 	return p;
 }
 
@@ -123,7 +123,7 @@ static void *_calloc(size_t num, size_t size)
 {
 	void *p = calloc(num, size);
 	if(!p) { allocfail(); }
-	++alloc_cnt;
+	++_alloc_cnt;
 	return p;
 }
 
@@ -131,7 +131,7 @@ static void *_realloc(void *p, size_t size)
 {
 	if(!p)
 	{
-		++alloc_cnt;
+		++_alloc_cnt;
 	}
 
 	p = realloc(p, size);
@@ -144,7 +144,7 @@ static void _free(void *p)
 	if(p)
 	{
 		free(p);
-		++free_cnt;
+		++_free_cnt;
 	}
 }
 
@@ -152,7 +152,7 @@ static void _free(void *p)
 
 static void print_mem(void)
 {
-	printf("%"PRIu32" allocs, %"PRIu32" frees\n", alloc_cnt, free_cnt);
+	printf("%"PRIu32" allocs, %"PRIu32" frees\n", _alloc_cnt, _free_cnt);
 }
 
 #endif
@@ -219,7 +219,7 @@ static void init(void)
 	resize_internal(GFX_INITIAL_WIDTH, GFX_INITIAL_HEIGHT);
 }
 
-static void destroy(void)
+static void cleanup(void)
 {
 	_free(_screen);
 	_free(_pixels);
@@ -564,25 +564,6 @@ static u32 file_exists(char *fname)
 	return access(fname, F_OK) == 0;
 }
 
-static u32 dir_iter(char *path, void (*iter)(char *, u32))
-{
-	DIR *dir;
-	struct dirent *dp;
-
-	if(!(dir = opendir(path)))
-	{
-		return 1;
-	}
-
-	while((dp = readdir(dir)))
-	{
-		iter(dp->d_name, dp->d_type == DT_DIR);
-	}
-
-	closedir(dir);
-	return 0;
-}
-
 static int dir_sort_callback(const void *a, const void *b)
 {
 	return strcmp(*(const char **)a, *(const char **)b);
@@ -641,7 +622,7 @@ static char **dir_sorted(const char *path, u32 *len)
 
 static void request_exit(void)
 {
-	quit = 1;
+	_quit = 1;
 }
 
 #ifndef NDEBUG
@@ -654,7 +635,7 @@ static int fuzzmain(void)
 	init();
 	event_init();
 	srand(time(NULL));
-	while(!quit)
+	while(!_quit)
 	{
 		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
 			_gfx_width * sizeof(u32));
@@ -681,7 +662,7 @@ static int fuzzmain(void)
 			break;
 
 		case SDL_QUIT:
-			quit = event_exit();
+			_quit = event_exit();
 			break;
 
 		case SDL_KEYDOWN:
@@ -701,7 +682,7 @@ static int fuzzmain(void)
 		}
 	}
 
-	destroy();
+	cleanup();
 	return 0;
 }
 
@@ -726,7 +707,7 @@ int main(void)
 
 	init();
 	event_init();
-	while(!quit)
+	while(!_quit)
 	{
 		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
 			_gfx_width * sizeof(u32));
@@ -750,7 +731,7 @@ int main(void)
 			break;
 
 		case SDL_QUIT:
-			quit = event_exit();
+			_quit = event_exit();
 			break;
 
 		case SDL_KEYDOWN:
@@ -833,7 +814,7 @@ int main(void)
 		}
 	}
 
-	destroy();
+	cleanup();
 	return 0;
 }
 

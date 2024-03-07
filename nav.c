@@ -1,64 +1,52 @@
 /* Common functions for "Load File" and "Save As" file browser */
 
-static u8 first_compare;
-static char *search_file, same[sizeof(nav_buf)];
+static char _path_buf[PATH_MAX];
+static char _fld_buf[256];
+static field _fld = { _fld_buf, sizeof(_fld_buf), 0, 0 };
 
-static void ed_dir_load(void)
+static dropdown _dd;
+static char **_dir_list;
+
+static void nav_init(void)
 {
-	char buf[sizeof(nav_buf)];
-	field_end(&fld_nav);
-	dropdown_reset(&dropdown_nav);
-	field_add_nt(&fld_nav);
-	strcpy(buf, fld_nav.buf);
-	path_dir(buf);
-	_free(dir_list);
-	dir_list = dir_sorted(buf, &dropdown_nav.count);
+	get_working_dir(_path_buf);
 }
 
-static void tab_cmpl_callback(char *fname, u32 is_dir)
+static void nav_cleanup(void)
 {
-	if(!strcmp(fname, ".") || !strcmp(fname, ".."))
-	{
-		return;
-	}
-
-	if(starts_with(fname, search_file))
-	{
-		if(first_compare)
-		{
-			first_compare = 0;
-			strcpy(same, fname);
-			if(is_dir)
-			{
-				strcat(same, "/");
-			}
-		}
-		else
-		{
-			char *q = fname;
-			char *p = same;
-			while(*p == *q) { ++p; ++q; }
-			*p = '\0';
-		}
-	}
+	_free(_dir_list);
 }
 
-static void load_save_tab(void)
+static void nav_dir_reload(void)
 {
-	char buf[sizeof(nav_buf)];
-	field_add_nt(&fld_nav);
-	strcpy(buf, fld_nav.buf);
-	path_dir(buf);
-	first_compare = 1;
-	search_file = path_file(fld_nav.buf);
-	if(dir_iter(buf, tab_cmpl_callback))
+	dropdown_reset(&_dd);
+	_free(_dir_list);
+	_dir_list = dir_sorted(_path_buf, &_dd.count);
+}
+
+static void nav_title_render(char *s)
+{
+	char buf[256];
+	snprintf(buf, sizeof(buf), "%s: %s [%d]",
+		s, _path_buf, _dd.count - 1);
+	ed_render_line_str(buf, 0, 0, ptp(PT_BG, PT_FG));
+}
+
+static u32 nav_dir_render(u32 y)
+{
+	u32 i, end;
+	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
+	for(i = _dd.offset; i < end; ++i, ++y)
 	{
-		return;
+		ed_render_line_str(_dir_list[i], 0, y, dropdown_color(&_dd, i));
 	}
 
-	if(!first_compare)
-	{
-		strcpy(search_file, same);
-		fld_nav.cursor = fld_nav.len = strlen(fld_nav.buf);
-	}
+	return y;
+}
+
+static u32 nav_render(char *ac, char *in)
+{
+	nav_title_render(ac);
+	field_render(&_fld, 1, 1, in);
+	return nav_dir_render(2);
 }

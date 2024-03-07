@@ -107,3 +107,8 @@ static void dropdown_key(dropdown *d, u32 key)
 	case MOD_CTRL | KEY_END:  dropdown_last(d);      break;
 	}
 }
+
+static u32 dropdown_color(dropdown *d, u32 i)
+{
+	return (i == d->pos) ? ptp(PT_COMMENT, PT_GRAY) : ptp(PT_FG, PT_GRAY);
+}

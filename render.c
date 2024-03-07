@@ -1,19 +1,19 @@
-static selection vsel;
-static cursor vcursor;
-static u8 in_comment;
+static selection _vsel;
+static cursor _vcursor;
+static u8 _in_comment;
 
 static void ed_render_linenr(u32 start_y, u32 end_y)
 {
 	u32 x, y, lnr_max, lnr_width;
-	u32 lines = tb_num_lines(tb);
-	u32 lnr = tb->page_y + start_y;
+	u32 lines = tb_num_lines(_tb);
+	u32 lnr = _tb->page_y + start_y;
 	lnr_max = lnr + _screen_height;
 	lnr_max = lnr_max < lines ? lnr_max : lines;
 	lnr_width = dec_digit_cnt(lnr_max);
 
 	for(y = start_y; y < end_y; ++y)
 	{
-		u32 color = (lnr == tb->sel.c[1].y) ?
+		u32 color = (lnr == _tb->sel.c[1].y) ?
 			ptp(PT_FG, PT_BG) : ptp(PT_GRAY, PT_BG);
 
 		++lnr;
@@ -43,17 +43,17 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 
 static u32 is_sel(u32 x, u32 y)
 {
-	if(y < vsel.c[0].y || y > vsel.c[1].y)
+	if(y < _vsel.c[0].y || y > _vsel.c[1].y)
 	{
 		return 0;
 	}
 
-	if(y == vsel.c[0].y && x < vsel.c[0].x)
+	if(y == _vsel.c[0].y && x < _vsel.c[0].x)
 	{
 		return 0;
 	}
 
-	if(y == vsel.c[1].y && x >= vsel.c[1].x)
+	if(y == _vsel.c[1].y && x >= _vsel.c[1].x)
 	{
 		return 0;
 	}
@@ -63,7 +63,7 @@ static u32 is_sel(u32 x, u32 y)
 
 static u32 is_cursor(u32 x, u32 y)
 {
-	return y == vcursor.y && x == vcursor.x;
+	return y == _vcursor.y && x == _vcursor.x;
 }
 
 static void ed_put(u32 x, u32 y, u32 c)
@@ -77,7 +77,7 @@ static void ed_put(u32 x, u32 y, u32 c)
 		c = screen_pack_set_bg(c, PT_SELECTION);
 	}
 
-	screen_set(x + _offset_x, y - tb->page_y, c);
+	screen_set(x + _offset_x, y - _tb->page_y, c);
 }
 
 static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
@@ -88,7 +88,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 		if(_show_whitespace)
 		{
 			color = ptp(PT_GRAY, PT_BG);
-			if(n == _tabsize - 1)
+			if(n == (u32)_tabsize - 1)
 			{
 				if(x >= _page_w) { return x; }
 				ed_put(x++, y, screen_pack(CHAR_TAB_BOTH, color));
@@ -97,7 +97,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 			{
 				if(x >= _page_w) { return x; }
 				ed_put(x++, y, screen_pack(CHAR_TAB_START, color));
-				for(++n; n < _tabsize - 1; ++n)
+				for(++n; n < (u32)_tabsize - 1; ++n)
 				{
 					if(x >= _page_w) { return x; }
 					ed_put(x++, y, screen_pack(CHAR_TAB_MIDDLE, color));
@@ -132,7 +132,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 
 static u32 ed_plain(u32 y)
 {
-	vector *lv = tb_get_line(tb, y);
+	vector *lv = tb_get_line(_tb, y);
 	char *line = vector_data(lv);
 	u32 len = vector_len(lv);
 	u32 i, x;
@@ -147,7 +147,7 @@ static u32 ed_plain(u32 y)
 
 static u32 ed_asm6800(u32 y)
 {
-	vector *lv = tb_get_line(tb, y);
+	vector *lv = tb_get_line(_tb, y);
 	u32 len = vector_len(lv);
 	char *line = vector_data(lv);
 	u32 i = 0;
@@ -201,8 +201,8 @@ static u32 ed_asm6800(u32 y)
 			u32 color, end, start;
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
 			end = i;
-			color = ptp(
-				keyword_detect(&asm_hashmap, line + start, end - start), PT_BG);
+			color = ptp(keyword_detect(&_asm_hashmap,
+				line + start, end - start), PT_BG);
 
 			for(i = start; i < end; ++i)
 			{
@@ -247,7 +247,7 @@ static u32 ed_asm6800(u32 y)
 
 static u32 ed_syntax(u32 y)
 {
-	vector *lv = tb_get_line(tb, y);
+	vector *lv = tb_get_line(_tb, y);
 	u32 len = vector_len(lv);
 	char *line = vector_data(lv);
 	u32 incflag = 0;
@@ -256,7 +256,7 @@ static u32 ed_syntax(u32 y)
 	while(i < len)
 	{
 		u32 c = line[i];
-		if(in_comment)
+		if(_in_comment)
 		{
 			x = ed_syntax_sub(c, PT_COMMENT, y, x);
 			if(x >= _page_w) { return x; }
@@ -264,7 +264,7 @@ static u32 ed_syntax(u32 y)
 			if((c == '*') && (i + 1 < len) && (line[i + 1] == '/'))
 			{
 				++i;
-				in_comment = 0;
+				_in_comment = 0;
 				ed_put(x++, y, screen_pack('/', ptp(PT_COMMENT, PT_BG)));
 				if(x >= _page_w) { return x; }
 			}
@@ -280,7 +280,7 @@ static u32 ed_syntax(u32 y)
 		}
 		else if((c == '/') && (i + 1 < len) && (line[i + 1] == '*'))
 		{
-			in_comment = 1;
+			_in_comment = 1;
 			ed_put(x++, y, screen_pack('/', ptp(PT_COMMENT, PT_BG)));
 			if(x >= _page_w) { return x; }
 			ed_put(x++, y, screen_pack('*', ptp(PT_COMMENT, PT_BG)));
@@ -348,7 +348,7 @@ static u32 ed_syntax(u32 y)
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
 			end = i;
 			color = ptp(
-				keyword_detect(&c_hashmap, line + start, end - start),
+				keyword_detect(&_c_hashmap, line + start, end - start),
 				PT_BG);
 
 			if(color == PT_FG)
@@ -416,10 +416,10 @@ static u32 ed_syntax(u32 y)
 static void ed_render_line(u32 y)
 {
 	u32 x = 0;
-	u32 line = tb->page_y + y;
-	if(line < tb_num_lines(tb))
+	u32 line = _tb->page_y + y;
+	if(line < tb_num_lines(_tb))
 	{
-		switch(tb->language)
+		switch(_tb->language)
 		{
 		case LANGUAGE_UNKNOWN:
 			x = ed_plain(line);
@@ -459,53 +459,18 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
 	}
 }
 
-static u32 dropdown_color(dropdown *d, u32 i)
-{
-	return (i == d->pos) ? ptp(PT_ERROR, PT_GRAY) : ptp(PT_FG, PT_GRAY);
-}
-
-static u32 ed_render_dir(u32 y)
-{
-	u32 i, end;
-	end = umin(dropdown_nav.offset + DROPDOWN_PAGE, dropdown_nav.count);
-	for(i = dropdown_nav.offset; i < end; ++i, ++y)
-	{
-		ed_render_line_str(dir_list[i], 0, y, dropdown_color(&dropdown_nav, i));
-	}
-
-	return y;
-}
-
-static void ed_render_nav(field *f, u32 y, char *prompt)
-{
-	char *s;
-	u32 x, i, c, color;
-
-	color = ptp(PT_BG, PT_FG);
-	for(s = prompt, x = 0; (c = *s); ++x, ++s)
-	{
-		screen_set(x, y, screen_pack(c, color));
-	}
-
-	for(s = f->buf, i = 0; x < _screen_width; ++x, ++s, ++i)
-	{
-		screen_set(x, y, screen_pack((i < f->len) ? *s : ' ',
-			(i == f->cursor) ? ptp(PT_FG, PT_BG) : ptp(PT_BG, PT_FG)));
-	}
-}
-
 static u32 ed_prev_comment(void)
 {
 	u32 i = 0, result = 0;
-	if(tb->page_y > COMMENT_LOOKBACK)
+	if(_tb->page_y > COMMENT_LOOKBACK)
 	{
-		i = tb->page_y - COMMENT_LOOKBACK;
+		i = _tb->page_y - COMMENT_LOOKBACK;
 	}
 
-	for(; i < tb->page_y; ++i)
+	for(; i < _tb->page_y; ++i)
 	{
 		i32 p;
-		vector *line = tb_get_line(tb, i);
+		vector *line = tb_get_line(_tb, i);
 		char *data = vector_data(line);
 		i32 len = vector_len(line);
 		for(p = 0; p < len - 1; ++p)
@@ -534,29 +499,29 @@ static u32 ed_prev_comment(void)
 
 static void ed_render_buffer(u32 start_y, u32 end_y)
 {
-	u32 lines = tb_num_lines(tb);
-	if(lines > _screen_height && tb->page_y + _screen_height >= lines)
+	u32 lines = tb_num_lines(_tb);
+	if(lines > _screen_height && _tb->page_y + _screen_height >= lines)
 	{
-		tb->page_y = lines - _screen_height;
+		_tb->page_y = lines - _screen_height;
 	}
 
-	vcursor.x = tb_cursor_pos_x(tb, tb->sel.c[1].y, tb->sel.c[1].x);
-	vcursor.y = tb->sel.c[1].y;
-	vsel.c[0] = vcursor;
-	if(tb->sel.c[0].y == tb->sel.c[1].y && tb->sel.c[1].x == tb->sel.c[0].x)
+	_vcursor.x = tb_cursor_pos_x(_tb, _tb->sel.c[1].y, _tb->sel.c[1].x);
+	_vcursor.y = _tb->sel.c[1].y;
+	_vsel.c[0] = _vcursor;
+	if(_tb->sel.c[0].y == _tb->sel.c[1].y && _tb->sel.c[1].x == _tb->sel.c[0].x)
 	{
-		vsel.c[1] = vcursor;
+		_vsel.c[1] = _vcursor;
 	}
 	else
 	{
-		vsel.c[1].x = tb_cursor_pos_x(tb, tb->sel.c[0].y, tb->sel.c[0].x);
-		vsel.c[1].y = tb->sel.c[0].y;
+		_vsel.c[1].x = tb_cursor_pos_x(_tb, _tb->sel.c[0].y, _tb->sel.c[0].x);
+		_vsel.c[1].y = _tb->sel.c[0].y;
 	}
 
-	sel_norm(&vsel);
-	if(tb->language == LANGUAGE_C)
+	sel_norm(&_vsel);
+	if(_tb->language == LANGUAGE_C)
 	{
-		in_comment = ed_prev_comment();
+		_in_comment = ed_prev_comment();
 	}
 
 	if(_show_linenr)
@@ -585,7 +550,7 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		" CTRL+O to open file\0"
 		" CTRL+S to save\0"
 		" CTRL+W to discard buffer\0"
-		" CTRL+B to view open buffers\0"
+		" CTRL+B to view open _buffers\0"
 		" CTRL+G to go to line number or symbol definiton\0\1";
 
 	u32 x, color = ptp(PT_FG, PT_BG);

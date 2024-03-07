@@ -118,21 +118,6 @@ static void linenr_str(char *s, u32 n, u32 width)
 	reverse(s, width);
 }
 
-static void path_dir(char *s)
-{
-	u32 c;
-	char *slash = s;
-	for(; (c = *s); ++s)
-	{
-		if(c == '/')
-		{
-			slash = s;
-		}
-	}
-
-	strcpy(slash, "/");
-}
-
 static char *path_file(char *s)
 {
 	u32 c;
@@ -272,20 +257,3 @@ static u32 umin(u32 a, u32 b)
 {
 	return a < b ? a : b;
 }
-
-#if 0
-
-static size_t revstrlen(char *p)
-{
-	size_t cnt = 0;
-	--p;
-	do
-	{
-		--p;
-		++cnt;
-	}
-	while(*p);
-	return cnt;
-}
-
-#endif

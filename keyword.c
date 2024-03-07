@@ -1,5 +1,5 @@
-#define C_HASHMAP_SIZE       (ARRLEN(c_keywords) * 7)
-#define ASM_HASHMAP_SIZE     (ARRLEN(asm_keywords) * 8)
+#define C_HASHMAP_SIZE       (ARRLEN(_c_keywords) * 7)
+#define ASM_HASHMAP_SIZE     (ARRLEN(_asm_keywords) * 8)
 #define COLLISION_LIMIT     4
 
 typedef struct
@@ -16,7 +16,7 @@ typedef struct
 	keyword *keywords;
 } hashmap;
 
-static keyword c_keywords[] =
+static keyword _c_keywords[] =
 {
 	{ PT_TYPE, "asm" },
 
@@ -106,14 +106,14 @@ static keyword c_keywords[] =
 	{ PT_KEYWORD, "fn" },
 };
 
-static i32 c_table[C_HASHMAP_SIZE];
-static hashmap c_hashmap =
+static i32 _c_table[C_HASHMAP_SIZE];
+static hashmap _c_hashmap =
 {
-	C_HASHMAP_SIZE, c_table,
-	ARRLEN(c_keywords), c_keywords
+	C_HASHMAP_SIZE, _c_table,
+	ARRLEN(_c_keywords), _c_keywords
 };
 
-static keyword asm_keywords[] =
+static keyword _asm_keywords[] =
 {
 	{ PT_TYPE, "NOP" },
 
@@ -243,11 +243,11 @@ static keyword asm_keywords[] =
 	{ PT_KEYWORD, "DC.B" }
 };
 
-static i32 asm_table[ASM_HASHMAP_SIZE];
-static hashmap asm_hashmap =
+static i32 _asm_table[ASM_HASHMAP_SIZE];
+static hashmap _asm_hashmap =
 {
-	ASM_HASHMAP_SIZE, asm_table,
-	ARRLEN(asm_keywords), asm_keywords
+	ASM_HASHMAP_SIZE, _asm_table,
+	ARRLEN(_asm_keywords), _asm_keywords
 };
 
 static u32 keyword_hash(char *word, u32 len)

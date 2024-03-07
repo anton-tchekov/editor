@@ -1,5 +1,4 @@
 /* Single line text input field */
-
 typedef struct
 {
 	char *buf;
@@ -92,5 +91,35 @@ static void field_key(field *f, u32 key, u32 c)
 	case KEY_BACKSPACE:             field_backspace(f); break;
 	case KEY_DELETE:                field_delete(f);    break;
 	default:                        field_char(f, c);   break;
+	}
+}
+
+static void field_render(field *f, u32 y, u32 focused, char *prompt)
+{
+	char *s;
+	u32 x, i, c;
+
+	for(s = prompt, x = 0; (c = *s); ++x, ++s)
+	{
+		screen_set(x, y, screen_pack(c, ptp(PT_BG, PT_FG)));
+	}
+
+	s = f->buf;
+	i = 0;
+	if(focused)
+	{
+		for(; x < _screen_width; ++x, ++s, ++i)
+		{
+			screen_set(x, y, screen_pack((i < f->len) ? *s : ' ',
+				(i == f->cursor) ? ptp(PT_FG, PT_BG) : ptp(PT_BG, PT_FG)));
+		}
+	}
+	else
+	{
+		for(; x < _screen_width; ++x, ++s, ++i)
+		{
+			screen_set(x, y, screen_pack((i < f->len) ? *s : ' ',
+				ptp(PT_BG, PT_FG)));
+		}
 	}
 }

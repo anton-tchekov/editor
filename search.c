@@ -1,3 +1,10 @@
+static u8
+	_search_dir,
+	_replace,
+	_match_case,
+	_whole_words,
+	_use_escseq;
+
 static u32 escape_seq(char *out, char *s)
 {
 	u32 c;
