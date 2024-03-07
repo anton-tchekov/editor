@@ -16,12 +16,6 @@ enum
 
 enum
 {
-	ED_INFO,
-	ED_ERROR
-};
-
-enum
-{
 	LANGUAGE_UNKNOWN,
 	LANGUAGE_C,
 	LANGUAGE_DEFAULT = LANGUAGE_C,
@@ -38,7 +32,6 @@ enum
 
 static u32 offset_x, page_w;
 
-static u8 msg_show;
 static u8 mode;
 
 static u8 search_dir;
@@ -53,15 +46,16 @@ static u8 show_whitespace;
 
 #include "textbuf.c"
 
-static u8 msg_type;
-static char msg_buf[256];
 static char confirm_buf[256];
 static void (*confirm_result)(u32);
-static char nav_buf[PATH_MAX];
-static char goto_buf[16];
 
+static char goto_buf[16];
 static field fld_goto = { goto_buf, sizeof(goto_buf), 0, 0 };
+
+static char nav_path[PATH_MAX];
+static char nav_buf[256];
 static field fld_nav = { nav_buf, sizeof(nav_buf), 0, 0 };
+
 static dropdown dropdown_nav;
 static char **dir_list;
 
@@ -72,20 +66,53 @@ static textbuf *tb;
 
 #include "buffers.c"
 #include "render.c"
+#include "msg.c"
+
+static void ed_render(void)
+{
+	u32 start_y, end_y;
+	start_y = 0;
+	switch(mode)
+	{
+	case ED_MODE_OPEN:
+		ed_render_nav(&fld_nav, "Open: ");
+		start_y = ed_render_dir();
+		break;
+
+	case ED_MODE_GOTO:
+		ed_render_nav(&fld_goto, "Location: ");
+		start_y = 1;
+		break;
+
+	case ED_MODE_SAVE_AS:
+		ed_render_nav(&fld_nav, "Save As: ");
+		start_y = ed_render_dir();
+		break;
+
+	case ED_MODE_OPENED:
+		start_y = ed_render_opened();
+		break;
+
+	case ED_MODE_CONFIRM:
+		ed_render_confirm();
+		start_y = 1;
+		break;
+	}
+
+	end_y = msg_render();
+	if(tb)
+	{
+		ed_render_buffer(start_y, end_y);
+	}
+	else
+	{
+		ed_render_blank(start_y, end_y);
+	}
+}
 
 static void mode_default(void)
 {
 	mode = ED_MODE_DEFAULT;
-}
-
-static void ed_msg(u32 type, const char *msg, ...)
-{
-	va_list args;
-	msg_show = 1;
-	msg_type = type;
-	va_start(args, msg);
-	vsnprintf(msg_buf, sizeof(msg_buf), msg, args);
-	va_end(args);
 }
 
 static void ed_load(const char *filename)
@@ -100,11 +127,11 @@ static void ed_load(const char *filename)
 	switch(textfile_read(filename, &buf))
 	{
 	case FILE_READ_FAIL:
-		ed_msg(ED_ERROR, "Failed to open file");
+		msg_show(MSG_ERROR, "Failed to open file");
 		return;
 
 	case FILE_READ_NOT_TEXT:
-		ed_msg(ED_ERROR, "Invalid character, binary file?");
+		msg_show(MSG_ERROR, "Invalid character, binary file?");
 		return;
 	}
 
@@ -178,11 +205,11 @@ static void ed_save(void)
 		char *buf = tb_export(tb, &len);
 		if(file_write(tb->filename, buf, len))
 		{
-			ed_msg(ED_ERROR, "Writing file failed");
+			msg_show(MSG_ERROR, "Writing file failed");
 		}
 		else
 		{
-			ed_msg(ED_INFO, "File saved");
+			msg_show(MSG_INFO, "File saved");
 			tb->modified = 0;
 		}
 

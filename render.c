@@ -473,13 +473,6 @@ static void ed_render_line_str(const char *s, u32 x, u32 y, u32 color)
 	}
 }
 
-static void ed_render_msg(void)
-{
-	ed_render_line_str(msg_buf, 0, _screen_height - 1,
-		screen_color(COLOR_TABLE_FG,
-			msg_type ? COLOR_TABLE_ERROR : COLOR_TABLE_INFO));
-}
-
 static u32 dropdown_color(dropdown *d, u32 i)
 {
 	return (i == d->pos) ?
@@ -658,53 +651,5 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 			ed_render_line_str(help, 0, start_y, color);
 			help += strlen(help) + 1;
 		}
-	}
-}
-
-static void ed_render(void)
-{
-	u32 start_y = 0;
-	u32 end_y = _screen_height;
-	switch(mode)
-	{
-	case ED_MODE_OPEN:
-		ed_render_nav(&fld_nav, "Open: ");
-		start_y = ed_render_dir();
-		break;
-
-	case ED_MODE_GOTO:
-		ed_render_nav(&fld_goto, "Location: ");
-		start_y = 1;
-		break;
-
-	case ED_MODE_SAVE_AS:
-		ed_render_nav(&fld_nav, "Save As: ");
-		start_y = ed_render_dir();
-		break;
-
-	case ED_MODE_OPENED:
-		start_y = ed_render_opened();
-		break;
-
-	case ED_MODE_CONFIRM:
-		ed_render_confirm();
-		start_y = 1;
-		break;
-	}
-
-	if(msg_show)
-	{
-		msg_show = 0;
-		--end_y;
-		ed_render_msg();
-	}
-
-	if(tb)
-	{
-		ed_render_buffer(start_y, end_y);
-	}
-	else
-	{
-		ed_render_blank(start_y, end_y);
 	}
 }

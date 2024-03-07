@@ -10,11 +10,11 @@ static void ed_save_as(void)
 	char *buf = tb_export(tb, &len);
 	if(file_write(fld_nav.buf, buf, len))
 	{
-		ed_msg(ED_ERROR, "Writing file failed");
+		msg_show(MSG_ERROR, "Writing file failed");
 	}
 	else
 	{
-		ed_msg(ED_INFO, "File saved");
+		msg_show(MSG_INFO, "File saved");
 		tb_change_filename(tb, fld_nav.buf);
 		tb->modified = 0;
 		tb->exists = 1;
@@ -37,7 +37,7 @@ static void save_as_return(void)
 {
 	if(bf_opened_and_modified(fld_nav.buf))
 	{
-		ed_msg(ED_ERROR, "Selected file has unsaved changes in editor!");
+		msg_show(MSG_ERROR, "Selected file has unsaved changes in editor!");
 		return;
 	}
 
