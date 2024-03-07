@@ -52,8 +52,7 @@ static u32 open_render(void)
 	char buf[256];
 	snprintf(buf, sizeof(buf), "Open: %s [%d]",
 		_path_buf, dropdown_nav.count - 1);
-	ed_render_line_str(buf, 0, 0,
-		screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG));
+	ed_render_line_str(buf, 0, 0, ptp(PT_BG, PT_FG));
 	ed_render_nav(&fld_nav, 1, "Filter: ");
 	return ed_render_dir(2);
 }

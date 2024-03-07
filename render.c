@@ -14,8 +14,7 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 	for(y = start_y; y < end_y; ++y)
 	{
 		u32 color = (lnr == tb->sel.c[1].y) ?
-			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
-			screen_color(COLOR_TABLE_GRAY, COLOR_TABLE_BG);
+			ptp(PT_FG, PT_BG) : ptp(PT_GRAY, PT_BG);
 
 		++lnr;
 		if(lnr <= lines)
@@ -75,7 +74,7 @@ static void ed_put(u32 x, u32 y, u32 c)
 	}
 	else if(is_sel(x, y))
 	{
-		c = screen_pack_set_bg(c, COLOR_TABLE_SELECTION);
+		c = screen_pack_set_bg(c, PT_SELECTION);
 	}
 
 	screen_set(x + _offset_x, y - tb->page_y, c);
@@ -88,7 +87,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 		u32 n = x & (_tabsize - 1);
 		if(_show_whitespace)
 		{
-			color = screen_color(COLOR_TABLE_GRAY, COLOR_TABLE_BG);
+			color = ptp(PT_GRAY, PT_BG);
 			if(n == _tabsize - 1)
 			{
 				if(x >= _page_w) { return x; }
@@ -121,11 +120,11 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 		if(c == ' ' && _show_whitespace)
 		{
 			c = CHAR_VISIBLE_SPACE;
-			color = COLOR_TABLE_GRAY;
+			color = PT_GRAY;
 		}
 
 		if(x >= _page_w) { return x; }
-		ed_put(x++, y, screen_pack(c, screen_color(color, COLOR_TABLE_BG)));
+		ed_put(x++, y, screen_pack(c, ptp(color, PT_BG)));
 	}
 
 	return x;
@@ -139,7 +138,7 @@ static u32 ed_plain(u32 y)
 	u32 i, x;
 	for(x = 0, i = 0; i < len; ++i)
 	{
-		x = ed_syntax_sub(line[i], COLOR_TABLE_FG, y, x);
+		x = ed_syntax_sub(line[i], PT_FG, y, x);
 		if(x >= _page_w) { return x; }
 	}
 
@@ -160,7 +159,7 @@ static u32 ed_asm6800(u32 y)
 		{
 			for(; i < len; ++i)
 			{
-				x = ed_syntax_sub(line[i], COLOR_TABLE_COMMENT, y, x);
+				x = ed_syntax_sub(line[i], PT_COMMENT, y, x);
 				if(x >= _page_w) { return x; }
 			}
 		}
@@ -169,12 +168,11 @@ static u32 ed_asm6800(u32 y)
 			u32 save = c;
 			u32 esc = 0;
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_STRING, PT_BG)));
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				x = ed_syntax_sub(c, COLOR_TABLE_STRING, y, x);
+				x = ed_syntax_sub(c, PT_STRING, y, x);
 				if(x >= _page_w) { return x; }
 
 				if(esc)
@@ -195,8 +193,7 @@ static u32 ed_asm6800(u32 y)
 		else if(is_paren(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_PAREN, PT_BG)));
 			++i;
 		}
 		else if(is_ident_start(c))
@@ -204,9 +201,8 @@ static u32 ed_asm6800(u32 y)
 			u32 color, end, start;
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
 			end = i;
-			color = screen_color(
-				keyword_detect(&asm_hashmap, line + start, end - start),
-				COLOR_TABLE_BG);
+			color = ptp(
+				keyword_detect(&asm_hashmap, line + start, end - start), PT_BG);
 
 			for(i = start; i < end; ++i)
 			{
@@ -217,20 +213,17 @@ static u32 ed_asm6800(u32 y)
 		else if(c == '#')
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(line[i],
-				screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(line[i], ptp(PT_KEYWORD, PT_BG)));
 			++i;
 		}
 		else if(c == '$')
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_NUMBER, PT_BG)));
 			for(++i; i < len && isxdigit((c = line[i])); ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(c,
-					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+				ed_put(x++, y, screen_pack(c, ptp(PT_NUMBER, PT_BG)));
 			}
 		}
 		else if(isdigit(c))
@@ -238,13 +231,12 @@ static u32 ed_asm6800(u32 y)
 			for(; i < len && isdigit((c = line[i])); ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(c,
-					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+				ed_put(x++, y, screen_pack(c, ptp(PT_NUMBER, PT_BG)));
 			}
 		}
 		else
 		{
-			x = ed_syntax_sub(c, COLOR_TABLE_FG, y, x);
+			x = ed_syntax_sub(c, PT_FG, y, x);
 			if(x >= _page_w) { return x; }
 			++i;
 		}
@@ -266,15 +258,14 @@ static u32 ed_syntax(u32 y)
 		u32 c = line[i];
 		if(in_comment)
 		{
-			x = ed_syntax_sub(c, COLOR_TABLE_COMMENT, y, x);
+			x = ed_syntax_sub(c, PT_COMMENT, y, x);
 			if(x >= _page_w) { return x; }
 
 			if((c == '*') && (i + 1 < len) && (line[i + 1] == '/'))
 			{
 				++i;
 				in_comment = 0;
-				ed_put(x++, y, screen_pack('/',
-					screen_color(COLOR_TABLE_COMMENT, COLOR_TABLE_BG)));
+				ed_put(x++, y, screen_pack('/', ptp(PT_COMMENT, PT_BG)));
 				if(x >= _page_w) { return x; }
 			}
 			++i;
@@ -283,24 +274,27 @@ static u32 ed_syntax(u32 y)
 		{
 			for(; i < len; ++i)
 			{
-				x = ed_syntax_sub(line[i], COLOR_TABLE_COMMENT, y, x);
+				x = ed_syntax_sub(line[i], PT_COMMENT, y, x);
 				if(x >= _page_w) { return x; }
 			}
 		}
 		else if((c == '/') && (i + 1 < len) && (line[i + 1] == '*'))
 		{
 			in_comment = 1;
+			ed_put(x++, y, screen_pack('/', ptp(PT_COMMENT, PT_BG)));
+			if(x >= _page_w) { return x; }
+			ed_put(x++, y, screen_pack('*', ptp(PT_COMMENT, PT_BG)));
+			if(x >= _page_w) { return x; }
+			i += 2;
 		}
 		else if(c == '#')
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_KEYWORD, PT_BG)));
 			for(++i; i < len && isalnum(c = line[i]); ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(c,
-					screen_color(COLOR_TABLE_KEYWORD, COLOR_TABLE_BG)));
+				ed_put(x++, y, screen_pack(c, ptp(PT_KEYWORD, PT_BG)));
 			}
 			incflag = 1;
 		}
@@ -309,14 +303,12 @@ static u32 ed_syntax(u32 y)
 			u32 save = c == '<' ? '>' : c;
 			u32 esc = 0;
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_STRING, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_STRING, PT_BG)));
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				x = ed_syntax_sub(c, COLOR_TABLE_STRING, y, x);
+				x = ed_syntax_sub(c, PT_STRING, y, x);
 				if(x >= _page_w) { return x; }
-
 				if(esc)
 				{
 					esc = 0;
@@ -335,22 +327,19 @@ static u32 ed_syntax(u32 y)
 		else if(is_paren(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_PAREN, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_PAREN, PT_BG)));
 			++i;
 		}
 		else if(is_bracket(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_BRACKET, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_BRACKET, PT_BG)));
 			++i;
 		}
 		else if(is_brace(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c,
-				screen_color(COLOR_TABLE_BRACE, COLOR_TABLE_BG)));
+			ed_put(x++, y, screen_pack(c, ptp(PT_BRACE, PT_BG)));
 			++i;
 		}
 		else if(is_ident_start(c))
@@ -358,19 +347,19 @@ static u32 ed_syntax(u32 y)
 			u32 color, end, start;
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
 			end = i;
-			color = screen_color(
+			color = ptp(
 				keyword_detect(&c_hashmap, line + start, end - start),
-				COLOR_TABLE_BG);
+				PT_BG);
 
-			if(color == COLOR_TABLE_FG)
+			if(color == PT_FG)
 			{
 				if(c == '(')
 				{
-					color = COLOR_TABLE_FN;
+					color = PT_FN;
 				}
 				else if(c == '[')
 				{
-					color = COLOR_TABLE_ARRAY;
+					color = PT_ARRAY;
 				}
 			}
 
@@ -410,13 +399,12 @@ static u32 ed_syntax(u32 y)
 			for(; i < e; ++x, ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x, y, screen_pack(line[i],
-					screen_color(COLOR_TABLE_NUMBER, COLOR_TABLE_BG)));
+				ed_put(x, y, screen_pack(line[i], ptp(PT_NUMBER, PT_BG)));
 			}
 		}
 		else
 		{
-			x = ed_syntax_sub(c, COLOR_TABLE_FG, y, x);
+			x = ed_syntax_sub(c, PT_FG, y, x);
 			if(x >= _page_w) { return x; }
 			++i;
 		}
@@ -449,14 +437,12 @@ static void ed_render_line(u32 y)
 
 	if(x < _page_w)
 	{
-		ed_put(x++, line, screen_pack(' ',
-			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
+		ed_put(x++, line, screen_pack(' ', ptp(PT_FG, PT_BG)));
 	}
 
 	for(; x < _page_w; ++x)
 	{
-		screen_set(x + _offset_x, y,
-			screen_pack(' ', screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG)));
+		screen_set(x + _offset_x, y, screen_pack(' ', ptp(PT_FG, PT_BG)));
 	}
 }
 
@@ -475,9 +461,7 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
 
 static u32 dropdown_color(dropdown *d, u32 i)
 {
-	return (i == d->pos) ?
-		screen_color(COLOR_TABLE_ERROR, COLOR_TABLE_GRAY) :
-		screen_color(COLOR_TABLE_FG, COLOR_TABLE_GRAY);
+	return (i == d->pos) ? ptp(PT_ERROR, PT_GRAY) : ptp(PT_FG, PT_GRAY);
 }
 
 static u32 ed_render_dir(u32 y)
@@ -497,7 +481,7 @@ static void ed_render_nav(field *f, u32 y, char *prompt)
 	char *s;
 	u32 x, i, c, color;
 
-	color = screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG);
+	color = ptp(PT_BG, PT_FG);
 	for(s = prompt, x = 0; (c = *s); ++x, ++s)
 	{
 		screen_set(x, y, screen_pack(c, color));
@@ -506,9 +490,7 @@ static void ed_render_nav(field *f, u32 y, char *prompt)
 	for(s = f->buf, i = 0; x < _screen_width; ++x, ++s, ++i)
 	{
 		screen_set(x, y, screen_pack((i < f->len) ? *s : ' ',
-			(i == f->cursor) ?
-			screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG) :
-			screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG)));
+			(i == f->cursor) ? ptp(PT_FG, PT_BG) : ptp(PT_BG, PT_FG)));
 	}
 }
 
@@ -606,7 +588,7 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		" CTRL+B to view open buffers\0"
 		" CTRL+G to go to line number or symbol definiton\0\1";
 
-	u32 x, color = screen_color(COLOR_TABLE_FG, COLOR_TABLE_BG);
+	u32 x, color = ptp(PT_FG, PT_BG);
 	for(; start_y < end_y; ++start_y)
 	{
 		if(start_y < 20 || *help == 1)

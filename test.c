@@ -4,18 +4,18 @@
 #define TEST_FN(name)   test_fn(name, #name)
 #define TEST_ALL(name)  test_all(name)
 
-#define COLOR_RESET     "\033[0m"
-#define COLOR_RED       "\033[1;31m"
-#define COLOR_GREEN     "\033[1;32m"
-#define COLOR_BLUE      "\033[1;34m"
-#define COLOR_WHITE     "\033[1;37m"
+#define TERM_RESET     "\033[0m"
+#define TERM_RED       "\033[1;31m"
+#define TERM_GREEN     "\033[1;32m"
+#define TERM_BLUE      "\033[1;34m"
+#define TERM_WHITE     "\033[1;37m"
 
 static u32 _fn_count, _fn_success, _all_count, _all_success;
 
 static void print_success(u32 success, u32 count)
 {
-	printf("%s> %d / %d tests successful" COLOR_RESET "\n\n",
-		(success == count) ? COLOR_GREEN : COLOR_RED,
+	printf("%s> %d / %d tests successful" TERM_RESET "\n\n",
+		(success == count) ? TERM_GREEN : TERM_RED,
 		success, count);
 }
 
@@ -36,16 +36,16 @@ static void test(u32 cond, char *expr, char *file, u32 line)
 
 static void test_all(void (*fn)(void))
 {
-	printf(COLOR_BLUE "--- STARTING ALL TESTS ---" COLOR_RESET "\n\n");
+	printf(TERM_BLUE "--- STARTING ALL TESTS ---" TERM_RESET "\n\n");
 	fn();
-	printf(COLOR_BLUE "--- ALL TESTS COMPLETED ---" COLOR_RESET "\n");
+	printf(TERM_BLUE "--- ALL TESTS COMPLETED ---" TERM_RESET "\n");
 	print_success(_all_success, _all_count);
 }
 
 static void test_fn(void (*fn)(void), char *name)
 {
-	printf(COLOR_BLUE "Running:" COLOR_RESET " "
-		COLOR_WHITE "%s" COLOR_RESET "\n", name);
+	printf(TERM_BLUE "Running:" TERM_RESET " "
+		TERM_WHITE "%s" TERM_RESET "\n", name);
 	_fn_count = 0;
 	_fn_success = 0;
 	fn();

@@ -43,22 +43,22 @@ enum
 
 enum
 {
-	COLOR_TABLE_BG,
-	COLOR_TABLE_FG,
-	COLOR_TABLE_GRAY,
-	COLOR_TABLE_COMMENT,
-	COLOR_TABLE_NUMBER,
-	COLOR_TABLE_STRING,
-	COLOR_TABLE_TYPE,
-	COLOR_TABLE_KEYWORD,
-	COLOR_TABLE_BRACE,
-	COLOR_TABLE_BRACKET,
-	COLOR_TABLE_PAREN,
-	COLOR_TABLE_FN,
-	COLOR_TABLE_ARRAY,
-	COLOR_TABLE_SELECTION,
-	COLOR_TABLE_INFO,
-	COLOR_TABLE_ERROR
+	PT_BG,
+	PT_FG,
+	PT_GRAY,
+	PT_COMMENT,
+	PT_NUMBER,
+	PT_STRING,
+	PT_TYPE,
+	PT_KEYWORD,
+	PT_BRACE,
+	PT_BRACKET,
+	PT_PAREN,
+	PT_FN,
+	PT_ARRAY,
+	PT_SELECTION,
+	PT_INFO,
+	PT_ERROR
 };
 
 static u32 _color_table[] =
@@ -411,7 +411,7 @@ static char *clipboard_load(void)
 	return SDL_GetClipboardText();
 }
 
-static u32 screen_color(u32 fg, u32 bg)
+static u32 ptp(u32 fg, u32 bg)
 {
 	return fg | (bg << 4);
 }

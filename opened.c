@@ -93,11 +93,11 @@ static void opened_render_title(void)
 {
 	char buf[64];
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
-		dropdown_nav.count, (dropdown_nav.count == 1 ? "" : "s"),
+		dropdown_nav.count,
+		(dropdown_nav.count == 1 ? "" : "s"),
 		bf_num_unsaved());
 
-	ed_render_line_str(buf, 0, 0,
-		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
+	ed_render_line_str(buf, 0, 0, ptp(PT_FG, PT_INFO));
 }
 
 static u32 opened_render(void)

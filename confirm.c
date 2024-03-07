@@ -29,7 +29,6 @@ static void confirm_key_press(u32 key)
 
 static u32 confirm_render(void)
 {
-	ed_render_line_str(_confirm_buf, 0, 0,
-		screen_color(COLOR_TABLE_FG, COLOR_TABLE_INFO));
+	ed_render_line_str(_confirm_buf, 0, 0, ptp(PT_FG, PT_INFO));
 	return 1;
 }
