@@ -14,13 +14,12 @@ static u32 _fn_count, _fn_success, _all_count, _all_success;
 
 static void print_success(u32 success, u32 count)
 {
-	const char *color = (success == count) ? COLOR_GREEN : COLOR_RED;
-
 	printf("%s> %d / %d tests successful" COLOR_RESET "\n\n",
-		color, success, count);
+		(success == count) ? COLOR_GREEN : COLOR_RED,
+		success, count);
 }
 
-static void test(u32 cond, const char *expr, const char *file, u32 line)
+static void test(u32 cond, char *expr, char *file, u32 line)
 {
 	++_fn_count;
 	++_all_count;
@@ -43,7 +42,7 @@ static void test_all(void (*fn)(void))
 	print_success(_all_success, _all_count);
 }
 
-static void test_fn(void (*fn)(void), const char *name)
+static void test_fn(void (*fn)(void), char *name)
 {
 	printf(COLOR_BLUE "Running:" COLOR_RESET " "
 		COLOR_WHITE "%s" COLOR_RESET "\n", name);

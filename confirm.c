@@ -1,7 +1,7 @@
 static char _confirm_buf[256];
 static void (*_confirm_callback)(u32);
 
-static void confirm(void (*callback)(u32), const char *msg, ...)
+static void confirm(void (*callback)(u32), char *msg, ...)
 {
 	va_list args;
 	_mode = ED_MODE_CONFIRM;

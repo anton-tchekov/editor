@@ -15,7 +15,7 @@ static void ed_dir_load(void)
 	dir_list = dir_sorted(buf, &dropdown_nav.count);
 }
 
-static void tab_cmpl_callback(const char *fname, u32 is_dir)
+static void tab_cmpl_callback(char *fname, u32 is_dir)
 {
 	if(!strcmp(fname, ".") || !strcmp(fname, ".."))
 	{
@@ -35,7 +35,7 @@ static void tab_cmpl_callback(const char *fname, u32 is_dir)
 		}
 		else
 		{
-			const char *q = fname;
+			char *q = fname;
 			char *p = same;
 			while(*p == *q) { ++p; ++q; }
 			*p = '\0';

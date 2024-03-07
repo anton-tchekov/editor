@@ -22,7 +22,7 @@ static void vector_init(vector *v, u32 capacity)
 	v->data = _malloc(capacity);
 }
 
-static void vector_from(vector *v, const void *buf, u32 bytes)
+static void vector_from(vector *v, void *buf, u32 bytes)
 {
 	v->capacity = bytes;
 	v->len = bytes;
@@ -57,7 +57,7 @@ static void vector_reserve(vector *v, u32 capacity)
 }
 
 static void vector_replace(
-	vector *v, u32 index, u32 count, const void *elems, u32 new_count)
+	vector *v, u32 index, u32 count, void *elems, u32 new_count)
 {
 	u32 new_length;
 
@@ -101,7 +101,7 @@ static u32 vector_len(vector *v)
 	return v->len;
 }
 
-static void vector_insert(vector *v, u32 offset, u32 bytes, const void *elems)
+static void vector_insert(vector *v, u32 offset, u32 bytes, void *elems)
 {
 	assert(offset <= v->len);
 	vector_replace(v, offset, 0, elems, bytes);
@@ -115,7 +115,7 @@ static void vector_remove(vector *v, u32 offset, u32 bytes)
 	vector_replace(v, offset, bytes, NULL, 0);
 }
 
-static void vector_push(vector *v, u32 bytes, const void *elem)
+static void vector_push(vector *v, u32 bytes, void *elem)
 {
 	vector_insert(v, v->len, bytes, elem);
 }

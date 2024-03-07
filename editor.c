@@ -72,7 +72,25 @@ static void mode_default(void)
 #include "confirm.c"
 #include "msg.c"
 
-static void ed_load(const char *filename)
+static u32 ed_detect_language(char *filename)
+{
+	char *ext = get_file_ext(filename);
+	printf("ext = %s\n", ext);
+	if(!strcmp(ext, "c") || !strcmp(ext, "cpp") ||
+		!strcmp(ext, "h") || !strcmp(ext, "hpp"))
+	{
+		return LANGUAGE_C;
+	}
+
+	if(!strcmp(ext, "s") || !strcmp(ext, "S"))
+	{
+		return LANGUAGE_ASM6800;
+	}
+
+	return LANGUAGE_UNKNOWN;
+}
+
+static void ed_load(char *filename)
 {
 	textbuf *t;
 	char *buf;
@@ -92,7 +110,7 @@ static void ed_load(const char *filename)
 		return;
 	}
 
-	t = tb_new(filename, buf, 1, LANGUAGE_DEFAULT);
+	t = tb_new(filename, buf, 1, ed_detect_language(filename));
 	bf_insert_cur(t);
 	_free(buf);
 	mode_default();

@@ -134,7 +134,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 static u32 ed_plain(u32 y)
 {
 	vector *lv = tb_get_line(tb, y);
-	const char *line = vector_data(lv);
+	char *line = vector_data(lv);
 	u32 len = vector_len(lv);
 	u32 i, x;
 	for(x = 0, i = 0; i < len; ++i)
@@ -150,7 +150,7 @@ static u32 ed_asm6800(u32 y)
 {
 	vector *lv = tb_get_line(tb, y);
 	u32 len = vector_len(lv);
-	const char *line = vector_data(lv);
+	char *line = vector_data(lv);
 	u32 i = 0;
 	u32 x = 0;
 	while(i < len)
@@ -257,7 +257,7 @@ static u32 ed_syntax(u32 y)
 {
 	vector *lv = tb_get_line(tb, y);
 	u32 len = vector_len(lv);
-	const char *line = vector_data(lv);
+	char *line = vector_data(lv);
 	u32 incflag = 0;
 	u32 i = 0;
 	u32 x = 0;
@@ -460,7 +460,7 @@ static void ed_render_line(u32 y)
 	}
 }
 
-static void ed_render_line_str(const char *s, u32 x, u32 y, u32 color)
+static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
 {
 	for(; *s && x < _screen_width; ++s, ++x)
 	{
@@ -492,9 +492,9 @@ static u32 ed_render_dir(u32 y)
 	return y;
 }
 
-static void ed_render_nav(field *f, u32 y, const char *prompt)
+static void ed_render_nav(field *f, u32 y, char *prompt)
 {
-	const char *s;
+	char *s;
 	u32 x, i, c, color;
 
 	color = screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG);
@@ -524,7 +524,7 @@ static u32 ed_prev_comment(void)
 	{
 		i32 p;
 		vector *line = tb_get_line(tb, i);
-		const char *data = vector_data(line);
+		char *data = vector_data(line);
 		i32 len = vector_len(line);
 		for(p = 0; p < len - 1; ++p)
 		{
@@ -595,7 +595,7 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 
 static void ed_render_blank(u32 start_y, u32 end_y)
 {
-	const char *help =
+	char *help =
 		" Editor \"Haven't come up with a good name yet\" V0.9\0"
 		"   by Anton Tchekov\0"
 		"\0"

@@ -59,7 +59,7 @@ static u32 char_type(u32 c)
 	return CT_OTHER;
 }
 
-static u32 conv_lnr_str(const char *s)
+static u32 conv_lnr_str(char *s)
 {
 	u32 c;
 	u32 lnr = 0;
@@ -148,6 +148,28 @@ static char *path_file(char *s)
 	return slash;
 }
 
+static char *get_file_ext(char *s)
+{
+	u32 c;
+	char *p, *f;
+	f = path_file(s);
+	p = NULL;
+	for(; (c = *f); ++f)
+	{
+		if(c == '.')
+		{
+			p = f + 1;
+		}
+	}
+
+	if(!p)
+	{
+		p = f;
+	}
+
+	return p;
+}
+
 static void path_parent_dir(char *s)
 {
 	u32 c;
@@ -170,7 +192,7 @@ static void path_parent_dir(char *s)
 	}
 }
 
-static u32 last_char_is(const char *s, u32 c)
+static u32 last_char_is(char *s, u32 c)
 {
 	u32 len = strlen(s);
 	if(len == 0)
@@ -181,12 +203,12 @@ static u32 last_char_is(const char *s, u32 c)
 	return (u32)s[len - 1] == c;
 }
 
-static u32 path_is_dir(const char *s)
+static u32 path_is_dir(char *s)
 {
 	return last_char_is(s, '/');
 }
 
-static u32 starts_with(const char *str, const char *prefix)
+static u32 starts_with(char *str, char *prefix)
 {
 	while(*prefix)
 	{
@@ -199,12 +221,12 @@ static u32 starts_with(const char *str, const char *prefix)
 	return 1;
 }
 
-static u32 match_part(const char *str, const char *cmp, u32 len)
+static u32 match_part(char *str, char *cmp, u32 len)
 {
 	return len == strlen(cmp) && !strncmp(str, cmp, len);
 }
 
-static u32 count_char(const char *s, u32 val)
+static u32 count_char(char *s, u32 val)
 {
 	u32 c;
 	size_t cnt = 0;
@@ -219,7 +241,7 @@ static u32 count_char(const char *s, u32 val)
 	return cnt;
 }
 
-static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
+static i32 str_find(char *haystack, u32 len, char *needle, u32 sl)
 {
 	u32 i;
 	if(len < sl)
@@ -238,7 +260,7 @@ static i32 str_find(const char *haystack, u32 len, const char *needle, u32 sl)
 	return -1;
 }
 
-static char *_strdup(const char *s)
+static char *_strdup(char *s)
 {
 	size_t len = strlen(s) + 1;
 	char *p = _malloc(len);
@@ -253,7 +275,7 @@ static u32 umin(u32 a, u32 b)
 
 #if 0
 
-static size_t revstrlen(const char *p)
+static size_t revstrlen(char *p)
 {
 	size_t cnt = 0;
 	--p;

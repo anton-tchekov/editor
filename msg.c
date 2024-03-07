@@ -7,7 +7,7 @@ typedef enum
 static u8 _msg_type;
 static char _msg_buf[256];
 
-static void msg_show(MessageType type, const char *msg, ...)
+static void msg_show(MessageType type, char *msg, ...)
 {
 	va_list args;
 	_msg_type = type;

@@ -23,8 +23,7 @@ static void tb_reset_cursor(textbuf *t)
 	memset(&t->sel, 0, sizeof(t->sel));
 }
 
-static textbuf *tb_new(const char *name, const char *text,
-	u32 on_disk, u32 lang)
+static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 {
 	vector line;
 	textbuf *t = _malloc(sizeof(textbuf));
@@ -37,7 +36,7 @@ static textbuf *tb_new(const char *name, const char *text,
 	if(text)
 	{
 		u32 c;
-		const char *linestart, *p;
+		char *linestart, *p;
 		vector_init(&t->lines, count_char(text, '\n') + 1);
 		p = text;
 		linestart = text;
@@ -69,7 +68,7 @@ static void tb_toggle_insert(textbuf *t)
 	t->insert = !t->insert;
 }
 
-static void tb_change_filename(textbuf *t, const char *name)
+static void tb_change_filename(textbuf *t, char *name)
 {
 	_free(t->filename);
 	t->filename = _strdup(name);
@@ -90,7 +89,7 @@ static u32 tb_line_len(textbuf *t, u32 i)
 	return vector_len(tb_get_line(t, i));
 }
 
-static const char *tb_line_data(textbuf *t, u32 i)
+static char *tb_line_data(textbuf *t, u32 i)
 {
 	return vector_data(tb_get_line(t, i));
 }
@@ -100,7 +99,7 @@ static u32 tb_cur_line_len(textbuf *t)
 	return vector_len(tb_cur_line(t));
 }
 
-static const char *tb_cur_line_data(textbuf *t)
+static char *tb_cur_line_data(textbuf *t)
 {
 	return vector_data(tb_cur_line(t));
 }
@@ -609,7 +608,7 @@ static char *tb_export(textbuf *t, u32 *len)
 	return buf;
 }
 
-static void tb_ins(textbuf *t, const char *s, u32 len, u32 inc)
+static void tb_ins(textbuf *t, char *s, u32 len, u32 inc)
 {
 	tb_sel_clear(t);
 	vector_insert(tb_cur_line(t), t->sel.c[1].x, len, s);
@@ -686,10 +685,10 @@ static void tb_trailing(textbuf *t)
 	}
 }
 
-static void tb_insert(textbuf *t, const char *text)
+static void tb_insert(textbuf *t, char *text)
 {
 	u32 c, y, new_lines;
-	const char *p, *s;
+	char *p, *s;
 
 	tb_sel_clear(t);
 
@@ -780,7 +779,7 @@ static void tb_gotoxy(textbuf *t, u32 x, u32 y)
 	tb_scroll_to_cursor(t);
 }
 
-static void tb_goto_def(textbuf *t, const char *s)
+static void tb_goto_def(textbuf *t, char *s)
 {
 	u32 i;
 	u32 len = tb_num_lines(t);
@@ -789,7 +788,7 @@ static void tb_goto_def(textbuf *t, const char *s)
 	{
 		vector *line = tb_get_line(t, i);
 		u32 ll = vector_len(line);
-		const char *buf = vector_data(line);
+		char *buf = vector_data(line);
 		i32 offset;
 
 		if(ll == 0 || isspace(buf[0]))
@@ -817,7 +816,7 @@ static u32 tb_chr_x_inc(u32 c, u32 x)
 static u32 tb_cursor_pos_x(textbuf *t, u32 y, u32 end)
 {
 	u32 i, x;
-	const char *line;
+	char *line;
 
 	line = tb_line_data(t, y);
 	for(i = 0, x = 0; i < end; ++i)
@@ -832,7 +831,7 @@ static void tb_move_vertical(textbuf *t, u32 prev_y)
 {
 	vector *line = tb_cur_line(t);
 	u32 len = vector_len(line);
-	const char *buf = vector_data(line);
+	char *buf = vector_data(line);
 	u32 i, x, max_x;
 
 	if(t->cursor_save_x < 0)
@@ -958,7 +957,7 @@ static void tb_sel_prev_word(textbuf *t)
 	{
 		if(t->sel.c[1].x > 0)
 		{
-			const char *buf = tb_cur_line_data(t);
+			char *buf = tb_cur_line_data(t);
 			u32 i = t->sel.c[1].x - 1;
 			u32 type = char_type(buf[i]);
 			while(i > 0 && char_type(buf[i - 1]) == type) { --i; }
@@ -998,7 +997,7 @@ static void tb_sel_next_word(textbuf *t)
 	{
 		if(t->sel.c[1].x < len)
 		{
-			const char *buf = tb_cur_line_data(t);
+			char *buf = tb_cur_line_data(t);
 			u32 i = t->sel.c[1].x;
 			u32 type = char_type(buf[i]);
 			while(i < len && char_type(buf[i]) == type) { ++i; }
@@ -1167,7 +1166,7 @@ static void tb_scroll(textbuf *t, i32 offset)
 
 static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
 {
-	const char *line;
+	char *line;
 	u32 i, x, len;
 	vector *v;
 
@@ -1187,7 +1186,7 @@ static void tb_sel_cur_word(textbuf *t)
 	u32 x1 = t->sel.c[1].x;
 	u32 x2 = x1;
 	vector *line = tb_cur_line(t);
-	const char *buf = vector_data(line);
+	char *buf = vector_data(line);
 	u32 len = vector_len(line);
 
 	if(isspace(buf[x1]))
@@ -1241,7 +1240,7 @@ static void tb_triple_click(textbuf *t, u32 x, u32 y)
 	(void)x;
 }
 
-static u32 tb_matches(textbuf *t, u32 x, u32 y, const char *q)
+static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 {
 	u32 qc, tc;
 	vector *line = tb_get_line(t, y);
@@ -1262,7 +1261,7 @@ static u32 tb_matches(textbuf *t, u32 x, u32 y, const char *q)
 		}
 		else
 		{
-			tc = ((const char *)vector_data(line))[x];
+			tc = ((char *)vector_data(line))[x];
 		}
 
 		if(qc != tc)
@@ -1275,7 +1274,7 @@ static u32 tb_matches(textbuf *t, u32 x, u32 y, const char *q)
 	return 1;
 }
 
-static void tb_find_next(textbuf *t, const char *q)
+static void tb_find_next(textbuf *t, char *q)
 {
 	u32 x, y;
 	cursor *last;

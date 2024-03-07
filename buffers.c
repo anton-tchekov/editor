@@ -60,7 +60,7 @@ static void bf_switch_id(u32 i)
 	tb = bf_get(i);
 }
 
-static u32 bf_switch_name(const char *name)
+static u32 bf_switch_name(char *name)
 {
 	u32 i, len = bf_count();
 	for(i = 0; i < len; ++i)
@@ -127,7 +127,7 @@ static void bf_discard_cur(void)
 	}
 }
 
-static u32 bf_opened_and_modified(const char *name)
+static u32 bf_opened_and_modified(char *name)
 {
 	u32 i, len = bf_count();
 	for(i = 0; i < len; ++i)
@@ -142,7 +142,7 @@ static u32 bf_opened_and_modified(const char *name)
 	return 0;
 }
 
-static void bf_close_other(const char *name, u32 id)
+static void bf_close_other(char *name, u32 id)
 {
 	u32 i, len = bf_count();
 	for(i = 0; i < len; ++i)

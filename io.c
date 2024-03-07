@@ -61,7 +61,7 @@ enum
 	COLOR_TABLE_ERROR
 };
 
-static const u32 _color_table[] =
+static u32 _color_table[] =
 {
 	0xFF1F1F1F, /* Background */
 	0xFFFFFFFF, /* Foreground */
@@ -309,13 +309,13 @@ static u32 key_to_chr(u32 k)
 	}
 	else if(nomods >= KEY_1 && nomods <= KEY_0)
 	{
-		static const char numbers[] =
+		static char numbers[] =
 			{ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
 
-		static const char numbers_shift[] =
+		static char numbers_shift[] =
 			{ '!', '\"', 0, '$', '%', '&', '/', '(', ')', '=' };
 
-		static const char numbers_altgr[] =
+		static char numbers_altgr[] =
 			{ 0, 0, 0, 0, 0, 0, '{', '[', ']', '}' };
 
 		u32 idx = nomods - KEY_1;
@@ -369,7 +369,7 @@ static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
 
 static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 {
-	const u8 *start, *end;
+	u8 *start, *end;
 	u32 *line;
 
 	assert(x < _gfx_width);
@@ -401,7 +401,7 @@ static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 	}
 }
 
-static void clipboard_store(const char *str)
+static void clipboard_store(char *str)
 {
 	SDL_SetClipboardText(str);
 }
@@ -464,10 +464,10 @@ enum
 	FILE_READ_NOT_TEXT
 };
 
-static u32 is_text(const u8 *s, size_t len)
+static u32 is_text(u8 *s, size_t len)
 {
 	u32 c;
-	const u8 *end;
+	u8 *end;
 	for(end = s + len; s < end; ++s)
 	{
 		c = *s;
@@ -480,7 +480,7 @@ static u32 is_text(const u8 *s, size_t len)
 	return 1;
 }
 
-static u32 textfile_read(const char *filename, char **out)
+static u32 textfile_read(char *filename, char **out)
 {
 	vector v;
 	u32 rb;
@@ -528,7 +528,7 @@ static u32 textfile_read(const char *filename, char **out)
 	return FILE_READ_OK;
 }
 
-static u32 file_write(const char *filename, void *data, size_t len)
+static u32 file_write(char *filename, void *data, size_t len)
 {
 	FILE *fp;
 	if(!(fp = fopen(filename, "w")))
@@ -559,12 +559,12 @@ static u32 get_working_dir(char *buf)
 	return len;
 }
 
-static u32 file_exists(const char *fname)
+static u32 file_exists(char *fname)
 {
 	return access(fname, F_OK) == 0;
 }
 
-static u32 dir_iter(const char *path, void (*iter)(const char *, u32))
+static u32 dir_iter(char *path, void (*iter)(char *, u32))
 {
 	DIR *dir;
 	struct dirent *dp;

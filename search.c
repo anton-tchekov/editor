@@ -1,4 +1,4 @@
-static u32 escape_seq(char *out, const char *s)
+static u32 escape_seq(char *out, char *s)
 {
 	u32 c;
 	for(; (c = *s); ++s)

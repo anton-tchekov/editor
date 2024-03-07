@@ -5,7 +5,7 @@
 typedef struct
 {
 	u8 color;
-	const char *name;
+	char *name;
 } keyword;
 
 typedef struct
@@ -250,7 +250,7 @@ static hashmap asm_hashmap =
 	ARRLEN(asm_keywords), asm_keywords
 };
 
-static u32 keyword_hash(const char *word, u32 len)
+static u32 keyword_hash(char *word, u32 len)
 {
 	u32 i, hash, c;
 	hash = 5381;
@@ -286,7 +286,7 @@ static void keyword_init(hashmap *hm)
 	}
 }
 
-static u32 keyword_detect(hashmap *hm, const char *str, u32 len)
+static u32 keyword_detect(hashmap *hm, char *str, u32 len)
 {
 	u32 i, hash;
 
