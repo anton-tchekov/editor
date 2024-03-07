@@ -376,7 +376,12 @@ static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 	assert(y < _gfx_height);
 	assert((x + CHAR_WIDTH) <= _gfx_width);
 	assert((y + CHAR_HEIGHT) <= _gfx_height);
-	assert(c >= 32 && c <= CHAR_MAX);
+	/* assert(c >= 32 && c <= CHAR_MAX); */
+
+	if(c < 32 || c > CHAR_MAX)
+	{
+		c = '?';
+	}
 
 	start = terminus16 + (c - 32) * CHAR_HEIGHT;
 	end = start + CHAR_HEIGHT;

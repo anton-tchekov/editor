@@ -1,36 +1,59 @@
+static void open_dir_reload(void)
+{
+	dropdown_reset(&dropdown_nav);
+	_free(dir_list);
+	dir_list = dir_sorted(_path_buf, &dropdown_nav.count);
+}
+
 static void mode_open(void)
 {
-	mode = ED_MODE_OPEN;
-	ed_dir_load();
+	_mode = ED_MODE_OPEN;
+	open_dir_reload();
 }
 
 static void open_return(void)
 {
-	if(!fld_nav.len)
+	if(dropdown_nav.pos == 0)
 	{
-		mode_default();
-		return;
+		path_parent_dir(_path_buf);
+		open_dir_reload();
 	}
-
-	field_add_nt(&fld_nav);
-	ed_load(fld_nav.buf);
+	else
+	{
+		char *de = dir_list[dropdown_nav.pos];
+		if(path_is_dir(de))
+		{
+			strcat(_path_buf, de);
+			open_dir_reload();
+		}
+		else
+		{
+			char *end = memchr(_path_buf, '\0', sizeof(_path_buf));
+			strcpy(end, de);
+			ed_load(_path_buf);
+			*end = '\0';
+		}
+	}
 }
 
 static void open_key_press(u32 key, u32 c)
 {
-	field_key(&fld_nav, key, c);
 	dropdown_key(&dropdown_nav, key);
-	switch(key)
+	field_key(&fld_nav, key, c);
+	switch(key & 0xFF)
 	{
-	case MOD_SHIFT | KEY_RETURN:
-	case KEY_RETURN:             open_return();   break;
-	case KEY_TAB:                load_save_tab(); break;
-	case KEY_ESCAPE:             mode_default();  break;
+	case KEY_RETURN: open_return();  break;
+	case KEY_ESCAPE: mode_default(); break;
 	}
 }
 
 static u32 open_render(void)
 {
-	ed_render_nav(&fld_nav, "Open: ");
-	return ed_render_dir();
+	char buf[256];
+	snprintf(buf, sizeof(buf), "Open: %s [%d]",
+		_path_buf, dropdown_nav.count - 1);
+	ed_render_line_str(buf, 0, 0,
+		screen_color(COLOR_TABLE_BG, COLOR_TABLE_FG));
+	ed_render_nav(&fld_nav, 1, "Filter: ");
+	return ed_render_dir(2);
 }

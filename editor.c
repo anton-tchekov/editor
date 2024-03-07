@@ -30,23 +30,27 @@ enum
 #include "dropdown.c"
 #include "field.c"
 
-static u32 offset_x, page_w;
+static u32 _offset_x, _page_w;
 
-static u8 mode;
+static u8 _mode;
 
-static u8 search_dir;
-static u8 replace;
-static u8 match_case;
-static u8 whole_words;
-static u8 use_escseq;
+static u8
+	_show_linenr,
+	_show_whitespace;
 
-static u32 tabsize;
-static u8 show_linenr;
-static u8 show_whitespace;
+static u8
+	_search_dir,
+	_replace,
+	_match_case,
+	_whole_words,
+	_use_escseq;
+
+static u32 _tabsize;
 
 #include "textbuf.c"
 
-static char nav_path[PATH_MAX];
+static char _path_buf[PATH_MAX];
+
 static char nav_buf[256];
 static field fld_nav = { nav_buf, sizeof(nav_buf), 0, 0 };
 
@@ -60,7 +64,7 @@ static textbuf *tb;
 
 static void mode_default(void)
 {
-	mode = ED_MODE_DEFAULT;
+	_mode = ED_MODE_DEFAULT;
 }
 
 #include "buffers.c"
@@ -107,29 +111,29 @@ static void ed_new(void)
 static void ed_init(void)
 {
 	bf_init();
-	tabsize = 4;
-	show_whitespace = 1;
-	show_linenr = 1;
-	fld_nav.len = get_working_dir(fld_nav.buf);
+	_tabsize = 4;
+	_show_whitespace = 1;
+	_show_linenr = 1;
+	get_working_dir(_path_buf);
 }
 
 static void ed_toggle_line_nr(void)
 {
-	show_linenr = !show_linenr;
+	_show_linenr = !_show_linenr;
 }
 
 static void ed_tab_size(void)
 {
-	tabsize <<= 1;
-	if(tabsize > 8)
+	_tabsize <<= 1;
+	if(_tabsize > 8)
 	{
-		tabsize = 2;
+		_tabsize = 2;
 	}
 }
 
 static void ed_whitespace(void)
 {
-	show_whitespace = !show_whitespace;
+	_show_whitespace = !_show_whitespace;
 }
 
 static void ed_cleanup(void)
@@ -179,7 +183,7 @@ static void ed_render(void)
 {
 	u32 start_y, end_y;
 	start_y = 0;
-	switch(mode)
+	switch(_mode)
 	{
 	case ED_MODE_OPEN:
 		start_y = open_render();
@@ -388,7 +392,7 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 		return;
 	}
 
-	switch(mode)
+	switch(_mode)
 	{
 	case ED_MODE_DEFAULT:
 		default_key_press(key, chr);

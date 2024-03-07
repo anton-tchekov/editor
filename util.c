@@ -148,30 +148,26 @@ static char *path_file(char *s)
 	return slash;
 }
 
-static void path_updir(char *s)
+static void path_parent_dir(char *s)
 {
 	u32 c;
-	char *p, *slash;
-	for(p = s, slash = s; (c = *p); ++p)
+	char *p, *prev, *slash;
+
+	prev = NULL;
+	slash = NULL;
+	for(p = s; (c = *p); ++p)
 	{
 		if(c == '/')
 		{
+			prev = slash;
 			slash = p;
 		}
 	}
 
-	if(slash != s)
+	if(prev)
 	{
-		for(p = slash - 1; p > s; --p)
-		{
-			if(*p == '/')
-			{
-				break;
-			}
-		}
+		prev[1] = '\0';
 	}
-
-	strcpy(p, "/");
 }
 
 static u32 last_char_is(const char *s, u32 c)
@@ -183,6 +179,11 @@ static u32 last_char_is(const char *s, u32 c)
 	}
 
 	return (u32)s[len - 1] == c;
+}
+
+static u32 path_is_dir(const char *s)
+{
+	return last_char_is(s, '/');
 }
 
 static u32 starts_with(const char *str, const char *prefix)

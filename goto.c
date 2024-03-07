@@ -4,7 +4,7 @@ static field _goto_fld = { _goto_buf, sizeof(_goto_buf), 0, 0 };
 
 static void mode_goto(void)
 {
-	mode = ED_MODE_GOTO;
+	_mode = ED_MODE_GOTO;
 	field_reset(&_goto_fld);
 }
 
@@ -39,6 +39,6 @@ static void goto_key_press(u32 key, u32 c)
 
 static u32 goto_render(void)
 {
-	ed_render_nav(&_goto_fld, "Location: ");
+	ed_render_nav(&_goto_fld, 0, "Location: ");
 	return 1;
 }

@@ -810,7 +810,7 @@ static void tb_goto_def(textbuf *t, const char *s)
 static u32 tb_chr_x_inc(u32 c, u32 x)
 {
 	return (c == '\t') ?
-		((x + tabsize) / tabsize * tabsize) :
+		((x + _tabsize) / _tabsize * _tabsize) :
 		(x + 1);
 }
 
@@ -1214,7 +1214,7 @@ static u32 tb_cursor_to_line(textbuf *t, u32 y)
 static void tb_mouse_sel(textbuf *t, u32 x, u32 y)
 {
 	t->sel.c[1].y = y = tb_cursor_to_line(t, y);
-	x = (x > offset_x) ? (x - offset_x) : 0;
+	x = (x > _offset_x) ? (x - _offset_x) : 0;
 	t->sel.c[1].x = tb_col_to_idx(t, y, x);
 	t->cursor_save_x = -1;
 }

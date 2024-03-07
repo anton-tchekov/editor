@@ -1,6 +1,6 @@
 static void mode_opened(void)
 {
-	mode = ED_MODE_OPENED;
+	_mode = ED_MODE_OPENED;
 	dropdown_nav.count = bf_count();
 	dropdown_nav.pos = cur_buf;
 	dropdown_nav.offset = 0;
@@ -73,27 +73,19 @@ static void opened_discard(dropdown *d)
 
 static void opened_key_press(u32 key)
 {
-	if(key == KEY_RETURN || key == KEY_ESCAPE)
-	{
-		mode_default();
-		return;
-	}
-
-	if(key == (MOD_CTRL | KEY_S))
-	{
-		ed_save();
-		return;
-	}
-
 	switch(key)
 	{
+	case KEY_ESCAPE:
+	case KEY_RETURN:       mode_default();                  break;
+	case MOD_CTRL | KEY_S: ed_save();                       break;
+	case MOD_CTRL | KEY_W: opened_discard(&dropdown_nav);   break;
+	case MOD_CTRL | KEY_O: mode_open();                     break;
 	case KEY_UP:           opened_up(&dropdown_nav);        break;
 	case KEY_DOWN:         opened_down(&dropdown_nav);      break;
 	case KEY_PAGE_UP:      opened_page_up(&dropdown_nav);   break;
 	case KEY_PAGE_DOWN:    opened_page_down(&dropdown_nav); break;
 	case KEY_HOME:         opened_first(&dropdown_nav);     break;
 	case KEY_END:          opened_last(&dropdown_nav);      break;
-	case MOD_CTRL | KEY_W: opened_discard(&dropdown_nav);   break;
 	}
 }
 

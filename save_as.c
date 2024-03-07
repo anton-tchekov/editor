@@ -1,6 +1,6 @@
 static void mode_save_as(void)
 {
-	mode = ED_MODE_SAVE_AS;
+	_mode = ED_MODE_SAVE_AS;
 	ed_dir_load();
 }
 
@@ -67,6 +67,6 @@ static void save_as_key_press(u32 key, u32 c)
 
 static u32 save_as_render(void)
 {
-	ed_render_nav(&fld_nav, "Save As: ");
-	return ed_render_dir();
+	ed_render_nav(&fld_nav, 0, "Save As: ");
+	return ed_render_dir(1);
 }
