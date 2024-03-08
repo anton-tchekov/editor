@@ -18,14 +18,23 @@ static void tf_init(tf *t)
 	tf_clear(t);
 }
 
-static void tf_destroy(tf *t)
-{
-	vector_destroy(&t->v);
-}
-
 static void tf_sel_to_pos(tf *t)
 {
 	t->sel = t->pos;
+}
+
+static void tf_set(tf *t, char *s, u32 len)
+{
+	vector_clear(&t->v);
+	vector_push(&t->v, len, s);
+	vector_push(&t->v, 1, "");
+	t->pos = len;
+	tf_sel_to_pos(t);
+}
+
+static void tf_destroy(tf *t)
+{
+	vector_destroy(&t->v);
 }
 
 static u32 tf_len(tf *t)

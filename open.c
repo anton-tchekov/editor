@@ -17,6 +17,41 @@ static void open_filter(void)
 	dd_reset(&_dd, cnt);
 }
 
+static void open_tab(void)
+{
+	u32 i, first, sl;
+	char *s, *fs;
+
+	s = tf_str(&_fld);
+	first = 1;
+	for(i = 0; i < _dir_count; ++i)
+	{
+		char *cur = _dir_list[i];
+		if(starts_with(cur, s))
+		{
+			if(first)
+			{
+				first = 0;
+				fs = cur;
+				sl = strlen(fs);
+			}
+			else
+			{
+				u32 len;
+				char *q = cur;
+				char *p = fs;
+				for(len = 0; len < sl && *p == *q; ++len, ++p, ++q) {}
+				sl = len;
+			}
+		}
+	}
+
+	if(!first)
+	{
+		tf_set(&_fld, fs, sl);
+	}
+}
+
 static void open_dir_reload(void)
 {
 	_free(_dir_list);
@@ -64,6 +99,7 @@ static void open_key_press(u32 key, u32 c)
 
 	switch(key & 0xFF)
 	{
+	case KEY_TAB:    open_tab();     break;
 	case KEY_RETURN: open_return();  break;
 	case KEY_ESCAPE: mode_default(); break;
 	}
