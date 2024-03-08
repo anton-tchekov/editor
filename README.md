@@ -9,5 +9,4 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-- Nav Bar Select file and open
 - Search and replace in file / whole folder

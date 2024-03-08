@@ -278,33 +278,33 @@ static void default_key_press(u32 key, u32 cp)
 	case KEY_DELETE:                        tb_delete(_tb);          break;
 	case KEY_INSERT:                        tb_toggle_insert(_tb);   break;
 	case MOD_CTRL | KEY_L:                  tb_sel_cur_line(_tb);    break;
-	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr();    break;
+	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr();     break;
 	case MOD_CTRL | KEY_K:                  tb_toggle_lang(_tb);     break;
-	case MOD_CTRL | KEY_G:                  mode_goto();            break;
-	case MOD_CTRL | KEY_O:                  mode_open();            break;
+	case MOD_CTRL | KEY_G:                  mode_goto();             break;
+	case MOD_CTRL | KEY_O:                  mode_open();             break;
 	case MOD_CTRL | KEY_C:                  tb_copy(_tb);            break;
 	case MOD_CTRL | KEY_X:                  tb_cut(_tb);             break;
 	case MOD_CTRL | KEY_V:                  tb_paste(_tb);           break;
-	case MOD_CTRL | KEY_S:                  ed_save();              break;
-	case MOD_CTRL | MOD_SHIFT | KEY_S:      mode_save_as();         break;
-	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();          break;
+	case MOD_CTRL | KEY_S:                  ed_save();               break;
+	case MOD_CTRL | MOD_SHIFT | KEY_S:      mode_save_as();          break;
+	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();           break;
 	case MOD_CTRL | KEY_T:
-	case MOD_CTRL | KEY_N:                  ed_new();               break;
-	case MOD_CTRL | KEY_W:                  bf_discard_cur();       break;
-	case MOD_CTRL | KEY_Q:                  ed_quit();              break;
-	case MOD_CTRL | KEY_J:                  ed_whitespace();        break;
+	case MOD_CTRL | KEY_N:                  ed_new();                break;
+	case MOD_CTRL | KEY_W:                  bf_discard_cur();        break;
+	case MOD_CTRL | KEY_Q:                  ed_quit();               break;
+	case MOD_CTRL | KEY_J:                  ed_whitespace();         break;
 	case MOD_CTRL | KEY_D:                  tb_trailing(_tb);        break;
 	case MOD_CTRL | KEY_B:
-	case MOD_CTRL | KEY_P:                  mode_opened();          break;
+	case MOD_CTRL | KEY_P:                  mode_opened();           break;
 	case MOD_CTRL | KEY_I:                  tb_ins_include(_tb);     break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      tb_ins_include_lib(_tb); break;
 	case MOD_CTRL | MOD_SHIFT | KEY_A:      tb_ins_comment(_tb);     break;
 	case MOD_CTRL | KEY_A:                  tb_sel_all(_tb);         break;
-	case MOD_CTRL | KEY_TAB:                bf_cycle();             break;
-	case MOD_CTRL | KEY_F:                  mode_search();          break;
-	case MOD_CTRL | MOD_SHIFT | KEY_F:      mode_search_in_dir();   break;
-	case MOD_CTRL | KEY_H:                  mode_replace();         break;
-	case MOD_CTRL | MOD_SHIFT | KEY_H:      mode_replace_in_dir();  break;
+	case MOD_CTRL | KEY_TAB:                bf_cycle();              break;
+	case MOD_CTRL | KEY_F:                  mode_search();           break;
+	case MOD_CTRL | MOD_SHIFT | KEY_F:      mode_search_in_dir();    break;
+	case MOD_CTRL | KEY_H:                  mode_replace();          break;
+	case MOD_CTRL | MOD_SHIFT | KEY_H:      mode_replace_in_dir();   break;
 	case MOD_SHIFT | KEY_TAB:               tb_sel_unindent(_tb);    break;
 	default:
 		if(isprint(cp) || cp == '\t')

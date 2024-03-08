@@ -31,13 +31,13 @@ static void mode_open(void)
 static void open_return(void)
 {
 	char *cur = ((char **)vector_data(&_filt_dir))[_dd.pos];
-	if(!strcmp(cur, ".."))
+	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
 		field_reset(&_fld);
 		open_dir_reload();
 	}
-	if(path_is_dir(cur))
+	else if(path_is_dir(cur))
 	{
 		strcat(_path_buf, cur);
 		field_reset(&_fld);
@@ -67,7 +67,22 @@ static void open_key_press(u32 key, u32 c)
 	}
 }
 
+static u32 open_dir_render(u32 y)
+{
+	u32 i, end;
+	char **list = vector_data(&_filt_dir);
+	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
+	for(i = _dd.offset; i < end; ++i, ++y)
+	{
+		ed_render_line_str(list[i], 0, y, dropdown_color(&_dd, i));
+	}
+
+	return y;
+}
+
 static u32 open_render(void)
 {
-	return nav_render(vector_data(&_filt_dir), "Open", "Filter: ");
+	nav_title_render("Open");
+	field_render(&_fld, 1, 1, "Filter: ");
+	return open_dir_render(2);
 }

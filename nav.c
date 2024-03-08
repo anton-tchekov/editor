@@ -20,36 +20,10 @@ static void nav_cleanup(void)
 	vector_destroy(&_filt_dir);
 }
 
-static void nav_dir_reload(void)
-{
-	_free(_dir_list);
-	_dir_list = dir_sorted(_path_buf, &_dir_count);
-	dropdown_reset(&_dd, _dir_count);
-}
-
 static void nav_title_render(char *s)
 {
 	char buf[256];
 	snprintf(buf, sizeof(buf), "%s: %s [%d]",
 		s, _path_buf, _dir_count - 1);
 	ed_render_line_str(buf, 0, 0, ptp(PT_BG, PT_FG));
-}
-
-static u32 nav_dir_render(char **list, u32 y)
-{
-	u32 i, end;
-	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
-	for(i = _dd.offset; i < end; ++i, ++y)
-	{
-		ed_render_line_str(list[i], 0, y, dropdown_color(&_dd, i));
-	}
-
-	return y;
-}
-
-static u32 nav_render(char **list, char *ac, char *in)
-{
-	nav_title_render(ac);
-	field_render(&_fld, 1, 1, in);
-	return nav_dir_render(list, 2);
 }
