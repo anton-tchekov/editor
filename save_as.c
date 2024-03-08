@@ -19,17 +19,17 @@ static void ed_save_as(void)
 {
 	u32 len;
 	char *buf = tb_export(_tb, &len);
-	if(file_write(_path_buf, buf, len))
+	if(file_write(_fname_buf, buf, len))
 	{
 		msg_show(MSG_ERROR, "Writing file failed");
 	}
 	else
 	{
 		msg_show(MSG_INFO, "File saved");
-		tb_change_filename(_tb, _path_buf);
+		tb_change_filename(_tb, _fname_buf);
 		_tb->modified = 0;
 		_tb->exists = 1;
-		bf_close_other(_path_buf, _cur_buf);
+		bf_close_other(_fname_buf, _cur_buf);
 	}
 
 	_free(buf);
@@ -46,15 +46,15 @@ static void save_as_confirm(u32 yes)
 
 static void save_as_path(void)
 {
-	if(bf_opened_and_modified(_path_buf))
+	if(bf_opened_and_modified(_fname_buf))
 	{
 		msg_show(MSG_ERROR, "Target has unsaved changes in editor!");
 		return;
 	}
 
-	if(file_exists(_path_buf))
+	if(file_exists(_fname_buf))
 	{
-		confirm(save_as_confirm, "Overwrite existing %s? [Y/N]", _path_buf);
+		confirm(save_as_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
 		return;
 	}
 
@@ -76,25 +76,22 @@ static void save_as_dir_return(void)
 	}
 	else
 	{
-		char *end = memchr(_path_buf, '\0', sizeof(_path_buf));
-		strcpy(end, cur);
+		strcpy(_fname_buf, _path_buf);
+		strcat(_fname_buf, cur);
 		save_as_path();
-		*end = '\0';
 	}
 }
 
 static void save_as_fld_return(void)
 {
-	char *end;
 	if(!_fld.len)
 	{
 		return;
 	}
 
-	end = memchr(_path_buf, '\0', sizeof(_path_buf));
-	strcpy(end, _fld.buf);
+	strcpy(_fname_buf, _path_buf);
+	strcat(_fname_buf, _fld.buf);
 	save_as_path();
-	*end = '\0';
 }
 
 static void save_as_key_press(u32 key, u32 c)

@@ -45,10 +45,9 @@ static void open_return(void)
 	}
 	else
 	{
-		char *end = memchr(_path_buf, '\0', sizeof(_path_buf));
-		strcpy(end, cur);
-		ed_load(_path_buf);
-		*end = '\0';
+		strcpy(_fname_buf, _path_buf);
+		strcat(_fname_buf, cur);
+		ed_load(_fname_buf);
 	}
 }
 

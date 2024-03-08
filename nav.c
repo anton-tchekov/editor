@@ -1,5 +1,6 @@
 /* Common functions for "Load File" and "Save As" file browser */
 static char _path_buf[PATH_MAX];
+static char _fname_buf[PATH_MAX];
 static char _fld_buf[256];
 static field _fld = { _fld_buf, sizeof(_fld_buf), 0, 0 };
 

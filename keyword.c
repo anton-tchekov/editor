@@ -63,7 +63,7 @@ static keyword _c_keywords[] =
 	{ PT_KEYWORD, "do" },
 	{ PT_KEYWORD, "if" },
 	{ PT_KEYWORD, "else" },
-	{ PT_KEYWORD, "enum" },
+	{ PT_TYPE, "enum" },
 	{ PT_KEYWORD, "extern" },
 	{ PT_KEYWORD, "false" },
 	{ PT_TYPE, "float" },
