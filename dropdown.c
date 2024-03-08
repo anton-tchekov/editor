@@ -3,11 +3,27 @@ typedef struct
 	u32 pos, count, offset;
 } dropdown;
 
-static void dropdown_reset(dropdown *d)
+static void dropdown_down_fix_offset(dropdown *d)
+{
+	if(d->pos >= d->offset + DROPDOWN_PAGE)
+	{
+		d->offset = (d->pos < DROPDOWN_PAGE) ? 0 : (d->pos - DROPDOWN_PAGE + 1);
+	}
+}
+
+static void dropdown_preset(dropdown *d, u32 pos, u32 cnt)
+{
+	d->count = cnt;
+	d->pos = pos;
+	d->offset = 0;
+	dropdown_down_fix_offset(d);
+}
+
+static void dropdown_reset(dropdown *d, u32 cnt)
 {
 	d->pos = 0;
 	d->offset = 0;
-	d->count = 0;
+	d->count = cnt;
 }
 
 static void dropdown_up_fix_offset(dropdown *d)
@@ -15,14 +31,6 @@ static void dropdown_up_fix_offset(dropdown *d)
 	if(d->pos < d->offset)
 	{
 		d->offset = d->pos;
-	}
-}
-
-static void dropdown_down_fix_offset(dropdown *d)
-{
-	if(d->pos >= d->offset + DROPDOWN_PAGE)
-	{
-		d->offset = (d->pos < DROPDOWN_PAGE) ? 0 : (d->pos - DROPDOWN_PAGE + 1);
 	}
 }
 

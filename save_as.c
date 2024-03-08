@@ -41,7 +41,6 @@ static void save_as_return(void)
 		return;
 	}
 
-	field_add_nt(&_fld);
 	if(file_exists(_fld.buf))
 	{
 		confirm(save_as_confirm,
@@ -66,5 +65,5 @@ static void save_as_key_press(u32 key, u32 c)
 
 static u32 save_as_render(void)
 {
-	return nav_render("Save As", "Filename: ");
+	return nav_render(_dir_list, "Save As", "Filename: ");
 }

@@ -9,7 +9,6 @@ static void goto_return(void)
 {
 	u32 lnr;
 	mode_default();
-	field_add_nt(&_fld);
 	lnr = conv_lnr_str(_fld.buf);
 	if(lnr)
 	{

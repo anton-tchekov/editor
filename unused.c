@@ -51,7 +51,6 @@ static void tab_cmpl_callback(char *fname, u32 is_dir)
 static void load_save_tab(void)
 {
 	char buf[sizeof(_fld_buf)];
-	field_add_nt(&_fld);
 	strcpy(buf, _fld.buf);
 	path_dir(buf);
 	first_compare = 1;
