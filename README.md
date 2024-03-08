@@ -9,4 +9,8 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-- Search and replace in file / whole folder
+- Indent Selected using Tab
+- Search and replace in file and whole folder
+- Unicode problems
+- Undo / Redo
+- Multiple Cursors
