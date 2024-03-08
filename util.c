@@ -206,19 +206,6 @@ static u32 starts_with(char *str, char *prefix)
 	return 1;
 }
 
-static u32 starts_with_ic(char *str, char *prefix)
-{
-	while(*prefix)
-	{
-		if(tolower(*prefix++) != tolower(*str++))
-		{
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
 static u32 match_part(char *str, char *cmp, u32 len)
 {
 	return len == strlen(cmp) && !strncmp(str, cmp, len);
@@ -269,4 +256,9 @@ static char *_strdup(char *s)
 static u32 umin(u32 a, u32 b)
 {
 	return a < b ? a : b;
+}
+
+static u32 umax(u32 a, u32 b)
+{
+	return a > b ? a : b;
 }

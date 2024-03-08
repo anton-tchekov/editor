@@ -4,7 +4,7 @@ static void (*_confirm_callback)(u32);
 static void confirm(void (*callback)(u32), char *msg, ...)
 {
 	va_list args;
-	_mode = ED_MODE_CONFIRM;
+	_mode = MODE_CONFIRM;
 	va_start(args, msg);
 	vsnprintf(_confirm_buf, sizeof(_confirm_buf), msg, args);
 	va_end(args);

@@ -1,46 +1,46 @@
 static void mode_opened(void)
 {
-	_mode = ED_MODE_OPENED;
-	dropdown_preset(&_dd, _cur_buf, bf_count());
+	_mode = MODE_OPENED;
+	dd_preset(&_dd, _cur_buf, bf_count());
 }
 
-static void opened_up(dropdown *d)
+static void opened_up(dd *d)
 {
-	dropdown_up(d);
+	dd_up(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_down(dropdown *d)
+static void opened_down(dd *d)
 {
-	dropdown_down(d);
+	dd_down(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_page_up(dropdown *d)
+static void opened_page_up(dd *d)
 {
-	dropdown_page_up(d);
+	dd_page_up(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_page_down(dropdown *d)
+static void opened_page_down(dd *d)
 {
-	dropdown_page_down(d);
+	dd_page_down(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_first(dropdown *d)
+static void opened_first(dd *d)
 {
-	dropdown_first(d);
+	dd_first(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_last(dropdown *d)
+static void opened_last(dd *d)
 {
-	dropdown_last(d);
+	dd_last(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_discard(dropdown *d)
+static void opened_discard(dd *d)
 {
 	if(!d->count)
 	{
@@ -55,7 +55,7 @@ static void opened_discard(dropdown *d)
 		return;
 	}
 
-	if(d->offset > 0 && d->offset + DROPDOWN_PAGE >= d->count)
+	if(d->offset > 0 && d->offset + DD_PAGE >= d->count)
 	{
 		--d->offset;
 	}
@@ -99,11 +99,11 @@ static u32 opened_render(void)
 {
 	u32 i, y, end;
 	opened_render_title();
-	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
+	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(y = 1, i = _dd.offset; i < end; ++i, ++y)
 	{
 		textbuf *t = bf_get(i);
-		u32 color = dropdown_color(&_dd, i);
+		u32 color = dd_color(&_dd, i);
 		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
 		ed_render_line_str(t->filename, 1, y, color);
 	}

@@ -9,8 +9,14 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
+- Open and Save Tab completion
+- Save Filter
+
+- Ctrl+C Copy current line
 - Indent Selected using Tab
+
 - Search and replace in file and whole folder
+
 - Unicode problems
 - Undo / Redo
 - Multiple Cursors

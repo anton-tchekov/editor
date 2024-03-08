@@ -407,7 +407,7 @@ static void tb_sel_unindent(textbuf *t)
 	for(; y1 <= y2; ++y1)
 	{
 		vector *line = tb_get_line(t, y1);
-		if(vector_len(line) > 0 && ((char *)vector_data(line))[0] == '\t')
+		if(vector_len(line) > 0 && vector_str(line)[0] == '\t')
 		{
 			vector_remove(line, 0, 1);
 		}
@@ -510,7 +510,7 @@ static void tb_enter(textbuf *t)
 	tb_sel_clear(t);
 
 	cur = tb_cur_line(t);
-	str = (char *)vector_data(cur) + t->sel.c[1].x;
+	str = vector_str(cur) + t->sel.c[1].x;
 	len = vector_len(cur) - t->sel.c[1].x;
 
 	/* Copy characters after cursor on current line to new line */
@@ -1261,7 +1261,7 @@ static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 		}
 		else
 		{
-			tc = ((char *)vector_data(line))[x];
+			tc = vector_str(line)[x];
 		}
 
 		if(qc != tc)

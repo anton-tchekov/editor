@@ -74,7 +74,7 @@ static void ed_put(u32 x, u32 y, u32 c)
 	}
 	else if(is_sel(x, y))
 	{
-		c = screen_pack_set_bg(c, PT_SELECTION);
+		c = screen_pack_set_bg(c, PT_SEL);
 	}
 
 	screen_set(x + _offset_x, y - _tb->page_y, c);
@@ -550,7 +550,7 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		" CTRL+O to open file\0"
 		" CTRL+S to save\0"
 		" CTRL+W to discard buffer\0"
-		" CTRL+B to view open _buffers\0"
+		" CTRL+B or CTRL+P to view open buffers\0"
 		" CTRL+G to go to line number or symbol definiton\0\1";
 
 	u32 x, color = ptp(PT_FG, PT_BG);

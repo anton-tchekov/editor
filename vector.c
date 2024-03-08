@@ -101,6 +101,20 @@ static void *vector_data(vector *v)
 	return v->data;
 }
 
+static char *vector_str(vector *v)
+{
+	return v->data;
+}
+
+static void vector_str_clear(vector *v)
+{
+	char *s;
+	vector_reserve(v, 1);
+	s = v->data;
+	s[0] = '\0';
+	v->len = 1;
+}
+
 static u32 vector_len(vector *v)
 {
 	return v->len;

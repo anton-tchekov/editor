@@ -1,27 +1,30 @@
 /* Go to line or symbol definition */
 static void mode_goto(void)
 {
-	_mode = ED_MODE_GOTO;
-	field_reset(&_fld);
+	_mode = MODE_GOTO;
+	tf_clear(&_fld);
 }
 
 static void goto_return(void)
 {
 	u32 lnr;
+	char *s;
+
+	s = tf_str(&_fld);
 	mode_default();
-	lnr = conv_lnr_str(_fld.buf);
+	lnr = conv_lnr_str(s);
 	if(lnr)
 	{
 		tb_gotoxy(_tb, 0, lnr - 1);
 		return;
 	}
 
-	tb_goto_def(_tb, _fld.buf);
+	tb_goto_def(_tb, s);
 }
 
 static void goto_key_press(u32 key, u32 c)
 {
-	field_key(&_fld, key, c);
+	tf_key(&_fld, key, c);
 	key &= 0xFF;
 	if(key == KEY_RETURN)
 	{
@@ -35,6 +38,6 @@ static void goto_key_press(u32 key, u32 c)
 
 static u32 goto_render(void)
 {
-	field_render(&_fld, 0, 1, "Location: ");
+	tf_render(&_fld, 0, 1, "Location: ");
 	return 1;
 }

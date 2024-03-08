@@ -1,17 +1,20 @@
 static void open_filter(void)
 {
 	u32 i, cnt;
+	char *s;
+
+	s = tf_str(&_fld);
 	vector_clear(&_filt_dir);
 	for(cnt = 0, i = 0; i < _dir_count; ++i)
 	{
-		if(starts_with_ic(_dir_list[i], _fld.buf))
+		if(starts_with(_dir_list[i], s))
 		{
 			vector_push(&_filt_dir, sizeof(char *), _dir_list + i);
 			++cnt;
 		}
 	}
 
-	dropdown_reset(&_dd, cnt);
+	dd_reset(&_dd, cnt);
 }
 
 static void open_dir_reload(void)
@@ -23,8 +26,8 @@ static void open_dir_reload(void)
 
 static void mode_open(void)
 {
-	_mode = ED_MODE_OPEN;
-	field_reset(&_fld);
+	_mode = MODE_OPEN;
+	tf_clear(&_fld);
 	open_dir_reload();
 }
 
@@ -34,13 +37,13 @@ static void open_return(void)
 	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
-		field_reset(&_fld);
+		tf_clear(&_fld);
 		open_dir_reload();
 	}
 	else if(path_is_dir(cur))
 	{
 		strcat(_path_buf, cur);
-		field_reset(&_fld);
+		tf_clear(&_fld);
 		open_dir_reload();
 	}
 	else
@@ -53,8 +56,8 @@ static void open_return(void)
 
 static void open_key_press(u32 key, u32 c)
 {
-	dropdown_key(&_dd, key);
-	if(field_key(&_fld, key, c))
+	dd_key(&_dd, key);
+	if(tf_key(&_fld, key, c))
 	{
 		open_filter();
 	}
@@ -70,10 +73,10 @@ static u32 open_dir_render(u32 y)
 {
 	u32 i, end;
 	char **list = vector_data(&_filt_dir);
-	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
+	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(i = _dd.offset; i < end; ++i, ++y)
 	{
-		ed_render_line_str(list[i], 0, y, dropdown_color(&_dd, i));
+		ed_render_line_str(list[i], 0, y, dd_color(&_dd, i));
 	}
 
 	return y;
@@ -82,6 +85,6 @@ static u32 open_dir_render(u32 y)
 static u32 open_render(void)
 {
 	nav_title_render("Open");
-	field_render(&_fld, 1, 1, "Filter: ");
+	tf_render(&_fld, 1, 1, "Filter: ");
 	return open_dir_render(2);
 }

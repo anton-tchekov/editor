@@ -1,16 +1,16 @@
 /* Common functions for "Load File" and "Save As" file browser */
 static char _path_buf[PATH_MAX];
 static char _fname_buf[PATH_MAX];
-static char _fld_buf[256];
-static field _fld = { _fld_buf, sizeof(_fld_buf), 0, 0 };
+static tf _fld;
 
-static dropdown _dd;
+static dd _dd;
 static char **_dir_list;
 static u32 _dir_count;
 static vector _filt_dir;
 
 static void nav_init(void)
 {
+	tf_init(&_fld);
 	get_working_dir(_path_buf);
 	vector_init(&_filt_dir, 64 * sizeof(char *));
 }
@@ -18,6 +18,7 @@ static void nav_init(void)
 static void nav_cleanup(void)
 {
 	_free(_dir_list);
+	tf_destroy(&_fld);
 	vector_destroy(&_filt_dir);
 }
 

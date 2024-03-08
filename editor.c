@@ -4,14 +4,14 @@
 
 enum
 {
-	ED_MODE_DEFAULT,
-	ED_MODE_OPEN,
-	ED_MODE_GOTO,
-	ED_MODE_SAVE_AS,
-	ED_MODE_OPENED,
-	ED_MODE_CONFIRM,
-	ED_MODE_SEARCH,
-	ED_MODE_COUNT
+	MODE_DEFAULT,
+	MODE_OPEN,
+	MODE_GOTO,
+	MODE_SAVE_AS,
+	MODE_OPENED,
+	MODE_CONFIRM,
+	MODE_SEARCH,
+	MODE_COUNT
 };
 
 enum
@@ -23,8 +23,8 @@ enum
 	LANGUAGE_COUNT
 };
 
-#define DROPDOWN_PAGE      12
-#define COMMENT_LOOKBACK   10
+#define DD_PAGE          12
+#define COMMENT_LOOKBACK 10
 
 static u32 _offset_x, _page_w;
 
@@ -36,7 +36,7 @@ static u8
 
 static void mode_default(void)
 {
-	_mode = ED_MODE_DEFAULT;
+	_mode = MODE_DEFAULT;
 }
 
 #include "cursor.c"
@@ -118,8 +118,8 @@ static void ed_whitespace(void)
 	_show_whitespace = !_show_whitespace;
 }
 
-#include "dropdown.c"
-#include "field.c"
+#include "dd.c"
+#include "tf.c"
 #include "nav.c"
 #include "goto.c"
 #include "open.c"
@@ -178,23 +178,23 @@ static void ed_render(void)
 	start_y = 0;
 	switch(_mode)
 	{
-	case ED_MODE_OPEN:
+	case MODE_OPEN:
 		start_y = open_render();
 		break;
 
-	case ED_MODE_GOTO:
+	case MODE_GOTO:
 		start_y = goto_render();
 		break;
 
-	case ED_MODE_SAVE_AS:
+	case MODE_SAVE_AS:
 		start_y = save_as_render();
 		break;
 
-	case ED_MODE_OPENED:
+	case MODE_OPENED:
 		start_y = opened_render();
 		break;
 
-	case ED_MODE_CONFIRM:
+	case MODE_CONFIRM:
 		start_y = confirm_render();
 		break;
 	}
@@ -387,28 +387,32 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 
 	switch(_mode)
 	{
-	case ED_MODE_DEFAULT:
+	case MODE_DEFAULT:
 		default_key_press(key, chr);
 		break;
 
-	case ED_MODE_OPEN:
+	case MODE_OPEN:
 		open_key_press(key, chr);
 		break;
 
-	case ED_MODE_GOTO:
+	case MODE_GOTO:
 		goto_key_press(key, chr);
 		break;
 
-	case ED_MODE_SAVE_AS:
+	case MODE_SAVE_AS:
 		save_as_key_press(key, chr);
 		break;
 
-	case ED_MODE_OPENED:
+	case MODE_OPENED:
 		opened_key_press(key);
 		break;
 
-	case ED_MODE_CONFIRM:
+	case MODE_CONFIRM:
 		confirm_key_press(key);
+		break;
+
+	case MODE_SEARCH:
+		sr_key_press(key, chr);
 		break;
 	}
 

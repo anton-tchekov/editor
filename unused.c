@@ -94,3 +94,16 @@ static void path_dir(char *s)
 
 	strcpy(slash, "/");
 }
+
+static u32 starts_with_ic(char *str, char *prefix)
+{
+	while(*prefix)
+	{
+		if(tolower(*prefix++) != tolower(*str++))
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}

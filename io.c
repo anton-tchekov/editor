@@ -56,7 +56,7 @@ enum
 	PT_PAREN,
 	PT_FN,
 	PT_ARRAY,
-	PT_SELECTION,
+	PT_SEL,
 	PT_INFO,
 	PT_ERROR
 };
@@ -625,18 +625,36 @@ static void request_exit(void)
 	_quit = 1;
 }
 
+static u64 get_ticks(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (u64)1000000 * (u64)tv.tv_sec + (u64)tv.tv_usec;
+}
+
 #ifndef NDEBUG
 
 static int fuzzmain(void)
 {
 	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
+	u64 t0, t1;
+	u32 cnt = 0;
 	SDL_Event e;
 	init();
 	event_init();
 	srand(time(NULL));
+	SDL_RenderSetVSync(_renderer, 0);
 	while(!_quit)
 	{
+		t0 = get_ticks();
+		if(t0 >= t1 + 1000000)
+		{
+			printf("cnt = %d\n", cnt);
+			cnt = 0;
+			t1 = t0;
+		}
+
 		SDL_UpdateTexture(_framebuffer, NULL, _pixels,
 			_gfx_width * sizeof(u32));
 
@@ -680,6 +698,8 @@ static int fuzzmain(void)
 			}
 			break;
 		}
+
+		++cnt;
 	}
 
 	cleanup();
@@ -738,17 +758,14 @@ int main(void)
 			{
 				u32 key;
 #ifdef TIMEKEY
-				struct timeval tv;
 				u64 t0, t1;
-				gettimeofday(&tv, NULL);
-				t0 = (u64)1000000 * (u64)tv.tv_sec + (u64)tv.tv_usec;
+				t0 = get_ticks();
 #endif
 				key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
 				event_keyboard(key, key_to_chr(key),
 					e.key.repeat ? KEYSTATE_REPEAT : KEYSTATE_PRESSED);
 #ifdef TIMEKEY
-				gettimeofday(&tv, NULL);
-				t1 = (u64)1000000 * (u64)tv.tv_sec + (u64)tv.tv_usec;
+				t1 = get_ticks();
 				printf("delta_t = %"PRIu64"\n", t1 - t0);
 #endif
 			}

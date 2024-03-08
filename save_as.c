@@ -4,21 +4,23 @@ static void save_as_dir_reload(void)
 {
 	_free(_dir_list);
 	_dir_list = dir_sorted(_path_buf, &_dir_count);
-	dropdown_reset(&_dd, _dir_count);
+	dd_reset(&_dd, _dir_count);
 	_focus = 1;
 }
 
 static void mode_save_as(void)
 {
-	_mode = ED_MODE_SAVE_AS;
-	field_reset(&_fld);
+	_mode = MODE_SAVE_AS;
+	tf_clear(&_fld);
 	save_as_dir_reload();
 }
 
 static void ed_save_as(void)
 {
 	u32 len;
-	char *buf = tb_export(_tb, &len);
+	char *buf;
+
+	buf = tb_export(_tb, &len);
 	if(file_write(_fname_buf, buf, len))
 	{
 		msg_show(MSG_ERROR, "Writing file failed");
@@ -63,7 +65,9 @@ static void save_as_path(void)
 
 static void save_as_dir_return(void)
 {
-	char *cur = _dir_list[_dd.pos];
+	char *cur;
+
+	cur = _dir_list[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
@@ -84,13 +88,13 @@ static void save_as_dir_return(void)
 
 static void save_as_fld_return(void)
 {
-	if(!_fld.len)
+	if(!tf_len(&_fld))
 	{
 		return;
 	}
 
 	strcpy(_fname_buf, _path_buf);
-	strcat(_fname_buf, _fld.buf);
+	strcat(_fname_buf, tf_str(&_fld));
 	save_as_path();
 }
 
@@ -108,17 +112,17 @@ static void save_as_key_press(u32 key, u32 c)
 		{
 		case KEY_DOWN:
 			_focus = 0;
-			dropdown_first(&_dd);
+			dd_first(&_dd);
 			break;
 
 		case MOD_SHIFT | KEY_END:
 			_focus = 0;
-			dropdown_last(&_dd);
+			dd_last(&_dd);
 			break;
 
 		case KEY_PAGE_DOWN:
 			_focus = 0;
-			dropdown_page_down(&_dd);
+			dd_page_down(&_dd);
 			break;
 
 		case KEY_RETURN:
@@ -126,7 +130,7 @@ static void save_as_key_press(u32 key, u32 c)
 			break;
 
 		default:
-			field_key(&_fld, key, c);
+			tf_key(&_fld, key, c);
 			break;
 		}
 	}
@@ -146,7 +150,7 @@ static void save_as_key_press(u32 key, u32 c)
 			}
 			else
 			{
-				dropdown_key(&_dd, key);
+				dd_key(&_dd, key);
 			}
 			break;
 		}
@@ -156,8 +160,9 @@ static void save_as_key_press(u32 key, u32 c)
 static u32 save_as_dir_render(u32 y)
 {
 	u32 i, end;
-	end = umin(_dd.offset + DROPDOWN_PAGE, _dd.count);
+
 	i = _dd.offset;
+	end = umin(i + DD_PAGE, _dd.count);
 	if(_focus)
 	{
 		for(; i < end; ++i, ++y)
@@ -169,7 +174,7 @@ static u32 save_as_dir_render(u32 y)
 	{
 		for(; i < end; ++i, ++y)
 		{
-			ed_render_line_str(_dir_list[i], 0, y, dropdown_color(&_dd, i));
+			ed_render_line_str(_dir_list[i], 0, y, dd_color(&_dd, i));
 		}
 	}
 
@@ -179,6 +184,6 @@ static u32 save_as_dir_render(u32 y)
 static u32 save_as_render(void)
 {
 	nav_title_render("Save As");
-	field_render(&_fld, 1, _focus, "Filename: ");
+	tf_render(&_fld, 1, _focus, "Filename: ");
 	return save_as_dir_render(2);
 }
