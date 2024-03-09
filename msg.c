@@ -19,7 +19,9 @@ static void msg_show(MessageType type, char *msg, ...)
 
 static u32 msg_render(void)
 {
-	u32 end = _screen_height;
+	u32 end;
+
+	end = _screen_height;
 	if(_msg_type)
 	{
 		--end;

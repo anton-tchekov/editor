@@ -7,6 +7,19 @@ that is optimized for C projects, is performant, and productive.
 
 ![Screenshot of Editor](scrnshot.png)
 
+## TODO
+
+### Textbuffer
+- Indent Selected using Tab
+
+### Modes
+- Search and replace in file and whole folder
+
+### Future
+- Fix unicode problems
+- Undo / Redo
+- Multiple Cursors
+
 ## Project overview
 
 ### Code style
@@ -92,17 +105,3 @@ Reset example to initial state
 
 `example_render`\
 Example is rendered to the screen
-
-## TODO
-
-### Textbuffer
-- Ctrl+C Copy current line
-- Indent Selected using Tab
-
-### Modes
-- Search and replace in file and whole folder
-
-### Future
-- Fix unicode problems
-- Undo / Redo
-- Multiple Cursors

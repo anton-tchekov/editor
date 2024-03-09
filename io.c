@@ -113,7 +113,9 @@ static u32 _alloc_cnt, _free_cnt;
 
 static void *_malloc(size_t size)
 {
-	void *p = malloc(size);
+	void *p;
+
+	p = malloc(size);
 	if(!p) { allocfail(); }
 	++_alloc_cnt;
 	return p;
@@ -121,7 +123,9 @@ static void *_malloc(size_t size)
 
 static void *_calloc(size_t num, size_t size)
 {
-	void *p = calloc(num, size);
+	void *p;
+
+	p = calloc(num, size);
 	if(!p) { allocfail(); }
 	++_alloc_cnt;
 	return p;
@@ -234,7 +238,9 @@ static void destroy(void)
 
 static u32 convert_key(i32 scancode, i32 mod)
 {
-	u32 key = scancode;
+	u32 key;
+
+	key = scancode;
 	if(mod & (KMOD_LCTRL | KMOD_RCTRL))
 	{
 		key |= MOD_CTRL;
@@ -265,7 +271,9 @@ static u32 convert_key(i32 scancode, i32 mod)
 
 static u32 key_to_chr(u32 k)
 {
-	u32 nomods = k & 0xFF;
+	u32 nomods;
+
+	nomods = k & 0xFF;
 	if(nomods == KEY_TAB)                             { return '\t'; }
 	else if(nomods == KEY_BACKSPACE)                  { return '\b'; }
 	else if(nomods == KEY_RETURN)                     { return '\n'; }
@@ -290,8 +298,9 @@ static u32 key_to_chr(u32 k)
 	else if(k == KEY_GRAVE)                           { return '^'; }
 	else if(nomods >= KEY_A && nomods <= KEY_Z)
 	{
-		u32 c = nomods - KEY_A + 'a';
+		u32 c;
 
+		c = nomods - KEY_A + 'a';
 		if(c == 'z') { c = 'y'; }
 		else if(c == 'y') { c = 'z'; }
 
@@ -318,7 +327,9 @@ static u32 key_to_chr(u32 k)
 		static char numbers_altgr[] =
 			{ 0, 0, 0, 0, 0, 0, '{', '[', ']', '}' };
 
-		u32 idx = nomods - KEY_1;
+		u32 idx;
+
+		idx = nomods - KEY_1;
 		if(k & MOD_SHIFT)
 		{
 			return numbers_shift[idx];
@@ -335,37 +346,6 @@ static u32 key_to_chr(u32 k)
 
 	return 0;
 }
-
-#if 0
-
-/* Fill Rectangle Function is currently unused, but
- * will very likely be needed in the future */
-static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
-{
-	u32 x0;
-	u32 *line;
-
-	assert(x < _gfx_width);
-	assert(y < _gfx_height);
-	assert(w < _gfx_width);
-	assert(h < _gfx_height);
-	assert((x + w) <= _gfx_width);
-	assert((y + h) <= _gfx_height);
-
-	line = _pixels + y * _gfx_width + x;
-	while(h)
-	{
-		for(x0 = 0; x0 < w; ++x0)
-		{
-			line[x0] = color;
-		}
-
-		line += _gfx_width;
-		--h;
-	}
-}
-
-#endif
 
 static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 {
@@ -429,8 +409,10 @@ static u32 screen_pack_set_bg(u32 v, u32 bg)
 
 static u32 screen_pack_color_swap(u32 v)
 {
-	u32 a = v & 0x0F;
-	u32 b = (v >> 4) & 0x0F;
+	u32 a, b;
+
+	a = v & 0x0F;
+	b = (v >> 4) & 0x0F;
 	v &= ~0xFF;
 	v |= (a << 4) | b;
 	return v;
@@ -639,8 +621,10 @@ static int fuzzmain(void)
 	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
 	u64 t0, t1;
-	u32 cnt = 0;
+	u32 cnt;
 	SDL_Event e;
+
+	cnt = 0;
 	init();
 	event_init();
 	srand(time(NULL));
@@ -685,7 +669,9 @@ static int fuzzmain(void)
 
 		case SDL_KEYDOWN:
 			{
-				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
+				u32 key;
+
+				key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
 				event_keyboard(key, key_to_chr(key),
 					e.key.repeat ? KEYSTATE_REPEAT : KEYSTATE_PRESSED);
 			}
@@ -693,7 +679,9 @@ static int fuzzmain(void)
 
 		case SDL_KEYUP:
 			{
-				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
+				u32 key;
+
+				key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
 				event_keyboard(key, key_to_chr(key), KEYSTATE_RELEASED);
 			}
 			break;
@@ -714,8 +702,8 @@ int main(int argc, char *argv[])
 int main(void)
 #endif
 {
-	u32 triple_click = 0, dbl_click = 0;
-	int down = 0;
+	u32 triple_click, dbl_click;
+	int down;
 	SDL_Event e;
 
 #ifndef NDEBUG
@@ -725,6 +713,9 @@ int main(void)
 	}
 #endif
 
+	down = 0;
+	dbl_click = 0;
+	triple_click = 0;
 	init();
 	event_init();
 	while(!_quit)
@@ -773,7 +764,9 @@ int main(void)
 
 		case SDL_KEYUP:
 			{
-				u32 key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
+				u32 key;
+
+				key = convert_key(e.key.keysym.scancode, e.key.keysym.mod);
 				event_keyboard(key, key_to_chr(key), KEYSTATE_RELEASED);
 			}
 			break;
@@ -786,6 +779,7 @@ int main(void)
 			{
 				u32 time;
 				int x, y;
+
 				down = 1;
 				SDL_GetMouseState(&x, &y);
 				time = SDL_GetTicks();
@@ -822,6 +816,7 @@ int main(void)
 				if(down)
 				{
 					int x, y;
+
 					SDL_GetMouseState(&x, &y);
 					if(x < 0 || y < 0) { break; }
 					event_mousemove(x / CHAR_WIDTH, y / CHAR_HEIGHT);

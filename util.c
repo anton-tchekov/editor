@@ -194,7 +194,9 @@ static void path_parent_dir(char *s)
 
 static u32 last_char_is(char *s, u32 c)
 {
-	u32 len = strlen(s);
+	u32 len;
+
+	len = strlen(s);
 	if(len == 0)
 	{
 		return 0;

@@ -55,3 +55,28 @@ static void reverse(char *s, u32 len)
 		s[j] = c;
 	}
 }
+
+static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
+{
+	u32 x0;
+	u32 *line;
+
+	assert(x < _gfx_width);
+	assert(y < _gfx_height);
+	assert(w < _gfx_width);
+	assert(h < _gfx_height);
+	assert((x + w) <= _gfx_width);
+	assert((y + h) <= _gfx_height);
+
+	line = _pixels + y * _gfx_width + x;
+	while(h)
+	{
+		for(x0 = 0; x0 < w; ++x0)
+		{
+			line[x0] = color;
+		}
+
+		line += _gfx_width;
+		--h;
+	}
+}

@@ -275,7 +275,9 @@ static void kw_init(hashmap *hm)
 	for(i = 0; i < hm->num_keywords; ++i)
 	{
 #ifndef NDEBUG
-		u32 steps = 0;
+		u32 steps;
+
+		steps = 0;
 #endif
 		hash = kw_hash(hm->keywords[i].name, UINT32_MAX);
 		while(hm->table[hash % hm->size] != -1)
@@ -290,13 +292,13 @@ static void kw_init(hashmap *hm)
 
 static u32 kw_detect(hashmap *hm, char *str, u32 len)
 {
+	i32 index;
 	u32 i, hash;
 
 	hash = kw_hash(str, len);
 	for(i = 0; i < COLLISION_LIMIT; ++i)
 	{
-		i32 index = hm->table[hash % hm->size];
-		if(index < 0)
+		if((index = hm->table[hash % hm->size]) < 0)
 		{
 			break;
 		}

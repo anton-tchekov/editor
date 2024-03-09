@@ -4,22 +4,23 @@ static u8 _in_comment;
 
 static void ed_render_linenr(u32 start_y, u32 end_y)
 {
-	u32 x, y, lnr_max, lnr_width;
-	u32 lines = tb_num_lines(_tb);
-	u32 lnr = _tb->page_y + start_y;
+	u32 x, y, lnr_max, lnr_width, color, lines, lnr;
+
+	lines = tb_num_lines(_tb);
+	lnr = _tb->page_y + start_y;
 	lnr_max = lnr + _screen_height;
 	lnr_max = lnr_max < lines ? lnr_max : lines;
 	lnr_width = dec_digit_cnt(lnr_max);
-
 	for(y = start_y; y < end_y; ++y)
 	{
-		u32 color = (lnr == _tb->sel.c[1].y) ?
+		color = (lnr == _tb->sel.c[1].y) ?
 			ptp(PT_FG, PT_BG) : ptp(PT_GRAY, PT_BG);
 
 		++lnr;
 		if(lnr <= lines)
 		{
 			char lnr_buf[16];
+
 			linenr_str(lnr_buf, lnr, lnr_width);
 			for(x = 0; x < lnr_width; ++x)
 			{
@@ -84,7 +85,9 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 {
 	if(c == '\t')
 	{
-		u32 n = x & (_tabsize - 1);
+		u32 n;
+
+		n = x & (_tabsize - 1);
 		if(_show_whitespace)
 		{
 			color = ptp(PT_GRAY, PT_BG);
@@ -132,10 +135,13 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 
 static u32 ed_plain(u32 y)
 {
-	vector *lv = tb_get_line(_tb, y);
-	char *line = vector_data(lv);
-	u32 len = vector_len(lv);
-	u32 i, x;
+	u32 i, x, len;
+	vector *lv;
+	char *line;
+
+	lv = tb_get_line(_tb, y);
+	line = vector_data(lv);
+	len = vector_len(lv);
 	for(x = 0, i = 0; i < len; ++i)
 	{
 		x = ed_syntax_sub(line[i], PT_FG, y, x);
@@ -147,14 +153,18 @@ static u32 ed_plain(u32 y)
 
 static u32 ed_asm6800(u32 y)
 {
-	vector *lv = tb_get_line(_tb, y);
-	u32 len = vector_len(lv);
-	char *line = vector_data(lv);
-	u32 i = 0;
-	u32 x = 0;
+	u32 len, i, x, c;
+	vector *lv;
+	char *line;
+
+	lv = tb_get_line(_tb, y);
+	len = vector_len(lv);
+	line = vector_data(lv);
+	i = 0;
+	x = 0;
 	while(i < len)
 	{
-		u32 c = line[i];
+		c = line[i];
 		if(c == ';')
 		{
 			for(; i < len; ++i)
@@ -165,8 +175,10 @@ static u32 ed_asm6800(u32 y)
 		}
 		else if(c == '\"' || c == '\'')
 		{
-			u32 save = c;
-			u32 esc = 0;
+			u32 save, esc;
+
+			save = c;
+			esc = 0;
 			if(x >= _page_w) { return x; }
 			ed_put(x++, y, screen_pack(c, ptp(PT_STRING, PT_BG)));
 			for(++i; i < len; ++i)
@@ -246,15 +258,20 @@ static u32 ed_asm6800(u32 y)
 
 static u32 ed_syntax(u32 y)
 {
-	vector *lv = tb_get_line(_tb, y);
-	u32 len = vector_len(lv);
-	char *line = vector_data(lv);
-	u32 incflag = 0;
-	u32 i = 0;
-	u32 x = 0;
+	u32 len, incflag, i, x, c;
+	vector *lv;
+	char *line;
+
+	lv = tb_get_line(_tb, y);
+	len = vector_len(lv);
+	line = vector_data(lv);
+
+	incflag = 0;
+	i = 0;
+	x = 0;
 	while(i < len)
 	{
-		u32 c = line[i];
+		c = line[i];
 		if(_in_comment)
 		{
 			x = ed_syntax_sub(c, PT_COMMENT, y, x);
@@ -299,8 +316,10 @@ static u32 ed_syntax(u32 y)
 		}
 		else if(c == '\"' || c == '\'' || (c == '<' && incflag))
 		{
-			u32 save = c == '<' ? '>' : c;
-			u32 esc = 0;
+			u32 save, esc;
+
+			save = c == '<' ? '>' : c;
+			esc = 0;
 			if(x >= _page_w) { return x; }
 			ed_put(x++, y, screen_pack(c, ptp(PT_STRING, PT_BG)));
 			for(++i; i < len; ++i)
@@ -414,8 +433,10 @@ static u32 ed_syntax(u32 y)
 
 static void ed_render_line(u32 y)
 {
-	u32 x = 0;
-	u32 line = _tb->page_y + y;
+	u32 x, line;
+
+	x = 0;
+	line = _tb->page_y + y;
 	if(line < tb_num_lines(_tb))
 	{
 		switch(_tb->language)
@@ -460,7 +481,10 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
 
 static u32 ed_prev_comment(void)
 {
-	u32 i = 0, result = 0;
+	u32 i, result;
+
+	i = 0;
+	result = 0;
 	if(_tb->page_y > COMMENT_LOOKBACK)
 	{
 		i = _tb->page_y - COMMENT_LOOKBACK;
@@ -468,10 +492,13 @@ static u32 ed_prev_comment(void)
 
 	for(; i < _tb->page_y; ++i)
 	{
-		i32 p;
-		vector *line = tb_get_line(_tb, i);
-		char *data = vector_data(line);
-		i32 len = vector_len(line);
+		i32 p, len;
+		vector *line;
+		char *data;
+
+		line = tb_get_line(_tb, i);
+		data = vector_data(line);
+		len = vector_len(line);
 		for(p = 0; p < len - 1; ++p)
 		{
 			if(result)
@@ -498,7 +525,9 @@ static u32 ed_prev_comment(void)
 
 static void ed_render_buffer(u32 start_y, u32 end_y)
 {
-	u32 lines = tb_num_lines(_tb);
+	u32 lines;
+
+	lines = tb_num_lines(_tb);
 	if(lines > _screen_height && _tb->page_y + _screen_height >= lines)
 	{
 		_tb->page_y = lines - _screen_height;
@@ -541,7 +570,10 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 
 static void ed_render_blank(u32 start_y, u32 end_y)
 {
-	char *help =
+	u32 x, color;
+	char *help;
+
+	help =
 		" Editor \"Haven't come up with a good name yet\" V0.9\0"
 		"   by Anton Tchekov\0"
 		"\0"
@@ -552,7 +584,7 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		" CTRL+B or CTRL+P to view open buffers\0"
 		" CTRL+G to go to line number or symbol definiton\0\1";
 
-	u32 x, color = ptp(PT_FG, PT_BG);
+	color = ptp(PT_FG, PT_BG);
 	for(; start_y < end_y; ++start_y)
 	{
 		if(start_y < 20 || *help == 1)

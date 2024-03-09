@@ -203,20 +203,23 @@ static void tb_sel_delete(textbuf *t)
 	}
 	else
 	{
-		vector *last = tb_get_line(t, y2);
+		vector *last;
+
+		last = tb_get_line(t, y2);
 		vector_replace(line, x1, vector_len(line) - x1,
-			(u8 *)vector_data(last) + x2, vector_len(last) - x2);
+			vector_str(last) + x2, vector_len(last) - x2);
 		tb_remove_lines(t, y1 + 1, y2);
 	}
 }
 
 static u32 tb_sel_count_bytes(textbuf *t, selection *sel)
 {
-	u32 len;
-	u32 x1 = sel->c[0].x;
-	u32 y1 = sel->c[0].y;
-	u32 x2 = sel->c[1].x;
-	u32 y2 = sel->c[1].y;
+	u32 len, x1, y1, x2, y2;
+
+	x1 = sel->c[0].x;
+	y1 = sel->c[0].y;
+	x2 = sel->c[1].x;
+	y2 = sel->c[1].y;
 	if(y1 == y2)
 	{
 		return x2 - x1;
@@ -294,17 +297,22 @@ static void tb_delete(textbuf *t)
 	}
 	else
 	{
-		vector *line = tb_cur_line(t);
-		u32 line_len = vector_len(line);
+		vector *line;
+		u32 line_len;
+
+		line = tb_cur_line(t);
+		line_len = vector_len(line);
 		if(t->sel.c[1].x >= line_len)
 		{
-			u32 num_lines = tb_num_lines(t);
 			t->sel.c[1].x = line_len;
-			if(t->sel.c[1].y < num_lines - 1)
+			if(t->sel.c[1].y < tb_num_lines(t) - 1)
 			{
 				/* Merge with next line */
-				u32 next_idx = t->sel.c[1].y + 1;
-				vector *next = tb_get_line(t, next_idx);
+				u32 next_idx;
+				vector *next;
+
+				next_idx = t->sel.c[1].y + 1;
+				next = tb_get_line(t, next_idx);
 				vector_push(line, vector_len(next), vector_data(next));
 				tb_remove_line(t, next_idx);
 			}
@@ -330,13 +338,17 @@ static void tb_backspace(textbuf *t)
 	}
 	else
 	{
-		vector *line = tb_cur_line(t);
+		vector *line;
+
+		line = tb_cur_line(t);
 		if(t->sel.c[1].x == 0)
 		{
 			if(t->sel.c[1].y > 0)
 			{
 				/* Merge with previous line */
-				vector *prev = tb_get_line(t, --t->sel.c[1].y);
+				vector *prev;
+
+				prev = tb_get_line(t, --t->sel.c[1].y);
 				t->sel.c[1].x = vector_len(prev);
 				vector_push(prev, vector_len(line), vector_data(line));
 				tb_remove_line(t, t->sel.c[1].y + 1);
@@ -372,7 +384,9 @@ static u32 tb_line_start(textbuf *t, u32 y)
 
 static void tb_sel_home(textbuf *t)
 {
-	u32 i = tb_line_start(t, t->sel.c[1].y);
+	u32 i;
+
+	i = tb_line_start(t, t->sel.c[1].y);
 	t->sel.c[1].x = (t->sel.c[1].x == i) ? 0 : i;
 	t->cursor_save_x = -1;
 	tb_scroll_to_cursor(t);
@@ -411,6 +425,7 @@ static void tb_fix_sel_unindent(textbuf *t, cursor *c)
 
 static void tb_sel_unindent(textbuf *t)
 {
+	vector *line;
 	u32 y1, y2;
 	range ri;
 
@@ -424,7 +439,7 @@ static void tb_sel_unindent(textbuf *t)
 	y2 = ri.b;
 	for(; y1 <= y2; ++y1)
 	{
-		vector *line = tb_get_line(t, y1);
+		line = tb_get_line(t, y1);
 		if(vector_len(line) > 0 && vector_str(line)[0] == '\t')
 		{
 			vector_remove(line, 0, 1);
@@ -459,7 +474,9 @@ static void tb_char(textbuf *t, u32 c)
 		y2 = ri.b;
 		for(; y1 <= y2; ++y1)
 		{
-			vector *line = tb_get_line(t, y1);
+			vector *line;
+
+			line = tb_get_line(t, y1);
 			if(vector_len(line) > 0)
 			{
 				vector_insert(line, 0, 1, "\t");
@@ -477,12 +494,12 @@ static void tb_char(textbuf *t, u32 c)
 		line = tb_cur_line(t);
 		if(t->insert && t->sel.c[1].x < vector_len(line))
 		{
-			char *buf = vector_data(line);
-			buf[t->sel.c[1].x] = c;
+			vector_str(line)[t->sel.c[1].x] = c;
 		}
 		else
 		{
 			u8 ins[1];
+
 			ins[0] = c;
 			vector_insert(line, t->sel.c[1].x, 1, ins);
 		}
@@ -610,14 +627,19 @@ static u32 tb_count_bytes(textbuf *t)
 
 static char *tb_export(textbuf *t, u32 *len)
 {
-	u32 bytes = tb_count_bytes(t);
-	char *buf = _malloc(bytes);
-	char *p = buf;
-	u32 i, num_lines = tb_num_lines(t);
+	u32 i, num_lines, bytes;
+	char *p, *buf;
+
+	bytes = tb_count_bytes(t);
+	p = buf = _malloc(bytes);
+	num_lines = tb_num_lines(t);
 	for(i = 0; i < num_lines; ++i)
 	{
-		vector *cur = tb_get_line(t, i);
-		u32 line_len = vector_len(cur);
+		vector *cur;
+		u32 line_len;
+
+		cur = tb_get_line(t, i);
+		line_len = vector_len(cur);
 		memcpy(p, vector_data(cur), line_len);
 		p += line_len;
 		if(i < num_lines - 1)
@@ -678,12 +700,14 @@ static void tb_sel_cur_line(textbuf *t)
 static void tb_trailing(textbuf *t)
 {
 	u32 i, len, end;
+	vector *line;
+	char *data;
 
 	end = tb_num_lines(t);
 	for(i = 0; i < end; ++i)
 	{
-		vector *line = tb_get_line(t, i);
-		char *data = vector_data(line);
+		line = tb_get_line(t, i);
+		data = vector_data(line);
 		len = vector_len(line);
 		while(len > 0 && isspace(data[len - 1]))
 		{
@@ -732,7 +756,9 @@ static void tb_insert(textbuf *t, char *text)
 	y = t->sel.c[1].y;
 	if(!new_lines)
 	{
-		u32 len = s - text;
+		u32 len;
+
+		len = s - text;
 		vector_insert(tb_get_line(t, y), t->sel.c[1].x, len, text);
 		t->sel.c[1].x += len;
 	}
@@ -809,16 +835,18 @@ static void tb_goto_xy(textbuf *t, u32 x, u32 y)
 
 static void tb_goto_def(textbuf *t, char *s)
 {
-	u32 i;
-	u32 len = tb_num_lines(t);
-	u32 sl = strlen(s);
+	u32 i, len, sl, ll;
+	vector *line;
+	char *buf;
+	i32 offset;
+
+	len = tb_num_lines(t);
+	sl = strlen(s);
 	for(i = 0; i < len; ++i)
 	{
-		vector *line = tb_get_line(t, i);
-		u32 ll = vector_len(line);
-		char *buf = vector_data(line);
-		i32 offset;
-
+		line = tb_get_line(t, i);
+		ll = vector_len(line);
+		buf = vector_data(line);
 		if(ll == 0 || isspace(buf[0]))
 		{
 			continue;
@@ -857,11 +885,13 @@ static u32 tb_cursor_pos_x(textbuf *t, u32 y, u32 end)
 
 static void tb_move_vertical(textbuf *t, u32 prev_y)
 {
-	vector *line = tb_cur_line(t);
-	u32 len = vector_len(line);
-	char *buf = vector_data(line);
-	u32 i, x, max_x;
+	u32 i, x, max_x, len;
+	vector *line;
+	char *buf;
 
+	line = tb_cur_line(t);
+	len = vector_len(line);
+	buf = vector_data(line);
 	if(t->cursor_save_x < 0)
 	{
 		t->cursor_save_x = tb_cursor_pos_x(t, prev_y, t->sel.c[1].x);
@@ -885,7 +915,9 @@ static void tb_sel_up(textbuf *t)
 	}
 	else
 	{
-		u32 prev_y = t->sel.c[1].y;
+		u32 prev_y;
+
+		prev_y = t->sel.c[1].y;
 		--t->sel.c[1].y;
 		tb_move_vertical(t, prev_y);
 	}
@@ -908,7 +940,9 @@ static void tb_sel_down(textbuf *t)
 	}
 	else
 	{
-		u32 prev_y = t->sel.c[1].y;
+		u32 prev_y;
+
+		prev_y = t->sel.c[1].y;
 		++t->sel.c[1].y;
 		tb_move_vertical(t, prev_y);
 	}
@@ -926,7 +960,9 @@ static void tb_sel_page_up(textbuf *t)
 {
 	if(t->sel.c[1].y >= _screen_height)
 	{
-		u32 prev_y = t->sel.c[1].y;
+		u32 prev_y;
+
+		prev_y = t->sel.c[1].y;
 		t->sel.c[1].y -= _screen_height;
 		tb_move_vertical(t, prev_y);
 	}
@@ -948,8 +984,10 @@ static void tb_page_up(textbuf *t)
 
 static void tb_sel_page_down(textbuf *t)
 {
-	u32 num_lines = tb_num_lines(t);
-	u32 prev_y = t->sel.c[1].y;
+	u32 num_lines, prev_y;
+
+	num_lines = tb_num_lines(t);
+	prev_y = t->sel.c[1].y;
 	t->sel.c[1].y += _screen_height;
 	if(t->sel.c[1].y >= num_lines)
 	{
@@ -985,9 +1023,12 @@ static void tb_sel_prev_word(textbuf *t)
 	{
 		if(t->sel.c[1].x > 0)
 		{
-			char *buf = tb_cur_line_data(t);
-			u32 i = t->sel.c[1].x - 1;
-			u32 type = char_type(buf[i]);
+			char *buf;
+			u32 i, type;
+
+			buf = tb_cur_line_data(t);
+			i = t->sel.c[1].x - 1;
+			type = char_type(buf[i]);
 			while(i > 0 && char_type(buf[i - 1]) == type) { --i; }
 			t->sel.c[1].x = i;
 		}
@@ -1012,7 +1053,9 @@ static void tb_prev_word(textbuf *t)
 
 static void tb_sel_next_word(textbuf *t)
 {
-	u32 len = tb_cur_line_len(t);
+	u32 len;
+
+	len = tb_cur_line_len(t);
 	if(t->sel.c[1].x == len)
 	{
 		if(t->sel.c[1].y < tb_num_lines(t) - 1)
@@ -1025,9 +1068,12 @@ static void tb_sel_next_word(textbuf *t)
 	{
 		if(t->sel.c[1].x < len)
 		{
-			char *buf = tb_cur_line_data(t);
-			u32 i = t->sel.c[1].x;
-			u32 type = char_type(buf[i]);
+			char *buf;
+			u32 i, type;
+
+			buf = tb_cur_line_data(t);
+			i = t->sel.c[1].x;
+			type = char_type(buf[i]);
 			while(i < len && char_type(buf[i]) == type) { ++i; }
 			t->sel.c[1].x = i;
 		}
@@ -1161,7 +1207,9 @@ static void tb_bottom(textbuf *t)
 static void tb_copy(textbuf *t)
 {
 	u32 len;
-	char *text = tb_sel_get(t, &len);
+	char *text;
+
+	text = tb_sel_get(t, &len);
 	clipboard_store(text);
 	_free(text);
 }
@@ -1175,7 +1223,9 @@ static void tb_cut(textbuf *t)
 
 static void tb_paste(textbuf *t)
 {
-	char *text = clipboard_load();
+	char *text;
+
+	text = clipboard_load();
 	tb_insert(t, text);
 	free(text);
 	tb_scroll_to_cursor(t);
@@ -1183,10 +1233,19 @@ static void tb_paste(textbuf *t)
 
 static void tb_scroll(textbuf *t, i32 offset)
 {
-	i32 y = t->page_y + offset;
+	u32 num_lines;
+	i32 y;
+
+	y = t->page_y + offset;
 	if(y < 0)
 	{
 		y = 0;
+	}
+
+	num_lines = tb_num_lines(t);
+	if(y + _screen_height > num_lines)
+	{
+		y = (num_lines > _screen_height) ? num_lines - _screen_height : 0;
 	}
 
 	t->page_y = y;
@@ -1211,11 +1270,15 @@ static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
 
 static void tb_sel_cur_word(textbuf *t)
 {
-	u32 x1 = t->sel.c[1].x;
-	u32 x2 = x1;
-	vector *line = tb_cur_line(t);
-	char *buf = vector_data(line);
-	u32 len = vector_len(line);
+	u32 x1, x2, len;
+	vector *line;
+	char *buf;
+
+	x1 = t->sel.c[1].x;
+	x2 = x1;
+	line = tb_cur_line(t);
+	len = vector_len(line);
+	buf = vector_data(line);
 
 	if(isspace(buf[x1]))
 	{
@@ -1271,7 +1334,9 @@ static void tb_triple_click(textbuf *t, u32 x, u32 y)
 static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 {
 	u32 qc, tc;
-	vector *line = tb_get_line(t, y);
+	vector *line;
+
+	line = tb_get_line(t, y);
 	for(; (qc = *q); ++q)
 	{
 		if(x >= vector_len(line))

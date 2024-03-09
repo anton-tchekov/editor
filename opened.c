@@ -98,14 +98,15 @@ static void opened_render_title(void)
 
 static u32 opened_render(void)
 {
-	u32 i, y, end;
+	u32 i, y, end, color;
+	textbuf *t;
 
 	opened_render_title();
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(y = 1, i = _dd.offset; i < end; ++i, ++y)
 	{
-		textbuf *t = bf_get(i);
-		u32 color = dd_color(&_dd, i);
+		t = bf_get(i);
+		color = dd_color(&_dd, i);
 		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
 		ed_render_line_str(t->filename, 1, y, color);
 	}
