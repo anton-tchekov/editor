@@ -26,7 +26,9 @@ static void open_tab(void)
 	first = 1;
 	for(i = 0; i < _dir_count; ++i)
 	{
-		char *cur = _dir_list[i];
+		char *cur;
+
+		cur = _dir_list[i];
 		if(starts_with(cur, s))
 		{
 			if(first)
@@ -37,10 +39,11 @@ static void open_tab(void)
 			}
 			else
 			{
+				char *p;
 				u32 len;
-				char *q = cur;
-				char *p = fs;
-				for(len = 0; len < sl && *p == *q; ++len, ++p, ++q) {}
+
+				p = fs;
+				for(len = 0; len < sl && *p == *cur; ++len, ++p, ++cur) {}
 				sl = len;
 			}
 		}
@@ -68,7 +71,9 @@ static void mode_open(void)
 
 static void open_return(void)
 {
-	char *cur = ((char **)vector_data(&_filt_dir))[_dd.pos];
+	char *cur;
+
+	cur = ((char **)vector_data(&_filt_dir))[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
@@ -107,8 +112,10 @@ static void open_key(u32 key, u32 c)
 
 static u32 open_dir_render(u32 y)
 {
+	char **list;
 	u32 i, end;
-	char **list = vector_data(&_filt_dir);
+
+	list = vector_data(&_filt_dir);
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(i = _dd.offset; i < end; ++i, ++y)
 	{

@@ -22,7 +22,7 @@
 
 #include "types.h"
 #include "keys.h"
-#include "terminus16.c"
+#include "terminus.c"
 
 #define CHAR_WIDTH              8
 #define CHAR_HEIGHT            16
@@ -383,7 +383,7 @@ static void glyph(u32 x, u32 y, u32 fg, u32 bg, u32 c)
 		c = '?';
 	}
 
-	start = terminus16 + (c - 32) * CHAR_HEIGHT;
+	start = _terminus + (c - 32) * CHAR_HEIGHT;
 	end = start + CHAR_HEIGHT;
 	line = _pixels + y * _gfx_width + x;
 	for(; start < end; ++start)

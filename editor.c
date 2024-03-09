@@ -69,6 +69,7 @@ static void ed_load(char *filename)
 {
 	textbuf *t;
 	char *buf;
+
 	if(bf_switch_name(filename))
 	{
 		return;
@@ -95,6 +96,7 @@ static void ed_new(void)
 {
 	textbuf *t;
 	char name[32];
+
 	snprintf(name, sizeof(name), "untitled-%d", _untitled_cnt++);
 	t = tb_new(name, NULL, 0, LANGUAGE_DEFAULT);
 	bf_insert_cur(t);
@@ -132,6 +134,8 @@ static void ed_init(void)
 {
 	bf_init();
 	sr_init();
+	kw_init(&_kw_c);
+	kw_init(&_kw_asm);
 	_tabsize = 4;
 	_show_whitespace = 1;
 	_show_linenr = 1;
@@ -155,7 +159,9 @@ static void ed_save(void)
 	if(_tb->exists)
 	{
 		u32 len;
-		char *buf = tb_export(_tb, &len);
+		char *buf;
+
+		buf = tb_export(_tb, &len);
 		if(file_write(_tb->filename, buf, len))
 		{
 			msg_show(MSG_ERROR, "Writing file failed");
@@ -179,6 +185,7 @@ static void ed_save(void)
 static void ed_render(void)
 {
 	u32 start_y, end_y;
+
 	start_y = 0;
 	switch(_mode)
 	{
@@ -187,7 +194,7 @@ static void ed_render(void)
 		break;
 
 	case MODE_GOTO:
-		start_y = goto_render();
+		start_y = gt_render();
 		break;
 
 	case MODE_SAVE_AS:
@@ -288,7 +295,7 @@ static void default_key(u32 key, u32 cp)
 	case MOD_CTRL | KEY_L:                  tb_sel_cur_line(_tb);    break;
 	case MOD_CTRL | MOD_SHIFT | KEY_L:      ed_toggle_line_nr();     break;
 	case MOD_CTRL | KEY_K:                  tb_toggle_lang(_tb);     break;
-	case MOD_CTRL | KEY_G:                  mode_goto();             break;
+	case MOD_CTRL | KEY_G:                  gt_open();               break;
 	case MOD_CTRL | KEY_O:                  mode_open();             break;
 	case MOD_CTRL | KEY_C:                  tb_copy(_tb);            break;
 	case MOD_CTRL | KEY_X:                  tb_cut(_tb);             break;
@@ -325,44 +332,28 @@ static void default_key(u32 key, u32 cp)
 
 static void event_scroll(i32 y)
 {
-	if(!_tb)
-	{
-		return;
-	}
-
+	if(!_tb) { return; }
 	tb_scroll(_tb, -3 * y);
 	ed_render();
 }
 
 static void event_dblclick(u32 x, u32 y)
 {
-	if(!_tb)
-	{
-		return;
-	}
-
+	if(!_tb) { return; }
 	tb_double_click(_tb, x, y);
 	ed_render();
 }
 
 static void event_tripleclick(u32 x, u32 y)
 {
-	if(!_tb)
-	{
-		return;
-	}
-
+	if(!_tb) { return; }
 	tb_triple_click(_tb, x, y);
 	ed_render();
 }
 
 static void event_mousedown(u32 x, u32 y)
 {
-	if(!_tb)
-	{
-		return;
-	}
-
+	if(!_tb) { return; }
 	tb_mouse_cursor(_tb, x, y);
 	ed_render();
 }
@@ -370,16 +361,8 @@ static void event_mousedown(u32 x, u32 y)
 static void event_mousemove(u32 x, u32 y)
 {
 	static u32 last_x = -1, last_y = -1;
-	if(!_tb)
-	{
-		return;
-	}
 
-	if(last_x == x && last_y == y)
-	{
-		return;
-	}
-
+	if(!_tb || (last_x == x && last_y == y)) { return; }
 	last_x = x;
 	last_y = y;
 	tb_mouse_sel(_tb, x, y);
@@ -388,10 +371,7 @@ static void event_mousemove(u32 x, u32 y)
 
 static void event_keyboard(u32 key, u32 chr, u32 state)
 {
-	if(state == KEYSTATE_RELEASED)
-	{
-		return;
-	}
+	if(state == KEYSTATE_RELEASED) { return; }
 
 	switch(_mode)
 	{
@@ -404,7 +384,7 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 		break;
 
 	case MODE_GOTO:
-		goto_key(key, chr);
+		gt_key(key, chr);
 		break;
 
 	case MODE_SAVE_AS:
@@ -424,6 +404,11 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 		break;
 	}
 
+	if(key == (MOD_CTRL | KEY_F3))
+	{
+		test_run_all();
+	}
+
 	ed_render();
 }
 
@@ -434,11 +419,6 @@ static void event_resize(void)
 
 static void event_init(void)
 {
-#ifndef NDEBUG
-	test_run_all();
-#endif
-	keyword_init(&_c_hashmap);
-	keyword_init(&_asm_hashmap);
 	ed_init();
 	ed_render();
 }

@@ -89,6 +89,7 @@ static void opened_key(u32 key)
 static void opened_render_title(void)
 {
 	char buf[64];
+
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
 		_dd.count, (_dd.count == 1 ? "" : "s"), bf_num_unsaved());
 
@@ -98,6 +99,7 @@ static void opened_render_title(void)
 static u32 opened_render(void)
 {
 	u32 i, y, end;
+
 	opened_render_title();
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(y = 1, i = _dd.offset; i < end; ++i, ++y)

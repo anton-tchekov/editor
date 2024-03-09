@@ -6,7 +6,9 @@ typedef struct
 
 static u32 _next_pot(u32 n)
 {
-	u32 power = 1;
+	u32 power;
+
+	power = 1;
 	while(power < n)
 	{
 		power <<= 1;
@@ -39,6 +41,7 @@ static void vector_makespace(vector *v, u32 pos, u32 bytes)
 {
 	u32 new_length;
 	u8 *offset;
+
 	assert(pos <= v->len);
 	new_length = v->len + bytes;
 	if(new_length > v->capacity)
@@ -109,6 +112,7 @@ static char *vector_str(vector *v)
 static void vector_str_clear(vector *v)
 {
 	char *s;
+
 	vector_reserve(v, 1);
 	s = v->data;
 	s[0] = '\0';

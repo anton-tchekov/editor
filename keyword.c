@@ -1,5 +1,3 @@
-#define C_HASHMAP_SIZE       (ARRLEN(_c_keywords) * 7)
-#define ASM_HASHMAP_SIZE     (ARRLEN(_asm_keywords) * 8)
 #define COLLISION_LIMIT     4
 
 typedef struct
@@ -16,7 +14,7 @@ typedef struct
 	keyword *keywords;
 } hashmap;
 
-static keyword _c_keywords[] =
+static keyword _kw_c_keywords[] =
 {
 	{ PT_TYPE, "asm" },
 
@@ -106,14 +104,15 @@ static keyword _c_keywords[] =
 	{ PT_KEYWORD, "fn" },
 };
 
-static i32 _c_table[C_HASHMAP_SIZE];
-static hashmap _c_hashmap =
+#define C_HASHMAP_SIZE       (ARRLEN(_kw_c_keywords) * 7)
+static i32 _kw_c_table[C_HASHMAP_SIZE];
+static hashmap _kw_c =
 {
-	C_HASHMAP_SIZE, _c_table,
-	ARRLEN(_c_keywords), _c_keywords
+	C_HASHMAP_SIZE, _kw_c_table,
+	ARRLEN(_kw_c_keywords), _kw_c_keywords
 };
 
-static keyword _asm_keywords[] =
+static keyword _kw_asm_keywords[] =
 {
 	{ PT_TYPE, "NOP" },
 
@@ -243,16 +242,18 @@ static keyword _asm_keywords[] =
 	{ PT_KEYWORD, "DC.B" }
 };
 
-static i32 _asm_table[ASM_HASHMAP_SIZE];
-static hashmap _asm_hashmap =
+#define ASM_HASHMAP_SIZE     (ARRLEN(_kw_asm_keywords) * 8)
+static i32 _kw_asm_table[ASM_HASHMAP_SIZE];
+static hashmap _kw_asm =
 {
-	ASM_HASHMAP_SIZE, _asm_table,
-	ARRLEN(_asm_keywords), _asm_keywords
+	ASM_HASHMAP_SIZE, _kw_asm_table,
+	ARRLEN(_kw_asm_keywords), _kw_asm_keywords
 };
 
-static u32 keyword_hash(char *word, u32 len)
+static u32 kw_hash(char *word, u32 len)
 {
 	u32 i, hash, c;
+
 	hash = 5381;
 	for(i = 0; i < len && (c = word[i]); ++i)
 	{
@@ -262,9 +263,10 @@ static u32 keyword_hash(char *word, u32 len)
 	return hash;
 }
 
-static void keyword_init(hashmap *hm)
+static void kw_init(hashmap *hm)
 {
 	u32 i, hash;
+
 	for(i = 0; i < hm->size; ++i)
 	{
 		hm->table[i] = -1;
@@ -275,7 +277,7 @@ static void keyword_init(hashmap *hm)
 #ifndef NDEBUG
 		u32 steps = 0;
 #endif
-		hash = keyword_hash(hm->keywords[i].name, UINT32_MAX);
+		hash = kw_hash(hm->keywords[i].name, UINT32_MAX);
 		while(hm->table[hash % hm->size] != -1)
 		{
 			++hash;
@@ -286,11 +288,11 @@ static void keyword_init(hashmap *hm)
 	}
 }
 
-static u32 keyword_detect(hashmap *hm, char *str, u32 len)
+static u32 kw_detect(hashmap *hm, char *str, u32 len)
 {
 	u32 i, hash;
 
-	hash = keyword_hash(str, len);
+	hash = kw_hash(str, len);
 	for(i = 0; i < COLLISION_LIMIT; ++i)
 	{
 		i32 index = hm->table[hash % hm->size];

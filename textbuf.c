@@ -254,7 +254,9 @@ static char *tb_sel_get(textbuf *t, u32 *out_len)
 	}
 	else
 	{
-		vector *line = tb_get_line(t, y1);
+		vector *line;
+
+		line = tb_get_line(t, y1);
 		len = vector_len(line) - x1;
 		memcpy(p, (u8 *)vector_data(line) + x1, len);
 		p += len;
@@ -356,10 +358,14 @@ static void tb_backspace(textbuf *t)
 
 static u32 tb_line_start(textbuf *t, u32 y)
 {
-	vector *line = tb_get_line(t, y);
-	char *buf = vector_data(line);
-	u32 len = vector_len(line);
-	u32 i = 0;
+	vector *line;
+	char *buf;
+	u32 i, len;
+
+	line = tb_get_line(t, y);
+	buf = vector_data(line);
+	len = vector_len(line);
+	i = 0;
 	while(i < len && isspace(buf[i])) { ++i; }
 	return i;
 }
@@ -466,6 +472,7 @@ static void tb_char(textbuf *t, u32 c)
 	else
 	{
 		vector *line;
+
 		tb_sel_clear(t);
 		line = tb_cur_line(t);
 		if(t->insert && t->sel.c[1].x < vector_len(line))
@@ -492,6 +499,7 @@ static void tb_char(textbuf *t, u32 c)
 static void tb_enter_before(textbuf *t)
 {
 	vector new_line;
+
 	vector_init(&new_line, 8);
 	tb_ins_line(t, t->sel.c[1].y, &new_line);
 	t->sel.c[1].x = 0;
@@ -504,6 +512,7 @@ static void tb_enter_before(textbuf *t)
 static void tb_enter_after(textbuf *t)
 {
 	vector new_line;
+
 	vector_init(&new_line, 8);
 	tb_ins_line(t, ++t->sel.c[1].y, &new_line);
 	t->sel.c[1].x = 0;
@@ -558,7 +567,9 @@ static void tb_end(textbuf *t)
 
 static void tb_del_cur_line(textbuf *t)
 {
-	u32 count = tb_num_lines(t);
+	u32 count;
+
+	count = tb_num_lines(t);
 	if(count == 1)
 	{
 		tb_get_line(t, 0)->len = 0;
@@ -586,7 +597,9 @@ static void tb_toggle_lang(textbuf *t)
 
 static u32 tb_count_bytes(textbuf *t)
 {
-	u32 i, len, num_lines = tb_num_lines(t);
+	u32 i, len, num_lines;
+
+	num_lines = tb_num_lines(t);
 	for(i = 0, len = 0; i < num_lines; ++i)
 	{
 		len += tb_line_len(t, i) + 1;
@@ -645,7 +658,9 @@ static void tb_ins_include_lib(textbuf *t)
 
 static void tb_sel_cur_line(textbuf *t)
 {
-	u32 last_line = tb_num_lines(t) - 1;
+	u32 last_line;
+
+	last_line = tb_num_lines(t) - 1;
 	t->sel.c[0].x = 0;
 	if(t->sel.c[1].y < last_line)
 	{
@@ -662,7 +677,9 @@ static void tb_sel_cur_line(textbuf *t)
 
 static void tb_trailing(textbuf *t)
 {
-	u32 i, len, end = tb_num_lines(t);
+	u32 i, len, end;
+
+	end = tb_num_lines(t);
 	for(i = 0; i < end; ++i)
 	{
 		vector *line = tb_get_line(t, i);
@@ -768,9 +785,11 @@ static u32 tb_line_hidden(textbuf *t, u32 y)
 	return (y >= t->page_y + _screen_height) || (y < t->page_y);
 }
 
-static void tb_gotoxy(textbuf *t, u32 x, u32 y)
+static void tb_goto_xy(textbuf *t, u32 x, u32 y)
 {
-	u32 num_lines = tb_num_lines(t);
+	u32 num_lines;
+
+	num_lines = tb_num_lines(t);
 	if(y >= num_lines)
 	{
 		y = num_lines - 1;
@@ -810,7 +829,7 @@ static void tb_goto_def(textbuf *t, char *s)
 			continue;
 		}
 
-		tb_gotoxy(t, offset, i);
+		tb_goto_xy(t, offset, i);
 		return;
 	}
 }

@@ -16,6 +16,7 @@ static u8 _sr_flags, _sr_focus;
 static u32 escape_seq(char *out, char *s)
 {
 	u32 c;
+
 	for(; (c = *s); ++s)
 	{
 		if(c == '\\')

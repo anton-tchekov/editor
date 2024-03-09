@@ -82,8 +82,9 @@ static u32 char_type(u32 c)
 static u32 conv_lnr_str(char *s)
 {
 	u32 c;
-	u32 lnr = 0;
-	for(; (c = *s); ++s)
+	u32 lnr;
+
+	for(lnr = 0; (c = *s); ++s)
 	{
 		if(!isdigit(c))
 		{
@@ -98,7 +99,9 @@ static u32 conv_lnr_str(char *s)
 
 static u32 dec_digit_cnt(u32 n)
 {
-	u32 cnt = 0;
+	u32 cnt;
+
+	cnt = 0;
 	while(n)
 	{
 		++cnt;
@@ -108,40 +111,31 @@ static u32 dec_digit_cnt(u32 n)
 	return cnt;
 }
 
-static void reverse(char *s, u32 len)
-{
-	u32 i, j, c;
-	for(i = 0, j = len - 1; i < j; ++i, --j)
-	{
-		c = s[i];
-		s[i] = s[j];
-		s[j] = c;
-	}
-}
-
 static void linenr_str(char *s, u32 n, u32 width)
 {
-	u32 i = 0;
+	char *p;
+
+	p = s + width;
+	*p-- = '\0';
 	do
 	{
-		s[i++] = n % 10 + '0';
+		*p-- = n % 10 + '0';
 		n /= 10;
 	}
 	while(n > 0);
 
-	while(i < width)
+	while(p >= s)
 	{
-		s[i++] = ' ';
+		*p-- = ' ';
 	}
-
-	s[i] = '\0';
-	reverse(s, width);
 }
 
 static char *path_file(char *s)
 {
 	u32 c;
-	char *slash = s;
+	char *slash;
+
+	slash = s;
 	for(; (c = *s); ++s)
 	{
 		if(c == '/')
@@ -157,6 +151,7 @@ static char *get_file_ext(char *s)
 {
 	u32 c;
 	char *p, *f;
+
 	f = path_file(s);
 	p = NULL;
 	for(; (c = *f); ++f)
@@ -233,8 +228,9 @@ static u32 match_part(char *str, char *cmp, u32 len)
 
 static u32 count_char(char *s, u32 val)
 {
-	u32 c;
-	size_t cnt = 0;
+	u32 c, cnt;
+
+	cnt = 0;
 	for(; (c = *s); ++s)
 	{
 		if(c == val)
@@ -249,6 +245,7 @@ static u32 count_char(char *s, u32 val)
 static i32 str_find(char *haystack, u32 len, char *needle, u32 sl)
 {
 	u32 i;
+
 	if(len < sl)
 	{
 		return -1;
@@ -267,8 +264,11 @@ static i32 str_find(char *haystack, u32 len, char *needle, u32 sl)
 
 static char *_strdup(char *s)
 {
-	size_t len = strlen(s) + 1;
-	char *p = _malloc(len);
+	size_t len;
+	char *p;
+
+	len  = strlen(s) + 1;
+	p = _malloc(len);
 	memcpy(p, s, len);
 	return p;
 }

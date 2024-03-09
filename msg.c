@@ -10,6 +10,7 @@ static char _msg_buf[256];
 static void msg_show(MessageType type, char *msg, ...)
 {
 	va_list args;
+
 	_msg_type = type;
 	va_start(args, msg);
 	vsnprintf(_msg_buf, sizeof(_msg_buf), msg, args);

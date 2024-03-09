@@ -1,34 +1,31 @@
 /* Go to line or symbol definition */
-static void mode_goto(void)
+static void gt_open(void)
 {
 	_mode = MODE_GOTO;
 	tf_clear(&_fld);
 }
 
-static void goto_return(void)
-{
-	u32 lnr;
-	char *s;
-
-	s = tf_str(&_fld);
-	mode_default();
-	lnr = conv_lnr_str(s);
-	if(lnr)
-	{
-		tb_gotoxy(_tb, 0, lnr - 1);
-		return;
-	}
-
-	tb_goto_def(_tb, s);
-}
-
-static void goto_key(u32 key, u32 c)
+static void gt_key(u32 key, u32 c)
 {
 	tf_key(&_fld, key, c);
 	key &= 0xFF;
 	if(key == KEY_RETURN)
 	{
-		goto_return();
+		char *s;
+		u32 lnr;
+
+		s = tf_str(&_fld);
+		lnr = conv_lnr_str(s);
+		if(lnr)
+		{
+			tb_goto_xy(_tb, 0, lnr - 1);
+		}
+		else
+		{
+			tb_goto_def(_tb, s);
+		}
+
+		mode_default();
 	}
 	else if(key == KEY_ESCAPE)
 	{
@@ -36,7 +33,7 @@ static void goto_key(u32 key, u32 c)
 	}
 }
 
-static u32 goto_render(void)
+static u32 gt_render(void)
 {
 	tf_render(&_fld, 0, 1, "Location: ");
 	return 1;

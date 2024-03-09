@@ -70,7 +70,11 @@ static void tf_sel_replace(tf *t, char *s, u32 len)
 
 static void tf_left(tf *t)
 {
-	if(t->sel == t->pos && t->pos > 0)
+	if(t->sel != t->pos)
+	{
+		t->pos = tf_sel_min(t);
+	}
+	else if(t->pos > 0)
 	{
 		--t->pos;
 	}
@@ -88,7 +92,11 @@ static void tf_sel_left(tf *t)
 
 static void tf_right(tf *t)
 {
-	if(t->sel == t->pos && t->pos < tf_len(t))
+	if(t->sel != t->pos)
+	{
+		t->pos = tf_sel_max(t);
+	}
+	else if(t->pos < tf_len(t))
 	{
 		++t->pos;
 	}
@@ -234,9 +242,9 @@ static u32 tf_color(u32 a, u32 b, u32 i)
 	return (i >= a && i < b) ? ptp(PT_FG, PT_GRAY) : ptp(PT_BG, PT_FG);
 }
 
-static u32 tf_color_focus(u32 a, u32 b, u32 i)
+static u32 tf_color_focus(u32 a, u32 b, u32 c, u32 i)
 {
-	return (i == b) ? ptp(PT_FG, PT_BG) :
+	return (i == c) ? ptp(PT_FG, PT_BG) :
 		((i >= a && i < b) ? ptp(PT_FG, PT_INFO) : ptp(PT_BG, PT_FG));
 }
 
@@ -257,6 +265,6 @@ static void tf_render(tf *t, u32 y, u32 focused, char *prompt)
 	for(i = 0; x < _screen_width; ++x, ++s, ++i)
 	{
 		screen_set(x, y, screen_pack((i < len) ? *s : ' ',
-			focused ? tf_color_focus(a, b, i) : tf_color(a, b, i)));
+			focused ? tf_color_focus(a, b, t->pos, i) : tf_color(a, b, i)));
 	}
 }

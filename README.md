@@ -5,7 +5,7 @@ that is optimized for C projects, is performant, and productive.
 
 **This is what it looks like editing its own source code:**
 
-![Screenshot of Editor](screenshot0.png)
+![Screenshot of Editor](scrnshot.png)
 
 ## Project overview
 

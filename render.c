@@ -199,11 +199,10 @@ static u32 ed_asm6800(u32 y)
 		else if(is_ident_start(c))
 		{
 			u32 color, end, start;
+
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
 			end = i;
-			color = ptp(keyword_detect(&_asm_hashmap,
-				line + start, end - start), PT_BG);
-
+			color = ptp(kw_detect(&_kw_asm, line + start, end - start), PT_BG);
 			for(i = start; i < end; ++i)
 			{
 				if(x >= _page_w) { return x; }
@@ -345,12 +344,10 @@ static u32 ed_syntax(u32 y)
 		else if(is_ident_start(c))
 		{
 			u32 color, end, start;
+
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
 			end = i;
-			color = ptp(
-				keyword_detect(&_c_hashmap, line + start, end - start),
-				PT_BG);
-
+			color = ptp(kw_detect(&_kw_c, line + start, end - start), PT_BG);
 			if(color == PT_FG)
 			{
 				if(c == '(')
@@ -371,7 +368,9 @@ static u32 ed_syntax(u32 y)
 		}
 		else if(isdigit(c))
 		{
-			u32 e = i + 1;
+			u32 e;
+
+			e = i + 1;
 			if(c == '0')
 			{
 				if(e < len)
