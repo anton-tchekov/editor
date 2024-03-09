@@ -1,9 +1,17 @@
-static u8
-	_search_dir,
-	_replace,
-	_match_case,
-	_whole_words,
-	_use_escseq;
+/* SR (Search and Replace) */
+#define SR_COUNT 2
+
+enum
+{
+	SR_IN_DIR      = 0x01,
+	SR_REPLACE     = 0x02,
+	SR_MATCH_CASE  = 0x04,
+	SR_WHOLE_WORDS = 0x08,
+	SR_USE_ESCSEQ  = 0x10
+};
+
+static tf _sr_tf_search, _sr_tf_replace;
+static u8 _sr_flags, _sr_focus;
 
 static u32 escape_seq(char *out, char *s)
 {
@@ -35,42 +43,91 @@ static u32 escape_seq(char *out, char *s)
 static void mode_search(void)
 {
 	_mode = MODE_SEARCH;
-	_replace = 0;
-	_search_dir = 0;
+	_sr_flags &= ~(SR_REPLACE | SR_IN_DIR);
 }
 
 static void mode_search_in_dir(void)
 {
 	_mode = MODE_SEARCH;
-	_replace = 0;
-	_search_dir = 1;
+	_sr_flags = (_sr_flags & ~SR_REPLACE) | SR_IN_DIR;
 }
 
 static void mode_replace(void)
 {
 	_mode = MODE_SEARCH;
-	_replace = 1;
-	_search_dir = 0;
+	_sr_flags = (_sr_flags & ~SR_IN_DIR) | SR_REPLACE;
 }
 
 static void mode_replace_in_dir(void)
 {
 	_mode = MODE_SEARCH;
-	_replace = 1;
-	_search_dir = 1;
+	_sr_flags |= SR_REPLACE | SR_IN_DIR;
 }
 
-static void search_render(void)
+static u32 sr_render(void)
 {
-
+	tf_render(&_sr_tf_search, 0, _sr_focus == 0, "Search: ");
+	tf_render(&_sr_tf_replace, 1, _sr_focus == 1, "Replace: ");
+	return 2;
 }
 
-static void sr_key_press(u32 key, u32 chr)
+static void sr_init(void)
+{
+	tf_init(&_sr_tf_search);
+	tf_init(&_sr_tf_replace);
+}
+
+static void sr_destroy(void)
+{
+	tf_destroy(&_sr_tf_search);
+	tf_destroy(&_sr_tf_replace);
+}
+
+static void sr_key(u32 key, u32 chr)
 {
 	switch(key)
 	{
+	case KEY_UP:
+	case MOD_SHIFT | KEY_TAB:
+		_sr_focus = dec_wrap(_sr_focus, SR_COUNT);
+		break;
+
+	case KEY_DOWN:
+	case KEY_TAB:
+		_sr_focus = inc_wrap(_sr_focus, SR_COUNT);
+		break;
+
 	case KEY_ESCAPE:
 		mode_default();
+		break;
+
+	case MOD_CTRL | KEY_F:
+		mode_search();
+		break;
+
+	case MOD_CTRL | MOD_SHIFT | KEY_F:
+		mode_search_in_dir();
+		break;
+
+	case MOD_CTRL | KEY_H:
+		mode_replace();
+		break;
+
+	case MOD_CTRL | MOD_SHIFT | KEY_H:
+		mode_replace_in_dir();
+		break;
+
+	default:
+		switch(_sr_focus)
+		{
+		case 0:
+			tf_key(&_sr_tf_search, key, chr);
+			break;
+
+		case 1:
+			tf_key(&_sr_tf_replace, key, chr);
+			break;
+		}
 		break;
 	}
 }

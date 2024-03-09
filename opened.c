@@ -68,7 +68,7 @@ static void opened_discard(dd *d)
 	bf_switch_id(d->pos);
 }
 
-static void opened_key_press(u32 key)
+static void opened_key(u32 key)
 {
 	switch(key)
 	{

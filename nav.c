@@ -15,7 +15,7 @@ static void nav_init(void)
 	vector_init(&_filt_dir, 64 * sizeof(char *));
 }
 
-static void nav_cleanup(void)
+static void nav_destroy(void)
 {
 	_free(_dir_list);
 	tf_destroy(&_fld);
@@ -25,6 +25,7 @@ static void nav_cleanup(void)
 static void nav_title_render(char *s)
 {
 	char buf[256];
+
 	snprintf(buf, sizeof(buf), "%s: %s [%d]",
 		s, _path_buf, _dir_count - 1);
 	ed_render_line_str(buf, 0, 0, ptp(PT_BG, PT_FG));

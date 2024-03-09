@@ -22,7 +22,7 @@ static void goto_return(void)
 	tb_goto_def(_tb, s);
 }
 
-static void goto_key_press(u32 key, u32 c)
+static void goto_key(u32 key, u32 c)
 {
 	tf_key(&_fld, key, c);
 	key &= 0xFF;

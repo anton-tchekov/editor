@@ -89,7 +89,7 @@ static void open_return(void)
 	}
 }
 
-static void open_key_press(u32 key, u32 c)
+static void open_key(u32 key, u32 c)
 {
 	dd_key(&_dd, key);
 	if(tf_key(&_fld, key, c))

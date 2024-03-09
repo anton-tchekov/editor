@@ -192,7 +192,9 @@ static void tf_cut(tf *t)
 
 static void tf_paste(tf *t)
 {
-	char *s = clipboard_load();
+	char *s;
+
+	s = clipboard_load();
 	tf_sel_replace(t, s, strlen(s));
 	free(s);
 }

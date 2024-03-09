@@ -26,7 +26,9 @@ static void tb_reset_cursor(textbuf *t)
 static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 {
 	vector line;
-	textbuf *t = _malloc(sizeof(textbuf));
+	textbuf *t;
+
+	t = _malloc(sizeof(textbuf));
 	t->filename = _strdup(name);
 	t->language = lang;
 	t->modified = 0;
@@ -37,6 +39,7 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 	{
 		u32 c;
 		char *linestart, *p;
+
 		vector_init(&t->lines, count_char(text, '\n') + 1);
 		p = text;
 		linestart = text;
@@ -141,6 +144,7 @@ static void tb_remove_line(textbuf *t, u32 line)
 static void tb_remove_lines(textbuf *t, u32 y1, u32 y2)
 {
 	u32 i;
+
 	for(i = y1; i <= y2; ++i)
 	{
 		vector_destroy(tb_get_line(t, i));
@@ -152,7 +156,9 @@ static void tb_remove_lines(textbuf *t, u32 y1, u32 y2)
 
 static void tb_destroy(textbuf *t)
 {
-	u32 i, num_lines = tb_num_lines(t);
+	u32 i, num_lines;
+
+	num_lines = tb_num_lines(t);
 	for(i = 0; i < num_lines; ++i)
 	{
 		vector_destroy(tb_get_line(t, i));
@@ -165,7 +171,9 @@ static void tb_destroy(textbuf *t)
 
 static void tb_sel_all(textbuf *t)
 {
-	u32 last_line = tb_num_lines(t) - 1;
+	u32 last_line;
+
+	last_line = tb_num_lines(t) - 1;
 	t->sel.c[0].x = 0;
 	t->sel.c[0].y = 0;
 	t->sel.c[1].x = tb_line_len(t, last_line);
@@ -176,7 +184,9 @@ static void tb_sel_delete(textbuf *t)
 {
 	u32 x1, y1, x2, y2;
 	vector *line;
-	selection nsel = t->sel;
+	selection nsel;
+
+	nsel = t->sel;
 	sel_norm(&nsel);
 
 	x1 = nsel.c[0].x;
@@ -225,7 +235,9 @@ static char *tb_sel_get(textbuf *t, u32 *out_len)
 {
 	u32 x1, y1, x2, y2, len;
 	char *output, *p;
-	selection nsel = t->sel;
+	selection nsel;
+
+	nsel = t->sel;
 	sel_norm(&nsel);
 
 	x1 = nsel.c[0].x;
@@ -569,10 +581,7 @@ static void tb_del_cur_line(textbuf *t)
 
 static void tb_toggle_lang(textbuf *t)
 {
-	if(++t->language == LANGUAGE_COUNT)
-	{
-		t->language = 0;
-	}
+	t->language = inc_wrap(t->language, LANGUAGE_COUNT);
 }
 
 static u32 tb_count_bytes(textbuf *t)

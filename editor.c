@@ -48,7 +48,9 @@ static void mode_default(void)
 
 static u32 ed_detect_language(char *filename)
 {
-	char *ext = get_file_ext(filename);
+	char *ext;
+
+	ext = get_file_ext(filename);
 	if(!strcmp(ext, "c") || !strcmp(ext, "cpp") ||
 		!strcmp(ext, "h") || !strcmp(ext, "hpp"))
 	{
@@ -118,8 +120,8 @@ static void ed_whitespace(void)
 	_show_whitespace = !_show_whitespace;
 }
 
-#include "dd.c"
-#include "tf.c"
+#include "dropdown.c"
+#include "textfld.c"
 #include "nav.c"
 #include "goto.c"
 #include "open.c"
@@ -129,16 +131,18 @@ static void ed_whitespace(void)
 static void ed_init(void)
 {
 	bf_init();
+	sr_init();
 	_tabsize = 4;
 	_show_whitespace = 1;
 	_show_linenr = 1;
 	nav_init();
 }
 
-static void ed_cleanup(void)
+static void ed_destroy(void)
 {
+	sr_destroy();
 	bf_destroy();
-	nav_cleanup();
+	nav_destroy();
 }
 
 static void ed_save(void)
@@ -197,6 +201,10 @@ static void ed_render(void)
 	case MODE_CONFIRM:
 		start_y = confirm_render();
 		break;
+
+	case MODE_SEARCH:
+		start_y = sr_render();
+		break;
 	}
 
 	end_y = msg_render();
@@ -218,11 +226,11 @@ static void ed_quit(void)
 		return;
 	}
 
-	ed_cleanup();
+	ed_destroy();
 	request_exit();
 }
 
-static void default_key_press(u32 key, u32 cp)
+static void default_key(u32 key, u32 cp)
 {
 	if(!_tb)
 	{
@@ -388,31 +396,31 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 	switch(_mode)
 	{
 	case MODE_DEFAULT:
-		default_key_press(key, chr);
+		default_key(key, chr);
 		break;
 
 	case MODE_OPEN:
-		open_key_press(key, chr);
+		open_key(key, chr);
 		break;
 
 	case MODE_GOTO:
-		goto_key_press(key, chr);
+		goto_key(key, chr);
 		break;
 
 	case MODE_SAVE_AS:
-		save_as_key_press(key, chr);
+		save_as_key(key, chr);
 		break;
 
 	case MODE_OPENED:
-		opened_key_press(key);
+		opened_key(key);
 		break;
 
 	case MODE_CONFIRM:
-		confirm_key_press(key);
+		confirm_key(key);
 		break;
 
 	case MODE_SEARCH:
-		sr_key_press(key, chr);
+		sr_key(key, chr);
 		break;
 	}
 
@@ -444,6 +452,6 @@ static u32 event_exit(void)
 		return 0;
 	}
 
-	ed_cleanup();
+	ed_destroy();
 	return 1;
 }

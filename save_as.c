@@ -1,11 +1,11 @@
-static u8 _focus;
+static u8 _sv_focus;
 
 static void save_as_dir_reload(void)
 {
 	_free(_dir_list);
 	_dir_list = dir_sorted(_path_buf, &_dir_count);
 	dd_reset(&_dd, _dir_count);
-	_focus = 1;
+	_sv_focus = 1;
 }
 
 static void mode_save_as(void)
@@ -98,7 +98,7 @@ static void save_as_fld_return(void)
 	save_as_path();
 }
 
-static void save_as_key_press(u32 key, u32 c)
+static void save_as_key(u32 key, u32 c)
 {
 	if(key == KEY_ESCAPE)
 	{
@@ -106,22 +106,22 @@ static void save_as_key_press(u32 key, u32 c)
 		return;
 	}
 
-	if(_focus)
+	if(_sv_focus)
 	{
 		switch(key)
 		{
 		case KEY_DOWN:
-			_focus = 0;
+			_sv_focus = 0;
 			dd_first(&_dd);
 			break;
 
 		case MOD_SHIFT | KEY_END:
-			_focus = 0;
+			_sv_focus = 0;
 			dd_last(&_dd);
 			break;
 
 		case KEY_PAGE_DOWN:
-			_focus = 0;
+			_sv_focus = 0;
 			dd_page_down(&_dd);
 			break;
 
@@ -146,7 +146,7 @@ static void save_as_key_press(u32 key, u32 c)
 			if(_dd.pos == 0 &&
 				(key == KEY_UP || key == KEY_HOME || key == KEY_PAGE_UP))
 			{
-				_focus = 1;
+				_sv_focus = 1;
 			}
 			else
 			{
@@ -163,7 +163,7 @@ static u32 save_as_dir_render(u32 y)
 
 	i = _dd.offset;
 	end = umin(i + DD_PAGE, _dd.count);
-	if(_focus)
+	if(_sv_focus)
 	{
 		for(; i < end; ++i, ++y)
 		{
@@ -184,6 +184,6 @@ static u32 save_as_dir_render(u32 y)
 static u32 save_as_render(void)
 {
 	nav_title_render("Save As");
-	tf_render(&_fld, 1, _focus, "Filename: ");
+	tf_render(&_fld, 1, _sv_focus, "Filename: ");
 	return save_as_dir_render(2);
 }

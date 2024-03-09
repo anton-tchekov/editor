@@ -45,6 +45,26 @@ static u32 is_brace(u32 c)
 	return c == '{' || c == '}';
 }
 
+static u32 inc_wrap(u32 v, u32 max)
+{
+	if(++v == max)
+	{
+		v = 0;
+	}
+
+	return v;
+}
+
+static u32 dec_wrap(u32 v, u32 max)
+{
+	if(!v)
+	{
+		v = max;
+	}
+
+	return --v;
+}
+
 static u32 char_type(u32 c)
 {
 	if(isspace(c))

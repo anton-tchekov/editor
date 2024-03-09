@@ -4,14 +4,16 @@ static void (*_confirm_callback)(u32);
 static void confirm(void (*callback)(u32), char *msg, ...)
 {
 	va_list args;
+
 	_mode = MODE_CONFIRM;
+	_confirm_callback = callback;
+
 	va_start(args, msg);
 	vsnprintf(_confirm_buf, sizeof(_confirm_buf), msg, args);
 	va_end(args);
-	_confirm_callback = callback;
 }
 
-static void confirm_key_press(u32 key)
+static void confirm_key(u32 key)
 {
 	switch(key)
 	{

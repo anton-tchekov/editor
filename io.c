@@ -219,7 +219,7 @@ static void init(void)
 	resize_internal(GFX_INITIAL_WIDTH, GFX_INITIAL_HEIGHT);
 }
 
-static void cleanup(void)
+static void destroy(void)
 {
 	_free(_screen);
 	_free(_pixels);
@@ -702,7 +702,7 @@ static int fuzzmain(void)
 		++cnt;
 	}
 
-	cleanup();
+	destroy();
 	return 0;
 }
 
@@ -831,7 +831,7 @@ int main(void)
 		}
 	}
 
-	cleanup();
+	destroy();
 	return 0;
 }
 
