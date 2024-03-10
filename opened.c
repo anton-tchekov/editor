@@ -76,6 +76,8 @@ static void opened_key(u32 key)
 	case KEY_RETURN:       mode_default();         break;
 	case MOD_CTRL | KEY_S: ed_save();              break;
 	case MOD_CTRL | KEY_W: opened_discard(&_dd);   break;
+	case MOD_CTRL | KEY_T:
+	case MOD_CTRL | KEY_N: ed_new();               break;
 	case MOD_CTRL | KEY_O: mode_open();            break;
 	case KEY_UP:           opened_up(&_dd);        break;
 	case KEY_DOWN:         opened_down(&_dd);      break;

@@ -1331,6 +1331,7 @@ static void tb_triple_click(textbuf *t, u32 x, u32 y)
 	(void)x;
 }
 
+/* TODO: Unfinished */
 static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 {
 	u32 qc, tc;
