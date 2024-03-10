@@ -1,5 +1,16 @@
 /* SR (Search and Replace) */
-#define SR_COUNT 2
+
+enum
+{
+	SR_INP_MATCH_CASE,
+	SR_INP_WHOLE_WORDS,
+	SR_INP_USE_ESCSEQ,
+	SR_INP_CHK_END = SR_INP_USE_ESCSEQ,
+
+	SR_INP_SEARCH,
+	SR_INP_REPLACE,
+	SR_COUNT
+};
 
 enum
 {
@@ -41,35 +52,120 @@ static u32 escape_seq(char *out, char *s)
 	return 0;
 }
 
-static void mode_search(void)
+static void sr_open(void)
 {
 	_mode = MODE_SEARCH;
+	_sr_focus = SR_INP_SEARCH;
+}
+
+static void mode_search(void)
+{
+	if(!_tb) { return; }
+	sr_open();
 	_sr_flags &= ~(SR_REPLACE | SR_IN_DIR);
 }
 
 static void mode_search_in_dir(void)
 {
-	_mode = MODE_SEARCH;
+	sr_open();
 	_sr_flags = (_sr_flags & ~SR_REPLACE) | SR_IN_DIR;
 }
 
 static void mode_replace(void)
 {
-	_mode = MODE_SEARCH;
+	if(!_tb) { return; }
+	sr_open();
 	_sr_flags = (_sr_flags & ~SR_IN_DIR) | SR_REPLACE;
 }
 
 static void mode_replace_in_dir(void)
 {
-	_mode = MODE_SEARCH;
+	sr_open();
 	_sr_flags |= SR_REPLACE | SR_IN_DIR;
+}
+
+static void sr_title_render(void)
+{
+	char buf[256];
+	char *action, *print;
+
+	print = action = (_sr_flags & SR_REPLACE) ? "Replace" : "Search";
+	if(_sr_flags & SR_IN_DIR)
+	{
+		snprintf(buf, sizeof(buf), "%s in directory %s", action, _path_buf);
+		print = buf;
+	}
+
+	ed_render_line_str(print, 0, 0, ptp(PT_FG, PT_INFO));
+}
+
+static void sr_put_chk(char *s, u32 idx, u32 mask)
+{
+	s[idx] = (_sr_flags & mask) ? 'X' : ' ';
+}
+
+#define SR_CHK_POS_MATCH_CASE    1
+#define SR_CHK_POS_WHOLE_WORDS  17
+#define SR_CHK_POS_USE_ESCSEQ   34
+
+static u32 sr_chk_cur_sel(void)
+{
+	switch(_sr_focus)
+	{
+	case SR_INP_MATCH_CASE:
+		return SR_CHK_POS_MATCH_CASE;
+
+	case SR_INP_WHOLE_WORDS:
+		return SR_CHK_POS_WHOLE_WORDS;
+
+	case SR_INP_USE_ESCSEQ:
+		return SR_CHK_POS_USE_ESCSEQ;
+	}
+
+	return _screen_width;
+}
+
+static void sr_chk_render(void)
+{
+	static char opt[] =
+		"[ ] Match Case  [ ] Whole Words  [ ] Use Escape Sequences";
+
+	u32 x, hl;
+	char *s;
+
+	sr_put_chk(opt, SR_CHK_POS_MATCH_CASE, SR_MATCH_CASE);
+	sr_put_chk(opt, SR_CHK_POS_WHOLE_WORDS, SR_WHOLE_WORDS);
+	sr_put_chk(opt, SR_CHK_POS_USE_ESCSEQ, SR_USE_ESCSEQ);
+
+	x = 0;
+	hl = sr_chk_cur_sel();
+	for(s = opt; *s && x < _screen_width; ++s, ++x)
+	{
+		screen_set(x, 1, screen_pack(*s,
+			(x == hl) ? ptp(PT_FG, PT_BG) : ptp(PT_BG, PT_FG)));
+	}
+
+	for(; x < _screen_width; ++x)
+	{
+		screen_set(x, 1, screen_pack(' ', ptp(PT_BG, PT_FG)));
+	}
 }
 
 static u32 sr_render(void)
 {
-	tf_render(&_sr_tf_search, 0, _sr_focus == 0, "Search: ");
-	tf_render(&_sr_tf_replace, 1, _sr_focus == 1, "Replace: ");
-	return 2;
+	u32 lines;
+
+	lines = 3;
+	sr_title_render();
+	sr_chk_render();
+	tf_render(&_sr_tf_search, 2, _sr_focus == SR_INP_SEARCH, "Search: ");
+	if(_sr_flags & SR_REPLACE)
+	{
+		tf_render(&_sr_tf_replace, 3, _sr_focus == SR_INP_REPLACE, "Replace: ");
+		++lines;
+	}
+
+	return lines;
 }
 
 static void sr_init(void)
@@ -84,18 +180,92 @@ static void sr_destroy(void)
 	tf_destroy(&_sr_tf_replace);
 }
 
+static void sr_chk_toggle(void)
+{
+	switch(_sr_focus)
+	{
+	case SR_INP_MATCH_CASE:
+		_sr_flags ^= SR_MATCH_CASE;
+		break;
+
+	case SR_INP_WHOLE_WORDS:
+		_sr_flags ^= SR_WHOLE_WORDS;
+		break;
+
+	case SR_INP_USE_ESCSEQ:
+		_sr_flags ^= SR_USE_ESCSEQ;
+		break;
+	}
+}
+
+static u32 sr_max(void)
+{
+	return (_sr_flags & SR_REPLACE) ? SR_COUNT : (SR_COUNT - 1);
+}
+
+static void sr_prev(void)
+{
+	_sr_focus = dec_wrap(_sr_focus, sr_max());
+}
+
+static void sr_next(void)
+{
+	_sr_focus = inc_wrap(_sr_focus, sr_max());
+}
+
+static u32 sr_is_chk(void)
+{
+	return _sr_focus <= SR_INP_CHK_END;
+}
+
+static void sr_key_other(u32 key, u32 chr)
+{
+	switch(_sr_focus)
+	{
+	case SR_INP_SEARCH:
+		tf_key(&_sr_tf_search, key, chr);
+		break;
+
+	case SR_INP_REPLACE:
+		tf_key(&_sr_tf_replace, key, chr);
+		break;
+	}
+}
+
 static void sr_key(u32 key, u32 chr)
 {
 	switch(key)
 	{
 	case KEY_UP:
 	case MOD_SHIFT | KEY_TAB:
-		_sr_focus = dec_wrap(_sr_focus, SR_COUNT);
+		sr_prev();
 		break;
 
 	case KEY_DOWN:
 	case KEY_TAB:
-		_sr_focus = inc_wrap(_sr_focus, SR_COUNT);
+		sr_next();
+		break;
+
+	case KEY_LEFT:
+		if(sr_is_chk())
+		{
+			sr_prev();
+		}
+		else
+		{
+			sr_key_other(key, chr);
+		}
+		break;
+
+	case KEY_RIGHT:
+		if(sr_is_chk())
+		{
+			sr_next();
+		}
+		else
+		{
+			sr_key_other(key, chr);
+		}
 		break;
 
 	case KEY_ESCAPE:
@@ -118,17 +288,20 @@ static void sr_key(u32 key, u32 chr)
 		mode_replace_in_dir();
 		break;
 
-	default:
-		switch(_sr_focus)
+	case KEY_RETURN:
+		sr_chk_toggle();
+		if(_sr_focus == SR_INP_REPLACE || _sr_focus == SR_INP_SEARCH)
 		{
-		case 0:
-			tf_key(&_sr_tf_search, key, chr);
-			break;
-
-		case 1:
-			tf_key(&_sr_tf_replace, key, chr);
-			break;
+			/* do search */
 		}
+		break;
+
+	case KEY_SPACE:
+		sr_chk_toggle();
+		/* fall through */
+
+	default:
+		sr_key_other(key, chr);
 		break;
 	}
 }
