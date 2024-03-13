@@ -602,6 +602,14 @@ static char **dir_sorted(const char *path, u32 *len)
 	return ptrs;
 }
 
+static void io_runcmd(char *cmd, char *arg[])
+{
+	if(!fork())
+	{
+		execvp(cmd, arg);
+	}
+}
+
 static void request_exit(void)
 {
 	_quit = 1;

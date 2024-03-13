@@ -403,7 +403,7 @@ typedef struct
 	u32 a, b;
 } range;
 
-static range indent_sel(selection *s)
+static range sel_y_range(selection *s)
 {
 	range ret;
 	selection nsel;
@@ -434,7 +434,7 @@ static void tb_sel_unindent(textbuf *t)
 		return;
 	}
 
-	ri = indent_sel(&t->sel);
+	ri = sel_y_range(&t->sel);
 	y1 = ri.a;
 	y2 = ri.b;
 	for(; y1 <= y2; ++y1)
@@ -469,7 +469,7 @@ static void tb_char(textbuf *t, u32 c)
 		range ri;
 		u32 y1, y2;
 
-		ri = indent_sel(&t->sel);
+		ri = sel_y_range(&t->sel);
 		y1 = ri.a;
 		y2 = ri.b;
 		for(; y1 <= y2; ++y1)
@@ -1382,6 +1382,32 @@ static void tb_find_next(textbuf *t, char *q)
 		if(tb_matches(t, x, y, q))
 		{
 			return;
+		}
+	}
+}
+
+static void tb_align_defines(textbuf *t)
+{
+	u32 y, end, maxs, maxn;
+	range r;
+
+	r = sel_y_range(&t->sel);
+	end = r.b;
+
+	/* Get length of longest identifier and longest decimal integer */
+	for(y = r.a; y < end; ++y)
+	{
+		if(1)
+		{
+
+		}
+	}
+
+	for(y = r.a; y < end; ++y)
+	{
+		if(1)
+		{
+			/* Remove spaces between #define and idenifier */
 		}
 	}
 }

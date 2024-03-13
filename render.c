@@ -582,7 +582,8 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		" CTRL+S to save\0"
 		" CTRL+W to discard buffer\0"
 		" CTRL+B or CTRL+P to view open buffers\0"
-		" CTRL+G to go to line number or symbol definiton\0\1";
+		" CTRL+G to go to line number or symbol definiton\0"
+		" CTRL+R to open a terminal in the current directory\0\1";
 
 	color = ptp(PT_FG, PT_BG);
 	for(; start_y < end_y; ++start_y)

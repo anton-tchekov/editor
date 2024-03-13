@@ -24,11 +24,12 @@ enum
 static tf _sr_tf_search, _sr_tf_replace;
 static u8 _sr_flags, _sr_focus;
 
-static u32 escape_seq(char *out, char *s)
+static i32 escape_seq(char *out, char *s)
 {
 	u32 c;
+	char *p;
 
-	for(; (c = *s); ++s)
+	for(p = out; (c = *s); ++s)
 	{
 		if(c == '\\')
 		{
@@ -41,15 +42,15 @@ static u32 escape_seq(char *out, char *s)
 			case '\\': c = '\\'; break;
 			case '\"': c = '\"'; break;
 			case '\'': c = '\''; break;
-			default: return 1;
+			default: return -1;
 			}
 		}
 
-		*out++ = c;
+		*p++ = c;
 	}
 
-	*out = '\0';
-	return 0;
+	*p = '\0';
+	return p - out;
 }
 
 static void sr_open(void)
@@ -180,6 +181,98 @@ static void sr_destroy(void)
 	tf_destroy(&_sr_tf_replace);
 }
 
+static char *sr_tf_esc(tf *t, u32 *out_len)
+{
+	i32 ret;
+	char *out, *in;
+
+	in = tf_str(&_sr_tf_search);
+	if(_sr_flags & SR_INP_USE_ESCSEQ)
+	{
+		/* Escaped string is never shorter */
+		out = _malloc(tf_bufsiz(&_sr_tf_search));
+		ret = escape_seq(out, in);
+		if(ret < 0)
+		{
+			return NULL;
+		}
+
+		*out_len = ret;
+		return out;
+	}
+
+	return in;
+}
+
+static void sr_esc_free(char *s)
+{
+	if(_sr_flags & SR_INP_USE_ESCSEQ)
+	{
+		_free(s);
+	}
+}
+
+static char *_sr_err_search = "Invalid escape sequence in search field!";
+static char *_sr_err_replace = "Invalid escape sequence in replace field!";
+
+static void sr_search(void)
+{
+	u32 slen;
+	char *search;
+
+	if(!(search = sr_tf_esc(&_sr_tf_search, &slen)))
+	{
+		msg_show(MSG_ERROR, _sr_err_search);
+		return;
+	}
+
+#ifndef NDBEUG
+	printf("Len = %d; Search =\n%s", slen, search);
+#endif
+
+	sr_esc_free(search);
+}
+
+static void sr_replace(void)
+{
+	u32 slen, rlen;
+	char *search, *replace;
+
+	if(!(search = sr_tf_esc(&_sr_tf_search, &slen)))
+	{
+		msg_show(MSG_ERROR, _sr_err_search);
+		return;
+	}
+
+	if(!(replace = sr_tf_esc(&_sr_tf_replace, &rlen)))
+	{
+		msg_show(MSG_ERROR, _sr_err_replace);
+		return;
+	}
+
+	sr_esc_free(search);
+	sr_esc_free(replace);
+
+	/*
+	char *s, *end;
+	vector v;
+	u32 in_len;
+
+
+	in_len = *len;
+	vector_init(&v, in_len);
+
+	end = in + in_len;
+	for(s = in; s < end; ++s)
+	{
+		if(matches())
+		{
+			
+		}
+	}
+	*/
+}
+
 static void sr_chk_toggle(void)
 {
 	switch(_sr_focus)
@@ -290,9 +383,13 @@ static void sr_key(u32 key, u32 chr)
 
 	case KEY_RETURN:
 		sr_chk_toggle();
-		if(_sr_focus == SR_INP_REPLACE || _sr_focus == SR_INP_SEARCH)
+		if(_sr_focus == SR_INP_REPLACE)
 		{
-			/* do search */
+			sr_replace();
+		}
+		else if(_sr_focus == SR_INP_SEARCH)
+		{
+			sr_search();
 		}
 		break;
 

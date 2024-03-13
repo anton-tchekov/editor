@@ -72,6 +72,7 @@ static void ed_load(char *filename)
 
 	if(bf_switch_name(filename))
 	{
+		mode_default();
 		return;
 	}
 
@@ -237,6 +238,17 @@ static void ed_quit(void)
 	request_exit();
 }
 
+static void ed_command(void)
+{
+	char cmd[sizeof(_path_buf)];
+	char *args[2];
+
+	snprintf(cmd, sizeof(cmd), "--working-directory=%s", _path_buf);
+	args[0] = cmd;
+	args[1] = NULL;
+	io_runcmd("xfce4-terminal", args);
+}
+
 static void default_key(u32 key, u32 cp)
 {
 	if(!_tb)
@@ -321,6 +333,7 @@ static void default_key(u32 key, u32 cp)
 	case MOD_CTRL | KEY_H:                  mode_replace();          break;
 	case MOD_CTRL | MOD_SHIFT | KEY_H:      mode_replace_in_dir();   break;
 	case MOD_SHIFT | KEY_TAB:               tb_sel_unindent(_tb);    break;
+	case MOD_CTRL | KEY_E:                  tb_align_defines(_tb);   break;
 	default:
 		if(isprint(cp) || cp == '\t')
 		{
@@ -404,9 +417,10 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 		break;
 	}
 
-	if(key == (MOD_CTRL | KEY_F3))
+	switch(key)
 	{
-		test_run_all();
+	case MOD_CTRL | KEY_R:  ed_command();   break;
+	case MOD_CTRL | KEY_F3: test_run_all(); break;
 	}
 
 	ed_render();
