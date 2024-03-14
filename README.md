@@ -15,6 +15,8 @@ that is optimized for C projects, is performant, and productive.
 
 ### Modes
 - Search and replace in file and whole folder
+- Align defines handle comments
+- Shift tab work with spaces
 
 ### Future
 - Fix unicode problems

@@ -549,6 +549,17 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 		_offset_x = 0;
 	}
 
+#if 0
+	{
+		u32 len;
+		char *s;
+
+		len = 0;
+		s = tb_cur_line_span(_tb, &len);
+		printf("%.*s - %d\n", len, s, len);
+	}
+#endif
+
 	for(; start_y < end_y; ++start_y)
 	{
 		ed_render_line(start_y);

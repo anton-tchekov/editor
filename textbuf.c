@@ -1600,3 +1600,51 @@ static void tb_align_defines(textbuf *t)
 
 	msg_show(MSG_INFO, "Aligned defines (MaxS = %d, MaxN = %d)", maxs, maxn);
 }
+
+static char *tb_cur_line_span(textbuf *t, u32 *out_len)
+{
+	selection nsel;
+
+	nsel = t->sel;
+	sel_norm(&nsel);
+	if(nsel.c[0].y == nsel.c[1].y)
+	{
+		/* Selection has to be on a single line */
+		if(nsel.c[0].x == nsel.c[1].x)
+		{
+			/* Return current word */
+			vector *v;
+			char *s;
+			u32 start, end, x, len;
+
+			x = nsel.c[0].x;
+			v = tb_get_line(t, nsel.c[0].y);
+			s = vector_str(v);
+			len = vector_len(v);
+
+			/* Find start */
+			for(start = x; start > 0 && isalnum(s[start - 1]); --start) {}
+
+			/* Find end */
+			for(end = x; end < len && isalnum(s[end]); ++end) {}
+
+			if(start == end)
+			{
+				return NULL;
+			}
+			else
+			{
+				*out_len = end - start;
+				return s + start;
+			}
+		}
+		else
+		{
+			/* Return selection */
+			*out_len = nsel.c[1].x - nsel.c[0].x;
+			return tb_line_data(t, nsel.c[0].y) + nsel.c[0].x;
+		}
+	}
+
+	return NULL;
+}
