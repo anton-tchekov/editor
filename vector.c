@@ -24,6 +24,13 @@ static void vector_init(vector *v, u32 capacity)
 	v->data = _malloc(capacity);
 }
 
+static void vector_init_full(vector *v, u32 capacity)
+{
+	v->capacity = capacity;
+	v->len = capacity;
+	v->data = _malloc(capacity);
+}
+
 static void vector_clear(vector *v)
 {
 	v->len = 0;

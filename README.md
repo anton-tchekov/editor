@@ -10,8 +10,8 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 ### Textbuffer
-- Indent Selected using Tab
-- Align defines automatically?
+- Indent Selected using Tab (small problem with cursors)
+- Highlight focused word
 
 ### Modes
 - Search and replace in file and whole folder

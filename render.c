@@ -466,19 +466,6 @@ static void ed_render_line(u32 y)
 	}
 }
 
-static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
-{
-	for(; *s && x < _screen_width; ++s, ++x)
-	{
-		screen_set(x, y, screen_pack(*s, color));
-	}
-
-	for(; x < _screen_width; ++x)
-	{
-		screen_set(x, y, screen_pack(' ', color));
-	}
-}
-
 static u32 ed_prev_comment(void)
 {
 	u32 i, result;

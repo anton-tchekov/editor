@@ -403,16 +403,27 @@ typedef struct
 	u32 a, b;
 } range;
 
-static range sel_y_range(selection *s)
+static u32 tb_sel_y_range(textbuf *t, range *r)
 {
-	range ret;
 	selection nsel;
 
-	nsel = *s;
+	nsel = t->sel;
 	sel_norm(&nsel);
-	ret.a = nsel.c[0].y;
-	ret.b = (nsel.c[1].x > 0) ? nsel.c[1].y : (nsel.c[1].y - 1);
-	return ret;
+	if(nsel.c[0].y == nsel.c[1].y)
+	{
+		if(nsel.c[0].x == 0 && nsel.c[1].x != 0 &&
+			nsel.c[1].x == tb_line_len(t, nsel.c[0].y))
+		{
+			r->b = r->a = nsel.c[0].y;
+			return 0;
+		}
+
+		return 1;
+	}
+
+	r->a = nsel.c[0].y;
+	r->b = (nsel.c[1].x > 0) ? nsel.c[1].y : (nsel.c[1].y - 1);
+	return 0;
 }
 
 static void tb_fix_sel_unindent(textbuf *t, cursor *c)
@@ -429,12 +440,11 @@ static void tb_sel_unindent(textbuf *t)
 	u32 y1, y2;
 	range ri;
 
-	if(t->sel.c[0].y == t->sel.c[1].y)
+	if(tb_sel_y_range(t, &ri))
 	{
 		return;
 	}
 
-	ri = sel_y_range(&t->sel);
 	y1 = ri.a;
 	y2 = ri.b;
 	for(; y1 <= y2; ++y1)
@@ -463,13 +473,13 @@ static void tb_fix_sel_indent(textbuf *t, cursor *c)
 
 static void tb_char(textbuf *t, u32 c)
 {
-	if(c == '\t' && t->sel.c[0].y != t->sel.c[1].y)
+	range ri;
+
+	if(c == '\t' && !tb_sel_y_range(t, &ri))
 	{
 		/* Indent selection */
-		range ri;
 		u32 y1, y2;
 
-		ri = sel_y_range(&t->sel);
 		y1 = ri.a;
 		y2 = ri.b;
 		for(; y1 <= y2; ++y1)
@@ -776,8 +786,7 @@ static void tb_insert(textbuf *t, char *text)
 		first = tb_get_line(t, y);
 		rlen = vector_len(first) - t->sel.c[1].x;
 		slen = s - p;
-		vector_init(&line, rlen + slen);
-		line.len = rlen + slen;
+		vector_init_full(&line, rlen + slen);
 		last = vector_data(&line);
 		memcpy(last, p, slen);
 		memcpy(last + slen, (u8 *)vector_data(first) + t->sel.c[1].x, rlen);
@@ -1386,28 +1395,208 @@ static void tb_find_next(textbuf *t, char *q)
 	}
 }
 
+static char define[] = "#define ";
+
+static u32 tb_ad_is_define(char *s, u32 len)
+{
+	u32 i;
+
+	i = sizeof(define) - 1;
+	if((i < len) && !memcmp(s, define, i))
+	{
+		/* Skip spaces after #define */
+		for(; i < len && isspace(s[i]); ++i) {}
+
+		/* Check for valid identifier */
+		if(i >= len || !is_ident_start(s[i]))
+		{
+			return 0;
+		}
+
+		return i;
+	}
+
+	return 0;
+}
+
+static u32 tb_ad_declen(char *s, u32 i, u32 len)
+{
+	u32 nlen;
+
+	if(i >= len) { return 0; }
+
+	if(s[i] == '0')
+	{
+		++i;
+		nlen = 1;
+	}
+	else if(is_1_to_9(s[i]))
+	{
+		/* Determine number length */
+		nlen = i;
+		for(++i; i < len && isdigit(s[i]); ++i) {}
+		nlen = i - nlen;
+	}
+	else
+	{
+		return 0;
+	}
+
+	/* Check that there are only spaces after the number */
+	for(; i < len; ++i)
+	{
+		if(!isspace(s[i]))
+		{
+			return 0;
+		}
+	}
+
+	return nlen;
+}
+
+static u32 tb_ad_identlen(char *s, u32 i, u32 len)
+{
+	u32 slen;
+
+	/* Determine identifier length */
+	slen = i;
+	for(++i; i < len && is_ident(s[i]); ++i) {}
+	slen = i - slen;
+
+	/* Skip macro if it has parameters */
+	if(i < len && s[i] == '(')
+	{
+		return 0;
+	}
+
+	return slen;
+}
+
+static u32 tb_ad_skipspace(char *s, u32 i, u32 len)
+{
+	for(; i < len && isspace(s[i]); ++i) {}
+	return i;
+}
+
+static void tb_ad_line_stat(vector *v, u32 *maxs, u32 *maxn)
+{
+	u32 i, len, slen, nlen;
+	char *s;
+
+	s = vector_str(v);
+	len = vector_len(v);
+	if(!(i = tb_ad_is_define(s, len))) { return; }
+	if(!(slen = tb_ad_identlen(s, i, len))) { return; }
+	i += slen;
+	*maxs = umax(slen, *maxs);
+	i = tb_ad_skipspace(s, i, len);
+	if(!(nlen = tb_ad_declen(s, i, len))) { return; }
+	*maxn = umax(nlen, *maxn);
+}
+
+static char *padchr(char *s, u32 c, u32 count)
+{
+	while(count)
+	{
+		--count;
+		*s++ = c;
+	}
+
+	return s;
+}
+
+static char *append(char *dst, char *src, size_t count)
+{
+	memcpy(dst, src, count);
+	return dst + count;
+}
+
+static u32 revspace(char *s, u32 i, u32 len)
+{
+	for(; len > i && isspace(s[len - 1]); --len) {}
+	return len;
+}
+
+static void tb_ad_line_mod(vector *v, u32 pad)
+{
+	vector repl;
+	u32 i, len, spos, slen, npos, nlen, nspc, total;
+	char *s, *rs;
+
+	s = vector_str(v);
+	len = vector_len(v);
+	if(!(i = tb_ad_is_define(s, len))) { return; }
+	spos = i;
+	if(!(slen = tb_ad_identlen(s, i, len))) { return; }
+	i += slen;
+	if((total = tb_ad_skipspace(s, i, len)) == len)
+	{
+		/* If nothing after identifier, trim trailing spaces */
+		v->len = i;
+		return;
+	}
+
+	i = total;
+	npos = i;
+	total = sizeof(define) - 1;
+
+	/* Check if decimal number */
+	if((nlen = tb_ad_declen(s, i, len)))
+	{
+		total += pad;
+		nspc = pad - slen - nlen;
+	}
+	else
+	{
+		/* Scan reverse to find definition end */
+		nlen = revspace(s, i, len) - npos;
+		total += pad + nlen;
+		nspc = pad - slen;
+	}
+
+	/* Rebuild vector */
+	vector_init_full(&repl, total);
+	rs = vector_str(&repl);
+	rs = append(rs, define, sizeof(define) - 1);
+	rs = append(rs, s + spos, slen);
+	rs = padchr(rs, ' ', nspc);
+	append(rs, s + npos, nlen);
+	vector_destroy(v);
+	*v = repl;
+}
+
 static void tb_align_defines(textbuf *t)
 {
 	u32 y, end, maxs, maxn;
 	range r;
 
-	r = sel_y_range(&t->sel);
+	if(tb_sel_y_range(t, &r))
+	{
+		msg_show(MSG_INFO, "No selection!");
+		return;
+	}
+
 	end = r.b;
+	maxs = 0;
+	maxn = 0;
 
 	/* Get length of longest identifier and longest decimal integer */
-	for(y = r.a; y < end; ++y)
+	for(y = r.a; y <= end; ++y)
 	{
-		if(1)
-		{
-
-		}
+		tb_ad_line_stat(tb_get_line(t, y), &maxs, &maxn);
 	}
 
-	for(y = r.a; y < end; ++y)
+	if(!maxs)
 	{
-		if(1)
-		{
-			/* Remove spaces between #define and idenifier */
-		}
+		msg_show(MSG_INFO, "No #define in selection!");
+		return;
 	}
+
+	/* Process each line and align parts */
+	for(y = r.a; y <= end; ++y)
+	{
+		tb_ad_line_mod(tb_get_line(t, y), maxs + maxn + 1);
+	}
+
+	msg_show(MSG_INFO, "Aligned defines (MaxS = %d, MaxN = %d)", maxs, maxn);
 }

@@ -39,12 +39,25 @@ static void mode_default(void)
 	_mode = MODE_DEFAULT;
 }
 
+static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
+{
+	for(; *s && x < _screen_width; ++s, ++x)
+	{
+		screen_set(x, y, screen_pack(*s, color));
+	}
+
+	for(; x < _screen_width; ++x)
+	{
+		screen_set(x, y, screen_pack(' ', color));
+	}
+}
+
 #include "cursor.c"
+#include "msg.c"
 #include "textbuf.c"
 #include "buffers.c"
 #include "render.c"
 #include "confirm.c"
-#include "msg.c"
 
 static u32 ed_detect_language(char *filename)
 {
@@ -420,7 +433,9 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 	switch(key)
 	{
 	case MOD_CTRL | KEY_R:  ed_command();   break;
+#ifndef NDEBUG
 	case MOD_CTRL | KEY_F3: test_run_all(); break;
+#endif
 	}
 
 	ed_render();

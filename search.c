@@ -186,11 +186,11 @@ static char *sr_tf_esc(tf *t, u32 *out_len)
 	i32 ret;
 	char *out, *in;
 
-	in = tf_str(&_sr_tf_search);
+	in = tf_str(t);
 	if(_sr_flags & SR_INP_USE_ESCSEQ)
 	{
 		/* Escaped string is never shorter */
-		out = _malloc(tf_bufsiz(&_sr_tf_search));
+		out = _malloc(tf_bufsiz(t));
 		ret = escape_seq(out, in);
 		if(ret < 0)
 		{
@@ -267,7 +267,7 @@ static void sr_replace(void)
 	{
 		if(matches())
 		{
-			
+
 		}
 	}
 	*/

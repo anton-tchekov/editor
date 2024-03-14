@@ -30,6 +30,11 @@ static u32 is_oct(u32 c)
 	return c >= '0' && c <= '7';
 }
 
+static u32 is_1_to_9(u32 c)
+{
+	return c >= '1' && c <= '9';
+}
+
 static u32 is_paren(u32 c)
 {
 	return c == '(' || c == ')';
