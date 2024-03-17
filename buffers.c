@@ -1,21 +1,21 @@
-static vector _buffers;
+static vec _buffers;
 static u32 _cur_buf;
 static u32 _untitled_cnt = 1;
 static textbuf *_tb;
 
 static void bf_init(void)
 {
-	vector_init(&_buffers, 8 * sizeof(textbuf *));
+	vec_init(&_buffers, 8 * sizeof(textbuf *));
 }
 
 static u32 bf_count(void)
 {
-	return vector_len(&_buffers) / sizeof(textbuf *);
+	return vec_len(&_buffers) / sizeof(textbuf *);
 }
 
 static textbuf *bf_get(u32 i)
 {
-	return *(textbuf **)vector_get(&_buffers, i * sizeof(textbuf *));
+	return *(textbuf **)vec_get(&_buffers, i * sizeof(textbuf *));
 }
 
 static void bf_destroy(void)
@@ -28,7 +28,7 @@ static void bf_destroy(void)
 		tb_destroy(bf_get(i));
 	}
 
-	vector_destroy(&_buffers);
+	vec_destroy(&_buffers);
 }
 
 static u32 bf_has_modified(void)
@@ -102,7 +102,7 @@ static void bf_cycle(void)
 
 static void bf_insert_cur(textbuf *t)
 {
-	vector_push(&_buffers, sizeof(textbuf *), &t);
+	vec_push(&_buffers, sizeof(textbuf *), &t);
 	_cur_buf = bf_count() - 1;
 	_tb = t;
 }
@@ -110,7 +110,7 @@ static void bf_insert_cur(textbuf *t)
 static void bf_discard(u32 i)
 {
 	tb_destroy(bf_get(i));
-	vector_remove(&_buffers, i * sizeof(textbuf *), sizeof(textbuf *));
+	vec_remove(&_buffers, i * sizeof(textbuf *), sizeof(textbuf *));
 }
 
 static void bf_discard_cur(void)

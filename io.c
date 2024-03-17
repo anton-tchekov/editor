@@ -464,7 +464,7 @@ static u32 is_text(u8 *s, size_t len)
 
 static u32 textfile_read(char *filename, char **out)
 {
-	vector v;
+	vec v;
 	u32 rb;
 	FILE *fp;
 	if(!(fp = fopen(filename, "r")))
@@ -472,13 +472,13 @@ static u32 textfile_read(char *filename, char **out)
 		return FILE_READ_FAIL;
 	}
 
-	vector_init(&v, FILE_CHUNK);
+	vec_init(&v, FILE_CHUNK);
 	for(;;)
 	{
 		rb = fread((u8 *)v.data + v.len, 1, FILE_CHUNK, fp);
 		if(!is_text((u8 *)v.data + v.len, rb))
 		{
-			vector_destroy(&v);
+			vec_destroy(&v);
 			fclose(fp);
 			return FILE_READ_NOT_TEXT;
 		}
@@ -489,12 +489,12 @@ static u32 textfile_read(char *filename, char **out)
 			break;
 		}
 
-		vector_reserve(&v, v.len + FILE_CHUNK);
+		vec_reserve(&v, v.len + FILE_CHUNK);
 	}
 
 	if(ferror(fp))
 	{
-		vector_destroy(&v);
+		vec_destroy(&v);
 		fclose(fp);
 		return FILE_READ_FAIL;
 	}
@@ -502,7 +502,7 @@ static u32 textfile_read(char *filename, char **out)
 	{
 		u8 nt[1];
 		nt[0] = '\0';
-		vector_push(&v, 1, nt);
+		vec_push(&v, 1, nt);
 	}
 
 	*out = v.data;
@@ -553,7 +553,7 @@ static int dir_sort_callback(const void *a, const void *b)
 
 static char **dir_sorted(const char *path, u32 *len)
 {
-	vector v;
+	vec v;
 	DIR *dir;
 	struct dirent *dp;
 	u32 i, count;
@@ -561,7 +561,7 @@ static char **dir_sorted(const char *path, u32 *len)
 	char *strs;
 	char **ptrs;
 
-	vector_init(&v, 1024);
+	vec_init(&v, 1024);
 	if(!(dir = opendir(path)))
 	{
 		return NULL;
@@ -575,20 +575,20 @@ static char **dir_sorted(const char *path, u32 *len)
 			continue;
 		}
 
-		vector_push(&v, strlen(dp->d_name), dp->d_name);
+		vec_push(&v, strlen(dp->d_name), dp->d_name);
 		if(dp->d_type == DT_DIR)
 		{
 			c[0] = '/';
-			vector_push(&v, 1, c);
+			vec_push(&v, 1, c);
 		}
 
 		c[0] = '\0';
-		vector_push(&v, 1, c);
+		vec_push(&v, 1, c);
 		++count;
 	}
 
 	closedir(dir);
-	vector_makespace(&v, 0, count * sizeof(char *));
+	vec_makespace(&v, 0, count * sizeof(char *));
 	strs = (char *)v.data + count * sizeof(char *);
 	ptrs = v.data;
 	for(i = 0; i < count; ++i)
@@ -658,7 +658,7 @@ static int fuzzmain(void)
 		{
 			e.type = SDL_KEYDOWN;
 			e.key.keysym.scancode = rand() % KEY_COUNT;
-			e.key.keysym.mod = rmods[rand() % (sizeof(rmods) / sizeof(*rmods))];
+			e.key.keysym.mod = rmods[rand() % ARRLEN(rmods)];
 			e.key.repeat = 0;
 		}
 

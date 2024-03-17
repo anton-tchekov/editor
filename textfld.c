@@ -1,20 +1,20 @@
 /* TF (TextField): Single line text input field */
 typedef struct
 {
-	vector v;
+	vec v;
 	u32 pos, sel;
 } tf;
 
 static void tf_clear(tf *t)
 {
-	vector_str_clear(&t->v);
+	vec_str_clear(&t->v);
 	t->pos = 0;
 	t->sel = 0;
 }
 
 static void tf_init(tf *t)
 {
-	vector_init(&t->v, 64);
+	vec_init(&t->v, 64);
 	tf_clear(t);
 }
 
@@ -25,21 +25,21 @@ static void tf_sel_to_pos(tf *t)
 
 static void tf_set(tf *t, char *s, u32 len)
 {
-	vector_clear(&t->v);
-	vector_push(&t->v, len, s);
-	vector_push(&t->v, 1, "");
+	vec_clear(&t->v);
+	vec_push(&t->v, len, s);
+	vec_push(&t->v, 1, "");
 	t->pos = len;
 	tf_sel_to_pos(t);
 }
 
 static void tf_destroy(tf *t)
 {
-	vector_destroy(&t->v);
+	vec_destroy(&t->v);
 }
 
 static u32 tf_bufsiz(tf *t)
 {
-	return vector_len(&t->v);
+	return vec_len(&t->v);
 }
 
 static u32 tf_len(tf *t)
@@ -49,7 +49,7 @@ static u32 tf_len(tf *t)
 
 static char *tf_str(tf *t)
 {
-	return vector_str(&t->v);
+	return vec_str(&t->v);
 }
 
 static u32 tf_sel_min(tf *t)
@@ -68,7 +68,7 @@ static void tf_sel_replace(tf *t, char *s, u32 len)
 
 	sel_start = tf_sel_min(t);
 	sel_len = tf_sel_max(t) - sel_start;
-	vector_replace(&t->v, sel_start, sel_len, s, len);
+	vec_replace(&t->v, sel_start, sel_len, s, len);
 	t->pos = sel_start + len;
 	tf_sel_to_pos(t);
 }
@@ -119,7 +119,7 @@ static void tf_sel_right(tf *t)
 
 static void tf_remove(tf *t)
 {
-	vector_remove(&t->v, t->pos, 1);
+	vec_remove(&t->v, t->pos, 1);
 }
 
 static void tf_backspace(tf *t)

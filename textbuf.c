@@ -1,6 +1,6 @@
 typedef struct
 {
-	vector lines;
+	vec lines;
 	selection sel;
 	char *filename;
 	u32 page_y;
@@ -13,7 +13,7 @@ typedef struct
 
 static u32 tb_num_lines(textbuf *t)
 {
-	return vector_len(&t->lines) / sizeof(vector);
+	return vec_len(&t->lines) / sizeof(vec);
 }
 
 static void tb_reset_cursor(textbuf *t)
@@ -25,7 +25,7 @@ static void tb_reset_cursor(textbuf *t)
 
 static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 {
-	vector line;
+	vec line;
 	textbuf *t;
 
 	t = _malloc(sizeof(textbuf));
@@ -40,7 +40,7 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 		u32 c;
 		char *linestart, *p;
 
-		vector_init(&t->lines, count_char(text, '\n') + 1);
+		vec_init(&t->lines, count_char(text, '\n') + 1);
 		p = text;
 		linestart = text;
 		do
@@ -48,8 +48,8 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 			c = *p;
 			if(c == '\0' || c == '\n')
 			{
-				vector_from(&line, linestart, p - linestart);
-				vector_push(&t->lines, sizeof(line), &line);
+				vec_from(&line, linestart, p - linestart);
+				vec_push(&t->lines, sizeof(line), &line);
 				linestart = p + 1;
 			}
 			++p;
@@ -58,9 +58,9 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 	}
 	else
 	{
-		vector_init(&t->lines, 32 * sizeof(vector));
-		vector_init(&line, 8);
-		vector_push(&t->lines, sizeof(line), &line);
+		vec_init(&t->lines, 32 * sizeof(vec));
+		vec_init(&line, 8);
+		vec_push(&t->lines, sizeof(line), &line);
 	}
 
 	return t;
@@ -77,34 +77,34 @@ static void tb_change_filename(textbuf *t, char *name)
 	t->filename = _strdup(name);
 }
 
-static vector *tb_get_line(textbuf *t, u32 i)
+static vec *tb_get_line(textbuf *t, u32 i)
 {
-	return (vector *)vector_get(&t->lines, i * sizeof(vector));
+	return (vec *)vec_get(&t->lines, i * sizeof(vec));
 }
 
-static vector *tb_cur_line(textbuf *t)
+static vec *tb_cur_line(textbuf *t)
 {
 	return tb_get_line(t, t->sel.c[1].y);
 }
 
 static u32 tb_line_len(textbuf *t, u32 i)
 {
-	return vector_len(tb_get_line(t, i));
+	return vec_len(tb_get_line(t, i));
 }
 
 static char *tb_line_data(textbuf *t, u32 i)
 {
-	return vector_data(tb_get_line(t, i));
+	return vec_data(tb_get_line(t, i));
 }
 
 static u32 tb_cur_line_len(textbuf *t)
 {
-	return vector_len(tb_cur_line(t));
+	return vec_len(tb_cur_line(t));
 }
 
 static char *tb_cur_line_data(textbuf *t)
 {
-	return vector_data(tb_cur_line(t));
+	return vec_data(tb_cur_line(t));
 }
 
 static void tb_sel_to_cursor(textbuf *t)
@@ -125,20 +125,20 @@ static void tb_scroll_to_cursor(textbuf *t)
 	}
 }
 
-static void tb_ins_line(textbuf *t, u32 line, vector *v)
+static void tb_ins_line(textbuf *t, u32 line, vec *v)
 {
-	vector_insert(&t->lines, line * sizeof(vector), sizeof(vector), v);
+	vec_insert(&t->lines, line * sizeof(vec), sizeof(vec), v);
 }
 
 static void tb_ins_lines(textbuf *t, u32 y, u32 count)
 {
-	vector_makespace(&t->lines, y * sizeof(vector), count * sizeof(vector));
+	vec_makespace(&t->lines, y * sizeof(vec), count * sizeof(vec));
 }
 
 static void tb_remove_line(textbuf *t, u32 line)
 {
-	vector_destroy(tb_get_line(t, line));
-	vector_remove(&t->lines, line * sizeof(vector), sizeof(vector));
+	vec_destroy(tb_get_line(t, line));
+	vec_remove(&t->lines, line * sizeof(vec), sizeof(vec));
 }
 
 static void tb_remove_lines(textbuf *t, u32 y1, u32 y2)
@@ -147,11 +147,11 @@ static void tb_remove_lines(textbuf *t, u32 y1, u32 y2)
 
 	for(i = y1; i <= y2; ++i)
 	{
-		vector_destroy(tb_get_line(t, i));
+		vec_destroy(tb_get_line(t, i));
 	}
 
-	vector_remove(&t->lines, y1 * sizeof(vector),
-		(y2 - y1 + 1) * sizeof(vector));
+	vec_remove(&t->lines, y1 * sizeof(vec),
+		(y2 - y1 + 1) * sizeof(vec));
 }
 
 static void tb_destroy(textbuf *t)
@@ -161,10 +161,10 @@ static void tb_destroy(textbuf *t)
 	num_lines = tb_num_lines(t);
 	for(i = 0; i < num_lines; ++i)
 	{
-		vector_destroy(tb_get_line(t, i));
+		vec_destroy(tb_get_line(t, i));
 	}
 
-	vector_destroy(&t->lines);
+	vec_destroy(&t->lines);
 	_free(t->filename);
 	_free(t);
 }
@@ -183,7 +183,7 @@ static void tb_sel_all(textbuf *t)
 static void tb_sel_delete(textbuf *t)
 {
 	u32 x1, y1, x2, y2;
-	vector *line;
+	vec *line;
 	selection nsel;
 
 	nsel = t->sel;
@@ -199,15 +199,15 @@ static void tb_sel_delete(textbuf *t)
 	line = tb_get_line(t, y1);
 	if(y1 == y2)
 	{
-		vector_remove(line, x1, x2 - x1);
+		vec_remove(line, x1, x2 - x1);
 	}
 	else
 	{
-		vector *last;
+		vec *last;
 
 		last = tb_get_line(t, y2);
-		vector_replace(line, x1, vector_len(line) - x1,
-			vector_str(last) + x2, vector_len(last) - x2);
+		vec_replace(line, x1, vec_len(line) - x1,
+			vec_str(last) + x2, vec_len(last) - x2);
 		tb_remove_lines(t, y1 + 1, y2);
 	}
 }
@@ -257,18 +257,18 @@ static char *tb_sel_get(textbuf *t, u32 *out_len)
 	}
 	else
 	{
-		vector *line;
+		vec *line;
 
 		line = tb_get_line(t, y1);
-		len = vector_len(line) - x1;
-		memcpy(p, (u8 *)vector_data(line) + x1, len);
+		len = vec_len(line) - x1;
+		memcpy(p, (u8 *)vec_data(line) + x1, len);
 		p += len;
 		for(++y1; y1 < y2; ++y1)
 		{
 			*p++ = '\n';
 			line = tb_get_line(t, y1);
-			len = vector_len(line);
-			memcpy(p, vector_data(line), len);
+			len = vec_len(line);
+			memcpy(p, vec_data(line), len);
 			p += len;
 		}
 
@@ -297,11 +297,11 @@ static void tb_delete(textbuf *t)
 	}
 	else
 	{
-		vector *line;
+		vec *line;
 		u32 line_len;
 
 		line = tb_cur_line(t);
-		line_len = vector_len(line);
+		line_len = vec_len(line);
 		if(t->sel.c[1].x >= line_len)
 		{
 			t->sel.c[1].x = line_len;
@@ -309,18 +309,18 @@ static void tb_delete(textbuf *t)
 			{
 				/* Merge with next line */
 				u32 next_idx;
-				vector *next;
+				vec *next;
 
 				next_idx = t->sel.c[1].y + 1;
 				next = tb_get_line(t, next_idx);
-				vector_push(line, vector_len(next), vector_data(next));
+				vec_push(line, vec_len(next), vec_data(next));
 				tb_remove_line(t, next_idx);
 			}
 		}
 		else
 		{
 			/* Delete next char */
-			vector_remove(line, t->sel.c[1].x, 1);
+			vec_remove(line, t->sel.c[1].x, 1);
 		}
 
 		t->cursor_save_x = -1;
@@ -338,7 +338,7 @@ static void tb_backspace(textbuf *t)
 	}
 	else
 	{
-		vector *line;
+		vec *line;
 
 		line = tb_cur_line(t);
 		if(t->sel.c[1].x == 0)
@@ -346,18 +346,18 @@ static void tb_backspace(textbuf *t)
 			if(t->sel.c[1].y > 0)
 			{
 				/* Merge with previous line */
-				vector *prev;
+				vec *prev;
 
 				prev = tb_get_line(t, --t->sel.c[1].y);
-				t->sel.c[1].x = vector_len(prev);
-				vector_push(prev, vector_len(line), vector_data(line));
+				t->sel.c[1].x = vec_len(prev);
+				vec_push(prev, vec_len(line), vec_data(line));
 				tb_remove_line(t, t->sel.c[1].y + 1);
 			}
 		}
 		else
 		{
 			/* Delete previous char */
-			vector_remove(line, --t->sel.c[1].x, 1);
+			vec_remove(line, --t->sel.c[1].x, 1);
 		}
 
 		t->cursor_save_x = -1;
@@ -370,13 +370,13 @@ static void tb_backspace(textbuf *t)
 
 static u32 tb_line_start(textbuf *t, u32 y)
 {
-	vector *line;
+	vec *line;
 	char *buf;
 	u32 i, len;
 
 	line = tb_get_line(t, y);
-	buf = vector_data(line);
-	len = vector_len(line);
+	buf = vec_data(line);
+	len = vec_len(line);
 	i = 0;
 	while(i < len && isspace(buf[i])) { ++i; }
 	return i;
@@ -436,7 +436,7 @@ static void tb_fix_sel_unindent(textbuf *t, cursor *c)
 
 static void tb_sel_unindent(textbuf *t)
 {
-	vector *line;
+	vec *line;
 	u32 y1, y2;
 	range ri;
 
@@ -450,9 +450,9 @@ static void tb_sel_unindent(textbuf *t)
 	for(; y1 <= y2; ++y1)
 	{
 		line = tb_get_line(t, y1);
-		if(vector_len(line) > 0 && vector_str(line)[0] == '\t')
+		if(vec_len(line) > 0 && vec_str(line)[0] == '\t')
 		{
-			vector_remove(line, 0, 1);
+			vec_remove(line, 0, 1);
 		}
 	}
 
@@ -484,12 +484,12 @@ static void tb_char(textbuf *t, u32 c)
 		y2 = ri.b;
 		for(; y1 <= y2; ++y1)
 		{
-			vector *line;
+			vec *line;
 
 			line = tb_get_line(t, y1);
-			if(vector_len(line) > 0)
+			if(vec_len(line) > 0)
 			{
-				vector_insert(line, 0, 1, "\t");
+				vec_insert(line, 0, 1, "\t");
 			}
 		}
 
@@ -498,20 +498,20 @@ static void tb_char(textbuf *t, u32 c)
 	}
 	else
 	{
-		vector *line;
+		vec *line;
 
 		tb_sel_clear(t);
 		line = tb_cur_line(t);
-		if(t->insert && t->sel.c[1].x < vector_len(line))
+		if(t->insert && t->sel.c[1].x < vec_len(line))
 		{
-			vector_str(line)[t->sel.c[1].x] = c;
+			vec_str(line)[t->sel.c[1].x] = c;
 		}
 		else
 		{
 			u8 ins[1];
 
 			ins[0] = c;
-			vector_insert(line, t->sel.c[1].x, 1, ins);
+			vec_insert(line, t->sel.c[1].x, 1, ins);
 		}
 
 		++t->sel.c[1].x;
@@ -525,9 +525,9 @@ static void tb_char(textbuf *t, u32 c)
 
 static void tb_enter_before(textbuf *t)
 {
-	vector new_line;
+	vec new_line;
 
-	vector_init(&new_line, 8);
+	vec_init(&new_line, 8);
 	tb_ins_line(t, t->sel.c[1].y, &new_line);
 	t->sel.c[1].x = 0;
 	t->cursor_save_x = 0;
@@ -538,9 +538,9 @@ static void tb_enter_before(textbuf *t)
 
 static void tb_enter_after(textbuf *t)
 {
-	vector new_line;
+	vec new_line;
 
-	vector_init(&new_line, 8);
+	vec_init(&new_line, 8);
 	tb_ins_line(t, ++t->sel.c[1].y, &new_line);
 	t->sel.c[1].x = 0;
 	t->cursor_save_x = 0;
@@ -553,23 +553,23 @@ static void tb_enter(textbuf *t)
 {
 	u32 len;
 	char *str;
-	vector new_line, *cur;
+	vec new_line, *cur;
 
 	tb_sel_clear(t);
 
 	cur = tb_cur_line(t);
-	str = vector_str(cur) + t->sel.c[1].x;
-	len = vector_len(cur) - t->sel.c[1].x;
+	str = vec_str(cur) + t->sel.c[1].x;
+	len = vec_len(cur) - t->sel.c[1].x;
 
 	/* Copy characters after cursor on current line to new line */
-	vector_init(&new_line, len);
-	vector_push(&new_line, len, str);
+	vec_init(&new_line, len);
+	vec_push(&new_line, len, str);
 
 	/* Insert new line */
 	tb_ins_line(t, t->sel.c[1].y + 1, &new_line);
 
 	/* Remove characters after cursor on current line */
-	vector_remove(tb_cur_line(t), t->sel.c[1].x, len);
+	vec_remove(tb_cur_line(t), t->sel.c[1].x, len);
 
 	++t->sel.c[1].y;
 	t->sel.c[1].x = 0;
@@ -645,12 +645,12 @@ static char *tb_export(textbuf *t, u32 *len)
 	num_lines = tb_num_lines(t);
 	for(i = 0; i < num_lines; ++i)
 	{
-		vector *cur;
+		vec *cur;
 		u32 line_len;
 
 		cur = tb_get_line(t, i);
-		line_len = vector_len(cur);
-		memcpy(p, vector_data(cur), line_len);
+		line_len = vec_len(cur);
+		memcpy(p, vec_data(cur), line_len);
 		p += line_len;
 		if(i < num_lines - 1)
 		{
@@ -665,7 +665,7 @@ static char *tb_export(textbuf *t, u32 *len)
 static void tb_ins(textbuf *t, char *s, u32 len, u32 inc)
 {
 	tb_sel_clear(t);
-	vector_insert(tb_cur_line(t), t->sel.c[1].x, len, s);
+	vec_insert(tb_cur_line(t), t->sel.c[1].x, len, s);
 	t->sel.c[1].x += inc;
 	t->cursor_save_x = -1;
 	tb_sel_to_cursor(t);
@@ -710,15 +710,15 @@ static void tb_sel_cur_line(textbuf *t)
 static void tb_trailing(textbuf *t)
 {
 	u32 i, len, end;
-	vector *line;
+	vec *line;
 	char *data;
 
 	end = tb_num_lines(t);
 	for(i = 0; i < end; ++i)
 	{
 		line = tb_get_line(t, i);
-		data = vector_data(line);
-		len = vector_len(line);
+		data = vec_data(line);
+		len = vec_len(line);
 		while(len > 0 && isspace(data[len - 1]))
 		{
 			--len;
@@ -769,27 +769,27 @@ static void tb_insert(textbuf *t, char *text)
 		u32 len;
 
 		len = s - text;
-		vector_insert(tb_get_line(t, y), t->sel.c[1].x, len, text);
+		vec_insert(tb_get_line(t, y), t->sel.c[1].x, len, text);
 		t->sel.c[1].x += len;
 	}
 	else
 	{
 		char *last;
 		u32 slen, rlen;
-		vector line, *first, *lines;
+		vec line, *first, *lines;
 
 		/* Insert new lines in advance to avoid quadratic complexity */
 		tb_ins_lines(t, y + 1, new_lines);
-		lines = vector_data(&t->lines);
+		lines = vec_data(&t->lines);
 
 		/* Last line */
 		first = tb_get_line(t, y);
-		rlen = vector_len(first) - t->sel.c[1].x;
+		rlen = vec_len(first) - t->sel.c[1].x;
 		slen = s - p;
-		vector_init_full(&line, rlen + slen);
-		last = vector_data(&line);
+		vec_init_full(&line, rlen + slen);
+		last = vec_data(&line);
 		memcpy(last, p, slen);
-		memcpy(last + slen, (u8 *)vector_data(first) + t->sel.c[1].x, rlen);
+		memcpy(last + slen, (u8 *)vec_data(first) + t->sel.c[1].x, rlen);
 		lines[y + new_lines] = line;
 
 		first->len = t->sel.c[1].x;
@@ -798,13 +798,13 @@ static void tb_insert(textbuf *t, char *text)
 
 		/* First line */
 		p = strchr(text, '\n');
-		vector_push(tb_get_line(t, y), p - text, text);
+		vec_push(tb_get_line(t, y), p - text, text);
 		text = p + 1;
 
 		/* Other lines */
 		while((p = strchr(text, '\n')))
 		{
-			vector_from(&line, text, p - text);
+			vec_from(&line, text, p - text);
 			lines[++y] = line;
 			text = p + 1;
 		}
@@ -845,7 +845,7 @@ static void tb_goto_xy(textbuf *t, u32 x, u32 y)
 static void tb_goto_def(textbuf *t, char *s)
 {
 	u32 i, len, sl, ll;
-	vector *line;
+	vec *line;
 	char *buf;
 	i32 offset;
 
@@ -854,8 +854,8 @@ static void tb_goto_def(textbuf *t, char *s)
 	for(i = 0; i < len; ++i)
 	{
 		line = tb_get_line(t, i);
-		ll = vector_len(line);
-		buf = vector_data(line);
+		ll = vec_len(line);
+		buf = vec_data(line);
 		if(ll == 0 || isspace(buf[0]))
 		{
 			continue;
@@ -895,12 +895,12 @@ static u32 tb_cursor_pos_x(textbuf *t, u32 y, u32 end)
 static void tb_move_vertical(textbuf *t, u32 prev_y)
 {
 	u32 i, x, max_x, len;
-	vector *line;
+	vec *line;
 	char *buf;
 
 	line = tb_cur_line(t);
-	len = vector_len(line);
-	buf = vector_data(line);
+	len = vec_len(line);
+	buf = vec_data(line);
 	if(t->cursor_save_x < 0)
 	{
 		t->cursor_save_x = tb_cursor_pos_x(t, prev_y, t->sel.c[1].x);
@@ -1264,11 +1264,11 @@ static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
 {
 	char *line;
 	u32 i, x, len;
-	vector *v;
+	vec *v;
 
 	v = tb_get_line(t, y);
-	line = vector_data(v);
-	len = vector_len(v);
+	line = vec_data(v);
+	len = vec_len(v);
 	for(i = 0, x = 0; x < col && i < len; ++i)
 	{
 		x = tb_chr_x_inc(line[i], x);
@@ -1280,14 +1280,14 @@ static u32 tb_col_to_idx(textbuf *t, u32 y, u32 col)
 static void tb_sel_cur_word(textbuf *t)
 {
 	u32 x1, x2, len;
-	vector *line;
+	vec *line;
 	char *buf;
 
 	x1 = t->sel.c[1].x;
 	x2 = x1;
 	line = tb_cur_line(t);
-	len = vector_len(line);
-	buf = vector_data(line);
+	len = vec_len(line);
+	buf = vec_data(line);
 
 	if(isspace(buf[x1]))
 	{
@@ -1344,12 +1344,12 @@ static void tb_triple_click(textbuf *t, u32 x, u32 y)
 static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 {
 	u32 qc, tc;
-	vector *line;
+	vec *line;
 
 	line = tb_get_line(t, y);
 	for(; (qc = *q); ++q)
 	{
-		if(x >= vector_len(line))
+		if(x >= vec_len(line))
 		{
 			tc = '\n';
 			if(y >= tb_num_lines(t))
@@ -1364,7 +1364,7 @@ static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 		}
 		else
 		{
-			tc = vector_str(line)[x];
+			tc = vec_str(line)[x];
 		}
 
 		if(qc != tc)
@@ -1478,13 +1478,13 @@ static u32 tb_ad_skipspace(char *s, u32 i, u32 len)
 	return i;
 }
 
-static void tb_ad_line_stat(vector *v, u32 *maxs, u32 *maxn)
+static void tb_ad_line_stat(vec *v, u32 *maxs, u32 *maxn)
 {
 	u32 i, len, slen, nlen;
 	char *s;
 
-	s = vector_str(v);
-	len = vector_len(v);
+	s = vec_str(v);
+	len = vec_len(v);
 	if(!(i = tb_ad_is_define(s, len))) { return; }
 	if(!(slen = tb_ad_identlen(s, i, len))) { return; }
 	i += slen;
@@ -1517,14 +1517,14 @@ static u32 revspace(char *s, u32 i, u32 len)
 	return len;
 }
 
-static void tb_ad_line_mod(vector *v, u32 pad)
+static void tb_ad_line_mod(vec *v, u32 pad)
 {
-	vector repl;
+	vec repl;
 	u32 i, len, spos, slen, npos, nlen, nspc, total;
 	char *s, *rs;
 
-	s = vector_str(v);
-	len = vector_len(v);
+	s = vec_str(v);
+	len = vec_len(v);
 	if(!(i = tb_ad_is_define(s, len))) { return; }
 	spos = i;
 	if(!(slen = tb_ad_identlen(s, i, len))) { return; }
@@ -1554,14 +1554,14 @@ static void tb_ad_line_mod(vector *v, u32 pad)
 		nspc = pad - slen;
 	}
 
-	/* Rebuild vector */
-	vector_init_full(&repl, total);
-	rs = vector_str(&repl);
+	/* Rebuild vec */
+	vec_init_full(&repl, total);
+	rs = vec_str(&repl);
 	rs = append(rs, define, sizeof(define) - 1);
 	rs = append(rs, s + spos, slen);
 	rs = padchr(rs, ' ', nspc);
 	append(rs, s + npos, nlen);
-	vector_destroy(v);
+	vec_destroy(v);
 	*v = repl;
 }
 
@@ -1613,14 +1613,14 @@ static char *tb_cur_line_span(textbuf *t, u32 *out_len)
 		if(nsel.c[0].x == nsel.c[1].x)
 		{
 			/* Return current word */
-			vector *v;
+			vec *v;
 			char *s;
 			u32 start, end, x, len;
 
 			x = nsel.c[0].x;
 			v = tb_get_line(t, nsel.c[0].y);
-			s = vector_str(v);
-			len = vector_len(v);
+			s = vec_str(v);
+			len = vec_len(v);
 
 			/* Find start */
 			for(start = x; start > 0 && isalnum(s[start - 1]); --start) {}

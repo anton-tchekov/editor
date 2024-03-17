@@ -6,20 +6,20 @@ static tf _fld;
 static dd _dd;
 static char **_dir_list;
 static u32 _dir_count;
-static vector _filt_dir;
+static vec _filt_dir;
 
 static void nav_init(void)
 {
 	tf_init(&_fld);
 	get_working_dir(_path_buf);
-	vector_init(&_filt_dir, 64 * sizeof(char *));
+	vec_init(&_filt_dir, 64 * sizeof(char *));
 }
 
 static void nav_destroy(void)
 {
 	_free(_dir_list);
 	tf_destroy(&_fld);
-	vector_destroy(&_filt_dir);
+	vec_destroy(&_filt_dir);
 }
 
 static void nav_title_render(char *s)

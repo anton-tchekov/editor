@@ -68,22 +68,29 @@ point.
 ### Abbreviations Index
 
 I use two (or three) letter abbreviations as a module prefix.
+(Work in progress)
 
 ```
+DONE:
+
 BF  = Buffer Management [buffers.c]
 TB  = Text Buffer [textbuf.c]
 TF  = Text Field [textfld.c]
-SR  = Search and Replace [search.c]
-SV  = Save File (As) [savefile.c]
-OP  = Open File [openfile.c]
-OB  = Open Buffers [openbufs.c]
-IO  = Input / Output (Platform dependant) [io.c]
-RR  = Rendering [render.c]
 GT  = Go to location [goto.c]
 KW  = Keyword hashtable (for syntax highlighting) [keyword.c]
 DD  = Dropdown Menu [dropdown.c]
 CF  = Confirmation dialog [confirm.c]
 MSG = Message (Error or Info) [msg.c]
+VEC = Vector (Dynamic array) [vector.c]
+
+TODO:
+
+SR  = Search and Replace [search.c]
+SV  = Save File (As) [save_as.c]
+OP  = Open File [open.c]
+OB  = Open Buffers [opened.c]
+IO  = Input / Output (Platform dependant) [io.c]
+RR  = Rendering [render.c]
 CR  = Cursor [cursor.c]
 SEL = Selection [cursor.c]
 ```

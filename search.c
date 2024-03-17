@@ -255,12 +255,12 @@ static void sr_replace(void)
 
 	/*
 	char *s, *end;
-	vector v;
+	vec v;
 	u32 in_len;
 
 
 	in_len = *len;
-	vector_init(&v, in_len);
+	vec_init(&v, in_len);
 
 	end = in + in_len;
 	for(s = in; s < end; ++s)

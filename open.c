@@ -4,12 +4,12 @@ static void open_filter(void)
 	char *s;
 
 	s = tf_str(&_fld);
-	vector_clear(&_filt_dir);
+	vec_clear(&_filt_dir);
 	for(cnt = 0, i = 0; i < _dir_count; ++i)
 	{
 		if(starts_with(_dir_list[i], s))
 		{
-			vector_push(&_filt_dir, sizeof(char *), _dir_list + i);
+			vec_push(&_filt_dir, sizeof(char *), _dir_list + i);
 			++cnt;
 		}
 	}
@@ -73,7 +73,7 @@ static void open_return(void)
 {
 	char *cur;
 
-	cur = ((char **)vector_data(&_filt_dir))[_dd.pos];
+	cur = ((char **)vec_data(&_filt_dir))[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
@@ -115,7 +115,7 @@ static u32 open_dir_render(u32 y)
 	char **list;
 	u32 i, end;
 
-	list = vector_data(&_filt_dir);
+	list = vec_data(&_filt_dir);
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(i = _dd.offset; i < end; ++i, ++y)
 	{

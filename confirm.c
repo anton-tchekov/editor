@@ -1,36 +1,38 @@
-static char _confirm_buf[256];
-static void (*_confirm_callback)(u32);
+/* CF (Confirm) */
 
-static void confirm(void (*callback)(u32), char *msg, ...)
+static char _cf_buf[256];
+static void (*_cf_callback)(u32);
+
+static void cf_open(void (*callback)(u32), char *msg, ...)
 {
 	va_list args;
 
 	_mode = MODE_CONFIRM;
-	_confirm_callback = callback;
+	_cf_callback = callback;
 
 	va_start(args, msg);
-	vsnprintf(_confirm_buf, sizeof(_confirm_buf), msg, args);
+	vsnprintf(_cf_buf, sizeof(_cf_buf), msg, args);
 	va_end(args);
 }
 
-static void confirm_key(u32 key)
+static void cf_key(u32 key)
 {
 	switch(key)
 	{
 	case KEY_Z:
 	case KEY_Y:
-		_confirm_callback(1);
+		_cf_callback(1);
 		break;
 
 	case KEY_ESCAPE:
 	case KEY_N:
-		_confirm_callback(0);
+		_cf_callback(0);
 		break;
 	}
 }
 
-static u32 confirm_render(void)
+static u32 cf_render(void)
 {
-	ed_render_line_str(_confirm_buf, 0, 0, ptp(PT_FG, PT_INFO));
+	ed_render_line_str(_cf_buf, 0, 0, ptp(PT_FG, PT_INFO));
 	return 1;
 }

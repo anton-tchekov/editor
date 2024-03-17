@@ -60,7 +60,7 @@ static void save_as_path(void)
 
 	if(file_exists(_fname_buf))
 	{
-		confirm(save_as_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
+		cf_open(save_as_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
 		return;
 	}
 

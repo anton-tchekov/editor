@@ -220,7 +220,7 @@ static void ed_render(void)
 		break;
 
 	case MODE_CONFIRM:
-		start_y = confirm_render();
+		start_y = cf_render();
 		break;
 
 	case MODE_SEARCH:
@@ -422,7 +422,7 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 		break;
 
 	case MODE_CONFIRM:
-		confirm_key(key);
+		cf_key(key);
 		break;
 
 	case MODE_SEARCH:

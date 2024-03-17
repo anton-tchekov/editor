@@ -2,7 +2,7 @@ typedef struct
 {
 	u32 capacity, len;
 	void *data;
-} vector;
+} vec;
 
 static u32 _next_pot(u32 n)
 {
@@ -17,26 +17,26 @@ static u32 _next_pot(u32 n)
 	return power;
 }
 
-static void vector_init(vector *v, u32 capacity)
+static void vec_init(vec *v, u32 capacity)
 {
 	v->capacity = capacity;
 	v->len = 0;
 	v->data = _malloc(capacity);
 }
 
-static void vector_init_full(vector *v, u32 capacity)
+static void vec_init_full(vec *v, u32 capacity)
 {
 	v->capacity = capacity;
 	v->len = capacity;
 	v->data = _malloc(capacity);
 }
 
-static void vector_clear(vector *v)
+static void vec_clear(vec *v)
 {
 	v->len = 0;
 }
 
-static void vector_from(vector *v, void *buf, u32 bytes)
+static void vec_from(vec *v, void *buf, u32 bytes)
 {
 	v->capacity = bytes;
 	v->len = bytes;
@@ -44,7 +44,7 @@ static void vector_from(vector *v, void *buf, u32 bytes)
 	memcpy(v->data, buf, bytes);
 }
 
-static void vector_makespace(vector *v, u32 pos, u32 bytes)
+static void vec_makespace(vec *v, u32 pos, u32 bytes)
 {
 	u32 new_length;
 	u8 *offset;
@@ -62,7 +62,7 @@ static void vector_makespace(vector *v, u32 pos, u32 bytes)
 	v->len = new_length;
 }
 
-static void vector_reserve(vector *v, u32 capacity)
+static void vec_reserve(vec *v, u32 capacity)
 {
 	if(v->capacity < capacity)
 	{
@@ -71,8 +71,8 @@ static void vector_reserve(vector *v, u32 capacity)
 	}
 }
 
-static void vector_replace(
-	vector *v, u32 index, u32 count, void *elems, u32 new_count)
+static void vec_replace(
+	vec *v, u32 index, u32 count, void *elems, u32 new_count)
 {
 	u32 new_length;
 
@@ -95,57 +95,57 @@ static void vector_replace(
 	v->len = new_length;
 }
 
-static void vector_destroy(vector *v)
+static void vec_destroy(vec *v)
 {
 	_free(v->data);
 }
 
-static void *vector_get(vector *v, u32 offset)
+static void *vec_get(vec *v, u32 offset)
 {
 	assert(offset < v->len);
 	return (u8 *)v->data + offset;
 }
 
-static void *vector_data(vector *v)
+static void *vec_data(vec *v)
 {
 	return v->data;
 }
 
-static char *vector_str(vector *v)
+static char *vec_str(vec *v)
 {
 	return v->data;
 }
 
-static void vector_str_clear(vector *v)
+static void vec_str_clear(vec *v)
 {
 	char *s;
 
-	vector_reserve(v, 1);
+	vec_reserve(v, 1);
 	s = v->data;
 	s[0] = '\0';
 	v->len = 1;
 }
 
-static u32 vector_len(vector *v)
+static u32 vec_len(vec *v)
 {
 	return v->len;
 }
 
-static void vector_insert(vector *v, u32 offset, u32 bytes, void *elems)
+static void vec_insert(vec *v, u32 offset, u32 bytes, void *elems)
 {
 	assert(offset <= v->len);
-	vector_replace(v, offset, 0, elems, bytes);
+	vec_replace(v, offset, 0, elems, bytes);
 }
 
-static void vector_remove(vector *v, u32 offset, u32 bytes)
+static void vec_remove(vec *v, u32 offset, u32 bytes)
 {
 	assert(offset <= v->len);
 	assert(bytes <= v->len);
 	assert((offset + bytes) <= v->len);
-	vector_replace(v, offset, bytes, NULL, 0);
+	vec_replace(v, offset, bytes, NULL, 0);
 }
 
-static void vector_push(vector *v, u32 bytes, void *elem)
+static void vec_push(vec *v, u32 bytes, void *elem)
 {
-	vector_insert(v, v->len, bytes, elem);
+	vec_insert(v, v->len, bytes, elem);
 }

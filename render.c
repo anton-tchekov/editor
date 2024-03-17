@@ -136,12 +136,12 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 static u32 ed_plain(u32 y)
 {
 	u32 i, x, len;
-	vector *lv;
+	vec *lv;
 	char *line;
 
 	lv = tb_get_line(_tb, y);
-	line = vector_data(lv);
-	len = vector_len(lv);
+	line = vec_data(lv);
+	len = vec_len(lv);
 	for(x = 0, i = 0; i < len; ++i)
 	{
 		x = ed_syntax_sub(line[i], PT_FG, y, x);
@@ -154,12 +154,12 @@ static u32 ed_plain(u32 y)
 static u32 ed_asm6800(u32 y)
 {
 	u32 len, i, x, c;
-	vector *lv;
+	vec *lv;
 	char *line;
 
 	lv = tb_get_line(_tb, y);
-	len = vector_len(lv);
-	line = vector_data(lv);
+	len = vec_len(lv);
+	line = vec_data(lv);
 	i = 0;
 	x = 0;
 	while(i < len)
@@ -259,12 +259,12 @@ static u32 ed_asm6800(u32 y)
 static u32 ed_syntax(u32 y)
 {
 	u32 len, incflag, i, x, c;
-	vector *lv;
+	vec *lv;
 	char *line;
 
 	lv = tb_get_line(_tb, y);
-	len = vector_len(lv);
-	line = vector_data(lv);
+	len = vec_len(lv);
+	line = vec_data(lv);
 
 	incflag = 0;
 	i = 0;
@@ -480,12 +480,12 @@ static u32 ed_prev_comment(void)
 	for(; i < _tb->page_y; ++i)
 	{
 		i32 p, len;
-		vector *line;
+		vec *line;
 		char *data;
 
 		line = tb_get_line(_tb, i);
-		data = vector_data(line);
-		len = vector_len(line);
+		data = vec_data(line);
+		len = vec_len(line);
 		for(p = 0; p < len - 1; ++p)
 		{
 			if(result)
