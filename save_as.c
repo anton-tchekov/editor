@@ -44,6 +44,10 @@ static void save_as_confirm(u32 yes)
 	{
 		ed_save_as();
 	}
+	else
+	{
+		mode_default();
+	}
 }
 
 static void save_as_path(void)
