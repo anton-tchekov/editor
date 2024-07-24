@@ -269,6 +269,35 @@ static i32 str_find(char *haystack, u32 len, char *needle, u32 sl)
 	return -1;
 }
 
+static i32 escape_seq(char *out, char *s)
+{
+	u32 c;
+	char *p;
+
+	for(p = out; (c = *s); ++s)
+	{
+		if(c == '\\')
+		{
+			++s;
+			c = *s;
+			switch(c)
+			{
+			case 't':  c = '\t'; break;
+			case 'n':  c = '\n'; break;
+			case '\\': c = '\\'; break;
+			case '\"': c = '\"'; break;
+			case '\'': c = '\''; break;
+			default: return -1;
+			}
+		}
+
+		*p++ = c;
+	}
+
+	*p = '\0';
+	return p - out;
+}
+
 static char *_strdup(char *s)
 {
 	size_t len;

@@ -216,7 +216,7 @@ static void ed_render(void)
 		break;
 
 	case MODE_OPENED:
-		start_y = opened_render();
+		start_y = ob_render();
 		break;
 
 	case MODE_CONFIRM:
@@ -243,7 +243,7 @@ static void ed_quit(void)
 {
 	if(bf_has_modified())
 	{
-		mode_opened();
+		ob_open();
 		return;
 	}
 
@@ -273,7 +273,7 @@ static void default_key(u32 key, u32 cp)
 		case MOD_CTRL | KEY_N:  ed_new();      break;
 		case MOD_CTRL | KEY_Q:  ed_quit();     break;
 		case MOD_CTRL | KEY_B:
-		case MOD_CTRL | KEY_P:  mode_opened(); break;
+		case MOD_CTRL | KEY_P:  ob_open();     break;
 		}
 		return;
 	}
@@ -335,7 +335,7 @@ static void default_key(u32 key, u32 cp)
 	case MOD_CTRL | KEY_J:                  ed_whitespace();         break;
 	case MOD_CTRL | KEY_D:                  tb_trailing(_tb);        break;
 	case MOD_CTRL | KEY_B:
-	case MOD_CTRL | KEY_P:                  mode_opened();           break;
+	case MOD_CTRL | KEY_P:                  ob_open();               break;
 	case MOD_CTRL | KEY_I:                  tb_ins_include(_tb);     break;
 	case MOD_CTRL | MOD_SHIFT | KEY_I:      tb_ins_include_lib(_tb); break;
 	case MOD_CTRL | MOD_SHIFT | KEY_A:      tb_ins_comment(_tb);     break;
@@ -418,7 +418,7 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 		break;
 
 	case MODE_OPENED:
-		opened_key(key);
+		ob_key(key);
 		break;
 
 	case MODE_CONFIRM:
@@ -456,7 +456,7 @@ static u32 event_exit(void)
 {
 	if(bf_has_modified())
 	{
-		mode_opened();
+		ob_open();
 		ed_render();
 		return 0;
 	}

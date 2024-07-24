@@ -1,46 +1,46 @@
-static void mode_opened(void)
+static void ob_open(void)
 {
 	_mode = MODE_OPENED;
 	dd_preset(&_dd, _cur_buf, bf_count());
 }
 
-static void opened_up(dd *d)
+static void ob_up(dd *d)
 {
 	dd_up(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_down(dd *d)
+static void ob_down(dd *d)
 {
 	dd_down(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_page_up(dd *d)
+static void ob_page_up(dd *d)
 {
 	dd_page_up(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_page_down(dd *d)
+static void ob_page_down(dd *d)
 {
 	dd_page_down(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_first(dd *d)
+static void ob_first(dd *d)
 {
 	dd_first(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_last(dd *d)
+static void ob_last(dd *d)
 {
 	dd_last(d);
 	bf_switch_id(d->pos);
 }
 
-static void opened_discard(dd *d)
+static void ob_discard(dd *d)
 {
 	if(!d->count)
 	{
@@ -68,42 +68,36 @@ static void opened_discard(dd *d)
 	bf_switch_id(d->pos);
 }
 
-static void opened_key(u32 key)
+static void ob_key(u32 key)
 {
 	switch(key)
 	{
 	case KEY_ESCAPE:
-	case KEY_RETURN:       mode_default();         break;
-	case MOD_CTRL | KEY_S: ed_save();              break;
-	case MOD_CTRL | KEY_W: opened_discard(&_dd);   break;
+	case KEY_RETURN:       mode_default();     break;
+	case MOD_CTRL | KEY_S: ed_save();          break;
+	case MOD_CTRL | KEY_W: ob_discard(&_dd);   break;
 	case MOD_CTRL | KEY_T:
-	case MOD_CTRL | KEY_N: ed_new();               break;
-	case MOD_CTRL | KEY_O: mode_open();            break;
-	case KEY_UP:           opened_up(&_dd);        break;
-	case KEY_DOWN:         opened_down(&_dd);      break;
-	case KEY_PAGE_UP:      opened_page_up(&_dd);   break;
-	case KEY_PAGE_DOWN:    opened_page_down(&_dd); break;
-	case KEY_HOME:         opened_first(&_dd);     break;
-	case KEY_END:          opened_last(&_dd);      break;
+	case MOD_CTRL | KEY_N: ed_new();           break;
+	case MOD_CTRL | KEY_O: mode_open();        break;
+	case KEY_UP:           ob_up(&_dd);        break;
+	case KEY_DOWN:         ob_down(&_dd);      break;
+	case KEY_PAGE_UP:      ob_page_up(&_dd);   break;
+	case KEY_PAGE_DOWN:    ob_page_down(&_dd); break;
+	case KEY_HOME:         ob_first(&_dd);     break;
+	case KEY_END:          ob_last(&_dd);      break;
 	}
 }
 
-static void opened_render_title(void)
+static u32 ob_render(void)
 {
 	char buf[64];
+	u32 i, y, end, color;
+	textbuf *t;
 
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
 		_dd.count, (_dd.count == 1 ? "" : "s"), bf_num_unsaved());
 
 	ed_render_line_str(buf, 0, 0, ptp(PT_FG, PT_INFO));
-}
-
-static u32 opened_render(void)
-{
-	u32 i, y, end, color;
-	textbuf *t;
-
-	opened_render_title();
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(y = 1, i = _dd.offset; i < end; ++i, ++y)
 	{

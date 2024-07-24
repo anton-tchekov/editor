@@ -24,35 +24,6 @@ enum
 static tf _sr_tf_search, _sr_tf_replace;
 static u8 _sr_flags, _sr_focus;
 
-static i32 escape_seq(char *out, char *s)
-{
-	u32 c;
-	char *p;
-
-	for(p = out; (c = *s); ++s)
-	{
-		if(c == '\\')
-		{
-			++s;
-			c = *s;
-			switch(c)
-			{
-			case 't':  c = '\t'; break;
-			case 'n':  c = '\n'; break;
-			case '\\': c = '\\'; break;
-			case '\"': c = '\"'; break;
-			case '\'': c = '\''; break;
-			default: return -1;
-			}
-		}
-
-		*p++ = c;
-	}
-
-	*p = '\0';
-	return p - out;
-}
-
 static void sr_open(void)
 {
 	_mode = MODE_SEARCH;
