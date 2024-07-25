@@ -1,4 +1,4 @@
-#define COLLISION_LIMIT     4
+#define COLLISION_LIMIT     1
 
 typedef struct
 {
@@ -104,7 +104,7 @@ static keyword _kw_c_keywords[] =
 	{ PT_KEYWORD, "fn" },
 };
 
-#define C_HASHMAP_SIZE       (ARRLEN(_kw_c_keywords) * 7)
+#define C_HASHMAP_SIZE       751
 static i32 _kw_c_table[C_HASHMAP_SIZE];
 static hashmap _kw_c =
 {
@@ -112,7 +112,7 @@ static hashmap _kw_c =
 	ARRLEN(_kw_c_keywords), _kw_c_keywords
 };
 
-static keyword _kw_asm_keywords[] =
+static keyword _kw_asm_6800_keywords[] =
 {
 	{ PT_TYPE, "NOP" },
 
@@ -242,12 +242,99 @@ static keyword _kw_asm_keywords[] =
 	{ PT_KEYWORD, "DC.B" }
 };
 
-#define ASM_HASHMAP_SIZE     (ARRLEN(_kw_asm_keywords) * 8)
-static i32 _kw_asm_table[ASM_HASHMAP_SIZE];
-static hashmap _kw_asm =
+#define ASM_6800_HASHMAP_SIZE     1747
+static i32 _kw_asm_6800_table[ASM_6800_HASHMAP_SIZE];
+static hashmap _kw_asm_6800 =
 {
-	ASM_HASHMAP_SIZE, _kw_asm_table,
-	ARRLEN(_kw_asm_keywords), _kw_asm_keywords
+	ASM_6800_HASHMAP_SIZE, _kw_asm_6800_table,
+	ARRLEN(_kw_asm_6800_keywords), _kw_asm_6800_keywords
+};
+
+static keyword _kw_asm_65C02_keywords[] =
+{
+	{ PT_TYPE, "BRK" },
+	{ PT_TYPE, "ORA" },
+	{ PT_TYPE, "NOP" },
+	{ PT_TYPE, "TSB" },
+	{ PT_TYPE, "ASL" },
+	{ PT_TYPE, "RMB" },
+	{ PT_TYPE, "PHP" },
+	{ PT_TYPE, "BBR" },
+	{ PT_TYPE, "BPL" },
+	{ PT_TYPE, "TRB" },
+	{ PT_TYPE, "CLC" },
+	{ PT_TYPE, "INC" },
+	{ PT_TYPE, "JSR" },
+	{ PT_TYPE, "AND" },
+	{ PT_TYPE, "BIT" },
+	{ PT_TYPE, "ROL" },
+	{ PT_TYPE, "PLP" },
+	{ PT_TYPE, "BMI" },
+	{ PT_TYPE, "SEC" },
+	{ PT_TYPE, "DEC" },
+	{ PT_TYPE, "RTI" },
+	{ PT_TYPE, "EOR" },
+	{ PT_TYPE, "LSR" },
+	{ PT_TYPE, "PHA" },
+	{ PT_TYPE, "JMP" },
+	{ PT_TYPE, "BVC" },
+	{ PT_TYPE, "CLI" },
+	{ PT_TYPE, "PHY" },
+	{ PT_TYPE, "RTS" },
+	{ PT_TYPE, "ADC" },
+	{ PT_TYPE, "STZ" },
+	{ PT_TYPE, "ROR" },
+	{ PT_TYPE, "PLA" },
+	{ PT_TYPE, "BVS" },
+	{ PT_TYPE, "SEI" },
+	{ PT_TYPE, "PLY" },
+	{ PT_TYPE, "BRA" },
+	{ PT_TYPE, "STA" },
+	{ PT_TYPE, "STY" },
+	{ PT_TYPE, "STX" },
+	{ PT_TYPE, "SMB" },
+	{ PT_TYPE, "DEY" },
+	{ PT_TYPE, "TXA" },
+	{ PT_TYPE, "BBS" },
+	{ PT_TYPE, "BCC" },
+	{ PT_TYPE, "TYA" },
+	{ PT_TYPE, "TXS" },
+	{ PT_TYPE, "LDY" },
+	{ PT_TYPE, "LDA" },
+	{ PT_TYPE, "LDX" },
+	{ PT_TYPE, "TAY" },
+	{ PT_TYPE, "TAX" },
+	{ PT_TYPE, "BCS" },
+	{ PT_TYPE, "CLV" },
+	{ PT_TYPE, "TSX" },
+	{ PT_TYPE, "CPY" },
+	{ PT_TYPE, "CMP" },
+	{ PT_TYPE, "INY" },
+	{ PT_TYPE, "DEX" },
+	{ PT_TYPE, "WAI" },
+	{ PT_TYPE, "BNE" },
+	{ PT_TYPE, "CLD" },
+	{ PT_TYPE, "PHX" },
+	{ PT_TYPE, "STP" },
+	{ PT_TYPE, "CPX" },
+	{ PT_TYPE, "SBC" },
+	{ PT_TYPE, "INX" },
+	{ PT_TYPE, "BEQ" },
+	{ PT_TYPE, "SED" },
+	{ PT_TYPE, "PLX" },
+
+	{ PT_KEYWORD, "EQU" },
+	{ PT_KEYWORD, "ORG" },
+	{ PT_KEYWORD, "DW" },
+	{ PT_KEYWORD, "DB" }
+};
+
+#define ASM_65C02_HASHMAP_SIZE     751
+static i32 _kw_asm_65C02_table[ASM_65C02_HASHMAP_SIZE];
+static hashmap _kw_asm_65C02 =
+{
+	ASM_65C02_HASHMAP_SIZE, _kw_asm_65C02_table,
+	ARRLEN(_kw_asm_65C02_keywords), _kw_asm_65C02_keywords
 };
 
 static u32 kw_hash(char *word, u32 len)
@@ -283,7 +370,7 @@ static void kw_init(hashmap *hm)
 		while(hm->table[hash % hm->size] != -1)
 		{
 			++hash;
-			assert(++steps < COLLISION_LIMIT);
+			assert(steps++ < COLLISION_LIMIT);
 		}
 
 		hm->table[hash % hm->size] = i;

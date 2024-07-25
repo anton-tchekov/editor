@@ -20,6 +20,7 @@ enum
 	LANGUAGE_C,
 	LANGUAGE_DEFAULT = LANGUAGE_C,
 	LANGUAGE_ASM6800,
+	LANGUAGE_ASM65C02,
 	LANGUAGE_COUNT
 };
 
@@ -148,8 +149,12 @@ static void ed_init(void)
 {
 	bf_init();
 	sr_init();
+	printf("Init C Hashmap\n");
 	kw_init(&_kw_c);
-	kw_init(&_kw_asm);
+	printf("Init 6800 Hashmap\n");
+	kw_init(&_kw_asm_6800);
+	printf("Init 65C02 Hashmap\n");
+	kw_init(&_kw_asm_65C02);
 	_tabsize = 4;
 	_show_whitespace = 1;
 	_show_linenr = 1;

@@ -151,7 +151,7 @@ static u32 ed_plain(u32 y)
 	return x;
 }
 
-static u32 ed_asm6800(u32 y)
+static u32 ed_asm(u32 y, hashmap *kw)
 {
 	u32 len, i, x, c;
 	vec *lv;
@@ -214,7 +214,7 @@ static u32 ed_asm6800(u32 y)
 
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
 			end = i;
-			color = ptp(kw_detect(&_kw_asm, line + start, end - start), PT_BG);
+			color = ptp(kw_detect(kw, line + start, end - start), PT_BG);
 			for(i = start; i < end; ++i)
 			{
 				if(x >= _page_w) { return x; }
@@ -450,7 +450,11 @@ static void ed_render_line(u32 y)
 			break;
 
 		case LANGUAGE_ASM6800:
-			x = ed_asm6800(line);
+			x = ed_asm(line, &_kw_asm_6800);
+			break;
+
+		case LANGUAGE_ASM65C02:
+			x = ed_asm(line, &_kw_asm_65C02);
 			break;
 		}
 	}
