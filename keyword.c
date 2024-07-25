@@ -104,7 +104,7 @@ static keyword _kw_c_keywords[] =
 	{ PT_KEYWORD, "fn" },
 };
 
-#define C_HASHMAP_SIZE       751
+#define C_HASHMAP_SIZE       2048
 static i32 _kw_c_table[C_HASHMAP_SIZE];
 static hashmap _kw_c =
 {
@@ -242,7 +242,7 @@ static keyword _kw_asm_6800_keywords[] =
 	{ PT_KEYWORD, "DC.B" }
 };
 
-#define ASM_6800_HASHMAP_SIZE     1747
+#define ASM_6800_HASHMAP_SIZE     2048
 static i32 _kw_asm_6800_table[ASM_6800_HASHMAP_SIZE];
 static hashmap _kw_asm_6800 =
 {
@@ -329,7 +329,7 @@ static keyword _kw_asm_65C02_keywords[] =
 	{ PT_KEYWORD, "DB" }
 };
 
-#define ASM_65C02_HASHMAP_SIZE     751
+#define ASM_65C02_HASHMAP_SIZE     2048
 static i32 _kw_asm_65C02_table[ASM_65C02_HASHMAP_SIZE];
 static hashmap _kw_asm_65C02 =
 {
@@ -341,11 +341,21 @@ static u32 kw_hash(char *word, u32 len)
 {
 	u32 i, hash, c;
 
+#if 0
 	hash = 5381;
 	for(i = 0; i < len && (c = word[i]); ++i)
 	{
 		hash = ((hash << 5) + hash) + c;
 	}
+#else
+	hash = 0x12345678;
+	for(i = 0; i < len && (c = word[i]); ++i)
+	{
+		hash ^= c;
+		hash *= 0x5bd1e995;
+		hash ^= hash >> 15;
+	}
+#endif
 
 	return hash;
 }
@@ -367,10 +377,10 @@ static void kw_init(hashmap *hm)
 		steps = 0;
 #endif
 		hash = kw_hash(hm->keywords[i].name, UINT32_MAX);
-		while(hm->table[hash % hm->size] != -1)
+		while(hm->table[hash % hm->size] >= 0)
 		{
 			++hash;
-			assert(steps++ < COLLISION_LIMIT);
+			assert(++steps < COLLISION_LIMIT);
 		}
 
 		hm->table[hash % hm->size] = i;
