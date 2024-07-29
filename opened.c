@@ -91,20 +91,19 @@ static void ob_key(u32 key)
 static u32 ob_render(void)
 {
 	char buf[64];
-	u32 i, y, end, color;
-	textbuf *t;
+	u32 i, y, end;
 
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
 		_dd.count, (_dd.count == 1 ? "" : "s"), bf_num_unsaved());
 
-	ed_render_line_str(buf, 0, 0, ptp(PT_FG, PT_INFO));
+	ed_render_line_str(buf, 0, 0, COLOR_FG, COLOR_INFO);
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(y = 1, i = _dd.offset; i < end; ++i, ++y)
 	{
-		t = bf_get(i);
-		color = dd_color(&_dd, i);
-		screen_set(0, y, screen_pack(t->modified ? '*' : ' ', color));
-		ed_render_line_str(t->filename, 1, y, color);
+		textbuf *t = bf_get(i);
+		u32 fg = dd_color(&_dd, i);
+		render_char(0, y, t->modified ? '*' : ' ', fg, COLOR_GRAY);
+		ed_render_line_str(t->filename, 1, y, fg, COLOR_GRAY);
 	}
 
 	return y;

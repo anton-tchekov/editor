@@ -15,9 +15,7 @@ static void cursor_zero(cursor *c)
 
 static void cursor_swap(cursor *a, cursor *b)
 {
-	cursor temp;
-
-	temp = *a;
+	cursor temp = *a;
 	*a = *b;
 	*b = temp;
 }

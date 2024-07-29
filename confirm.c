@@ -33,6 +33,6 @@ static void cf_key(u32 key)
 
 static u32 cf_render(void)
 {
-	ed_render_line_str(_cf_buf, 0, 0, ptp(PT_FG, PT_INFO));
+	ed_render_line_str(_cf_buf, 0, 0, COLOR_FG, COLOR_INFO);
 	return 1;
 }

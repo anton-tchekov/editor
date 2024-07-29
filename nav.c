@@ -28,5 +28,5 @@ static void nav_title_render(char *s)
 
 	snprintf(buf, sizeof(buf), "%s: %s [%d]",
 		s, _path_buf, _dir_count - 1);
-	ed_render_line_str(buf, 0, 0, ptp(PT_BG, PT_FG));
+	ed_render_line_str(buf, 0, 0, COLOR_BG, COLOR_FG);
 }

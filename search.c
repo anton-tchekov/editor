@@ -68,7 +68,7 @@ static void sr_title_render(void)
 		print = buf;
 	}
 
-	ed_render_line_str(print, 0, 0, ptp(PT_FG, PT_INFO));
+	ed_render_line_str(print, 0, 0, COLOR_FG, COLOR_INFO);
 }
 
 static void sr_put_chk(char *s, u32 idx, u32 mask)
@@ -113,31 +113,35 @@ static void sr_chk_render(void)
 	hl = sr_chk_cur_sel();
 	for(s = opt; *s && x < _screen_width; ++s, ++x)
 	{
-		screen_set(x, 1, screen_pack(*s,
-			(x == hl) ? ptp(PT_FG, PT_BG) : ptp(PT_BG, PT_FG)));
+		u32 fg = COLOR_BG;
+		u32 bg = COLOR_FG;
+		if(x == hl)
+		{
+			fg = COLOR_FG;
+			bg = COLOR_BG;
+		}
+
+		render_char(x, 1, *s, fg, bg);
 	}
 
 	for(; x < _screen_width; ++x)
 	{
-		screen_set(x, 1, screen_pack(' ', ptp(PT_BG, PT_FG)));
+		render_char(x, 1, ' ', COLOR_BG, COLOR_FG);
 	}
 }
 
 static u32 sr_render(void)
 {
-	u32 lines;
-
-	lines = 3;
 	sr_title_render();
 	sr_chk_render();
 	tf_render(&_sr_tf_search, 2, _sr_focus == SR_INP_SEARCH, "Search: ");
 	if(_sr_flags & SR_REPLACE)
 	{
 		tf_render(&_sr_tf_replace, 3, _sr_focus == SR_INP_REPLACE, "Replace: ");
-		++lines;
+		return 4;
 	}
 
-	return lines;
+	return 3;
 }
 
 static void sr_init(void)
@@ -196,10 +200,6 @@ static void sr_search(void)
 		msg_show(MSG_ERROR, _sr_err_search);
 		return;
 	}
-
-#ifndef NDBEUG
-	printf("Len = %d; Search =\n%s", slen, search);
-#endif
 
 	sr_esc_free(search);
 }

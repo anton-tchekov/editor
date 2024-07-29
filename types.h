@@ -1,7 +1,3 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-
 #define ARRLEN(X) (sizeof(X) / sizeof(*X))
 
 typedef int64_t i64;

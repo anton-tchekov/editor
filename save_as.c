@@ -171,14 +171,14 @@ static u32 save_as_dir_render(u32 y)
 	{
 		for(; i < end; ++i, ++y)
 		{
-			ed_render_line_str(_dir_list[i], 0, y, ptp(PT_FG, PT_GRAY));
+			ed_render_line_str(_dir_list[i], 0, y, COLOR_FG, COLOR_GRAY);
 		}
 	}
 	else
 	{
 		for(; i < end; ++i, ++y)
 		{
-			ed_render_line_str(_dir_list[i], 0, y, dd_color(&_dd, i));
+			ed_render_line_str(_dir_list[i], 0, y, dd_color(&_dd, i), COLOR_GRAY);
 		}
 	}
 

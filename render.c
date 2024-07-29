@@ -4,7 +4,7 @@ static u8 _in_comment;
 
 static void ed_render_linenr(u32 start_y, u32 end_y)
 {
-	u32 x, y, lnr_max, lnr_width, color, lines, lnr;
+	u32 x, y, lnr_max, lnr_width, lines, lnr;
 
 	lines = tb_num_lines(_tb);
 	lnr = _tb->page_y + start_y;
@@ -13,8 +13,13 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 	lnr_width = dec_digit_cnt(lnr_max);
 	for(y = start_y; y < end_y; ++y)
 	{
-		color = (lnr == _tb->sel.c[1].y) ?
-			ptp(PT_FG, PT_BG) : ptp(PT_GRAY, PT_BG);
+		u32 fg = COLOR_GRAY;
+		u32 bg = COLOR_BG;
+		if(lnr == _tb->sel.c[1].y)
+		{
+			fg = COLOR_FG;
+			bg = COLOR_BG;
+		}
 
 		++lnr;
 		if(lnr <= lines)
@@ -24,18 +29,9 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 			linenr_str(lnr_buf, lnr, lnr_width);
 			for(x = 0; x < lnr_width; ++x)
 			{
-				screen_set(x, y, screen_pack(lnr_buf[x], color));
+				render_char(x, y, lnr_buf[x], fg, bg);
 			}
 		}
-		else
-		{
-			for(x = 0; x < lnr_width; ++x)
-			{
-				screen_set(x, y, screen_pack(' ', color));
-			}
-		}
-
-		screen_set(x, y, screen_pack(' ', color));
 	}
 
 	_page_w = _screen_width - lnr_width - 1;
@@ -67,21 +63,23 @@ static u32 is_cursor(u32 x, u32 y)
 	return y == _vcursor.y && x == _vcursor.x;
 }
 
-static void ed_put(u32 x, u32 y, u32 c)
+static void ed_put(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 {
 	if(is_cursor(x, y))
 	{
-		c = screen_pack_color_swap(c);
+		u32 v = fg;
+		fg = bg;
+		bg = v;
 	}
 	else if(is_sel(x, y))
 	{
-		c = screen_pack_set_bg(c, PT_SEL);
+		bg = COLOR_SEL;
 	}
 
-	screen_set(x + _offset_x, y - _tb->page_y, c);
+	render_char(x + _offset_x, y - _tb->page_y, c, fg, bg);
 }
 
-static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
+static u32 ed_syntax_sub(u32 c, u32 fg, u32 y, u32 x)
 {
 	if(c == '\t')
 	{
@@ -90,23 +88,22 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 		n = x & (_tabsize - 1);
 		if(_show_whitespace)
 		{
-			color = ptp(PT_GRAY, PT_BG);
 			if(n == (u32)_tabsize - 1)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(CHAR_TAB_BOTH, color));
+				ed_put(x++, y, CHAR_TAB_BOTH, COLOR_GRAY, COLOR_BG);
 			}
 			else
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(CHAR_TAB_START, color));
+				ed_put(x++, y, CHAR_TAB_START, COLOR_GRAY, COLOR_BG);
 				for(++n; n < (u32)_tabsize - 1; ++n)
 				{
 					if(x >= _page_w) { return x; }
-					ed_put(x++, y, screen_pack(CHAR_TAB_MIDDLE, color));
+					ed_put(x++, y, CHAR_TAB_MIDDLE, COLOR_GRAY, COLOR_BG);
 				}
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(CHAR_TAB_END, color));
+				ed_put(x++, y, CHAR_TAB_END, COLOR_GRAY, COLOR_BG);
 			}
 		}
 		else
@@ -114,7 +111,7 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 			for(; n < _tabsize; ++n)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(' ', color));
+				ed_put(x++, y, ' ', fg, COLOR_BG);
 			}
 		}
 	}
@@ -123,11 +120,11 @@ static u32 ed_syntax_sub(u32 c, u32 color, u32 y, u32 x)
 		if(c == ' ' && _show_whitespace)
 		{
 			c = CHAR_VISIBLE_SPACE;
-			color = PT_GRAY;
+			fg = COLOR_GRAY;
 		}
 
 		if(x >= _page_w) { return x; }
-		ed_put(x++, y, screen_pack(c, ptp(color, PT_BG)));
+		ed_put(x++, y, c, fg, COLOR_BG);
 	}
 
 	return x;
@@ -144,7 +141,7 @@ static u32 ed_plain(u32 y)
 	len = vec_len(lv);
 	for(x = 0, i = 0; i < len; ++i)
 	{
-		x = ed_syntax_sub(line[i], PT_FG, y, x);
+		x = ed_syntax_sub(line[i], COLOR_FG, y, x);
 		if(x >= _page_w) { return x; }
 	}
 
@@ -169,7 +166,7 @@ static u32 ed_asm(u32 y, hashmap *kw)
 		{
 			for(; i < len; ++i)
 			{
-				x = ed_syntax_sub(line[i], PT_COMMENT, y, x);
+				x = ed_syntax_sub(line[i], COLOR_COMMENT, y, x);
 				if(x >= _page_w) { return x; }
 			}
 		}
@@ -180,11 +177,11 @@ static u32 ed_asm(u32 y, hashmap *kw)
 			save = c;
 			esc = 0;
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_STRING, PT_BG)));
+			ed_put(x++, y, c, COLOR_STRING, COLOR_BG);
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				x = ed_syntax_sub(c, PT_STRING, y, x);
+				x = ed_syntax_sub(c, COLOR_STRING, y, x);
 				if(x >= _page_w) { return x; }
 
 				if(esc)
@@ -205,36 +202,36 @@ static u32 ed_asm(u32 y, hashmap *kw)
 		else if(is_paren(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_PAREN, PT_BG)));
+			ed_put(x++, y, c, COLOR_PAREN, COLOR_BG);
 			++i;
 		}
 		else if(is_ident_start(c))
 		{
-			u32 color, end, start;
+			u32 fg, end, start;
 
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
 			end = i;
-			color = ptp(kw_detect(kw, line + start, end - start), PT_BG);
+			fg = kw_detect(kw, line + start, end - start);
 			for(i = start; i < end; ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(line[i], color));
+				ed_put(x++, y, line[i], fg, COLOR_BG);
 			}
 		}
 		else if(c == '#')
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(line[i], ptp(PT_KEYWORD, PT_BG)));
+			ed_put(x++, y, line[i], COLOR_KEYWORD, COLOR_BG);
 			++i;
 		}
 		else if(c == '$')
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_NUMBER, PT_BG)));
+			ed_put(x++, y, c, COLOR_NUMBER, COLOR_BG);
 			for(++i; i < len && isxdigit((c = line[i])); ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(c, ptp(PT_NUMBER, PT_BG)));
+				ed_put(x++, y, c, COLOR_NUMBER, COLOR_BG);
 			}
 		}
 		else if(isdigit(c))
@@ -242,12 +239,12 @@ static u32 ed_asm(u32 y, hashmap *kw)
 			for(; i < len && isdigit((c = line[i])); ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(c, ptp(PT_NUMBER, PT_BG)));
+				ed_put(x++, y, c, COLOR_NUMBER, COLOR_BG);
 			}
 		}
 		else
 		{
-			x = ed_syntax_sub(c, PT_FG, y, x);
+			x = ed_syntax_sub(c, COLOR_FG, y, x);
 			if(x >= _page_w) { return x; }
 			++i;
 		}
@@ -274,14 +271,14 @@ static u32 ed_syntax(u32 y)
 		c = line[i];
 		if(_in_comment)
 		{
-			x = ed_syntax_sub(c, PT_COMMENT, y, x);
+			x = ed_syntax_sub(c, COLOR_COMMENT, y, x);
 			if(x >= _page_w) { return x; }
 
 			if((c == '*') && (i + 1 < len) && (line[i + 1] == '/'))
 			{
 				++i;
 				_in_comment = 0;
-				ed_put(x++, y, screen_pack('/', ptp(PT_COMMENT, PT_BG)));
+				ed_put(x++, y, '/', COLOR_COMMENT, COLOR_BG);
 				if(x >= _page_w) { return x; }
 			}
 			++i;
@@ -290,27 +287,27 @@ static u32 ed_syntax(u32 y)
 		{
 			for(; i < len; ++i)
 			{
-				x = ed_syntax_sub(line[i], PT_COMMENT, y, x);
+				x = ed_syntax_sub(line[i], COLOR_COMMENT, y, x);
 				if(x >= _page_w) { return x; }
 			}
 		}
 		else if((c == '/') && (i + 1 < len) && (line[i + 1] == '*'))
 		{
 			_in_comment = 1;
-			ed_put(x++, y, screen_pack('/', ptp(PT_COMMENT, PT_BG)));
+			ed_put(x++, y, '/', COLOR_COMMENT, COLOR_BG);
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack('*', ptp(PT_COMMENT, PT_BG)));
+			ed_put(x++, y, '*', COLOR_COMMENT, COLOR_BG);
 			if(x >= _page_w) { return x; }
 			i += 2;
 		}
 		else if(c == '#')
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_KEYWORD, PT_BG)));
+			ed_put(x++, y, c, COLOR_KEYWORD, COLOR_BG);
 			for(++i; i < len && isalnum(c = line[i]); ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(c, ptp(PT_KEYWORD, PT_BG)));
+				ed_put(x++, y, c, COLOR_KEYWORD, COLOR_BG);
 			}
 			incflag = 1;
 		}
@@ -321,11 +318,11 @@ static u32 ed_syntax(u32 y)
 			save = c == '<' ? '>' : c;
 			esc = 0;
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_STRING, PT_BG)));
+			ed_put(x++, y, c, COLOR_STRING, COLOR_BG);
 			for(++i; i < len; ++i)
 			{
 				c = line[i];
-				x = ed_syntax_sub(c, PT_STRING, y, x);
+				x = ed_syntax_sub(c, COLOR_STRING, y, x);
 				if(x >= _page_w) { return x; }
 				if(esc)
 				{
@@ -345,44 +342,44 @@ static u32 ed_syntax(u32 y)
 		else if(is_paren(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_PAREN, PT_BG)));
+			ed_put(x++, y, c, COLOR_PAREN, COLOR_BG);
 			++i;
 		}
 		else if(is_bracket(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_BRACKET, PT_BG)));
+			ed_put(x++, y, c, COLOR_BRACKET, COLOR_BG);
 			++i;
 		}
 		else if(is_brace(c))
 		{
 			if(x >= _page_w) { return x; }
-			ed_put(x++, y, screen_pack(c, ptp(PT_BRACE, PT_BG)));
+			ed_put(x++, y, c, COLOR_BRACE, COLOR_BG);
 			++i;
 		}
 		else if(is_ident_start(c))
 		{
-			u32 color, end, start;
+			u32 fg, end, start;
 
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
 			end = i;
-			color = ptp(kw_detect(&_kw_c, line + start, end - start), PT_BG);
-			if(color == PT_FG)
+			fg = kw_detect(&_kw_c, line + start, end - start);
+			if(fg == COLOR_FG)
 			{
 				if(c == '(')
 				{
-					color = PT_FN;
+					fg = COLOR_FN;
 				}
 				else if(c == '[')
 				{
-					color = PT_ARRAY;
+					fg = COLOR_ARRAY;
 				}
 			}
 
 			for(i = start; i < end; ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, screen_pack(line[i], color));
+				ed_put(x++, y, line[i], fg, COLOR_BG);
 			}
 		}
 		else if(isdigit(c))
@@ -417,12 +414,12 @@ static u32 ed_syntax(u32 y)
 			for(; i < e; ++x, ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x, y, screen_pack(line[i], ptp(PT_NUMBER, PT_BG)));
+				ed_put(x, y, line[i], COLOR_NUMBER, COLOR_BG);
 			}
 		}
 		else
 		{
-			x = ed_syntax_sub(c, PT_FG, y, x);
+			x = ed_syntax_sub(c, COLOR_FG, y, x);
 			if(x >= _page_w) { return x; }
 			++i;
 		}
@@ -461,12 +458,7 @@ static void ed_render_line(u32 y)
 
 	if(x < _page_w)
 	{
-		ed_put(x++, line, screen_pack(' ', ptp(PT_FG, PT_BG)));
-	}
-
-	for(; x < _page_w; ++x)
-	{
-		screen_set(x + _offset_x, y, screen_pack(' ', ptp(PT_FG, PT_BG)));
+		ed_put(x++, line, ' ', COLOR_FG, COLOR_BG);
 	}
 }
 
@@ -572,35 +564,29 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 
 static void ed_render_blank(u32 start_y, u32 end_y)
 {
-	u32 x, color;
+	u32 x;
 	char *help;
 
 	help =
-		" Editor \"Haven't come up with a good name yet\" V0.9\0"
-		"   by Anton Tchekov\0"
+		"Editor \"Haven't come up with a good name yet\" V0.9\0"
+		"  by Anton Tchekov\0"
 		"\0"
-		" CTRL+N or CTRL+T to create a new buffer\0"
-		" CTRL+O to open file\0"
-		" CTRL+S to save\0"
-		" CTRL+W to discard buffer\0"
-		" CTRL+B or CTRL+P to view open buffers\0"
-		" CTRL+G to go to line number or symbol definiton\0"
-		" CTRL+R to open a terminal in the current directory\0\1";
+		"CTRL+N or CTRL+T to create a new buffer\0"
+		"CTRL+O to open file\0"
+		"CTRL+S to save\0"
+		"CTRL+W to discard buffer\0"
+		"CTRL+B or CTRL+P to view open buffers\0"
+		"CTRL+G to go to line number or symbol definiton\0\1";
 
-	color = ptp(PT_FG, PT_BG);
 	for(; start_y < end_y; ++start_y)
 	{
-		if(start_y < 20 || *help == 1)
+		if(start_y >= 15 && *help != 1)
 		{
-			for(x = 0; x < _screen_width; ++x)
+			for(x = 1; *help && x < _screen_width; ++help, ++x)
 			{
-				screen_set(x, start_y, screen_pack(' ', color));
+				render_char(x, start_y, *help, COLOR_FG, COLOR_BG);
 			}
-		}
-		else
-		{
-			ed_render_line_str(help, 0, start_y, color);
-			help += strlen(help) + 1;
+			++help;
 		}
 	}
 }

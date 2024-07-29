@@ -1,5 +1,3 @@
-#ifndef NDEBUG
-
 #define TEST(expr)      test((expr), #expr, __FILE__, __LINE__)
 #define TEST_FN(name)   test_fn(name, #name)
 
@@ -117,5 +115,3 @@ static void test_run_all(void)
 	printf(TERM_BLUE "--- ALL TESTS COMPLETED ---" TERM_RESET "\n");
 	print_success(_test_all_success, _test_all_count);
 }
-
-#endif

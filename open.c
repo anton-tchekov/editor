@@ -119,7 +119,7 @@ static u32 open_dir_render(u32 y)
 	end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(i = _dd.offset; i < end; ++i, ++y)
 	{
-		ed_render_line_str(list[i], 0, y, dd_color(&_dd, i));
+		ed_render_line_str(list[i], 0, y, dd_color(&_dd, i), COLOR_GRAY);
 	}
 
 	return y;

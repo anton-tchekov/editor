@@ -40,16 +40,16 @@ static void mode_default(void)
 	_mode = MODE_DEFAULT;
 }
 
-static void ed_render_line_str(char *s, u32 x, u32 y, u32 color)
+static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 {
 	for(; *s && x < _screen_width; ++s, ++x)
 	{
-		screen_set(x, y, screen_pack(*s, color));
+		render_char(x, y, *s, fg, bg);
 	}
 
 	for(; x < _screen_width; ++x)
 	{
-		screen_set(x, y, screen_pack(' ', color));
+		render_char(x, y, ' ', fg, bg);
 	}
 }
 
@@ -149,11 +149,8 @@ static void ed_init(void)
 {
 	bf_init();
 	sr_init();
-	printf("Init C Hashmap\n");
 	kw_init(&_kw_c);
-	printf("Init 6800 Hashmap\n");
 	kw_init(&_kw_asm_6800);
-	printf("Init 65C02 Hashmap\n");
 	kw_init(&_kw_asm_65C02);
 	_tabsize = 4;
 	_show_whitespace = 1;
@@ -256,17 +253,6 @@ static void ed_quit(void)
 	request_exit();
 }
 
-static void ed_command(void)
-{
-	char cmd[sizeof(_path_buf)];
-	char *args[2];
-
-	snprintf(cmd, sizeof(cmd), "--working-directory=%s", _path_buf);
-	args[0] = cmd;
-	args[1] = NULL;
-	io_runcmd("xfce4-terminal", args);
-}
-
 static void default_key(u32 key, u32 cp)
 {
 	if(!_tb)
@@ -365,45 +351,34 @@ static void event_scroll(i32 y)
 {
 	if(!_tb) { return; }
 	tb_scroll(_tb, -3 * y);
-	ed_render();
 }
 
 static void event_dblclick(u32 x, u32 y)
 {
 	if(!_tb) { return; }
 	tb_double_click(_tb, x, y);
-	ed_render();
 }
 
 static void event_tripleclick(u32 x, u32 y)
 {
 	if(!_tb) { return; }
 	tb_triple_click(_tb, x, y);
-	ed_render();
 }
 
 static void event_mousedown(u32 x, u32 y)
 {
 	if(!_tb) { return; }
 	tb_mouse_cursor(_tb, x, y);
-	ed_render();
 }
 
 static void event_mousemove(u32 x, u32 y)
 {
-	static u32 last_x = -1, last_y = -1;
-
-	if(!_tb || (last_x == x && last_y == y)) { return; }
-	last_x = x;
-	last_y = y;
+	if(!_tb) { return; }
 	tb_mouse_sel(_tb, x, y);
-	ed_render();
 }
 
-static void event_keyboard(u32 key, u32 chr, u32 state)
+static void event_key(u32 key, u32 chr)
 {
-	if(state == KEYSTATE_RELEASED) { return; }
-
 	switch(_mode)
 	{
 	case MODE_DEFAULT:
@@ -437,23 +412,17 @@ static void event_keyboard(u32 key, u32 chr, u32 state)
 
 	switch(key)
 	{
-	case MOD_CTRL | KEY_R:  ed_command();   break;
-#ifndef NDEBUG
 	case MOD_CTRL | KEY_F3: test_run_all(); break;
-#endif
 	}
-
-	ed_render();
-}
-
-static void event_resize(void)
-{
-	ed_render();
 }
 
 static void event_init(void)
 {
 	ed_init();
+}
+
+static void event_render(void)
+{
 	ed_render();
 }
 
@@ -462,7 +431,6 @@ static u32 event_exit(void)
 	if(bf_has_modified())
 	{
 		ob_open();
-		ed_render();
 		return 0;
 	}
 

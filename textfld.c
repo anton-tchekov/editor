@@ -242,17 +242,6 @@ static u32 tf_key(tf *t, u32 key, u32 chr)
 	return 0;
 }
 
-static u32 tf_color(u32 a, u32 b, u32 i)
-{
-	return (i >= a && i < b) ? ptp(PT_FG, PT_GRAY) : ptp(PT_BG, PT_FG);
-}
-
-static u32 tf_color_focus(u32 a, u32 b, u32 c, u32 i)
-{
-	return (i == c) ? ptp(PT_FG, PT_BG) :
-		((i >= a && i < b) ? ptp(PT_FG, PT_INFO) : ptp(PT_BG, PT_FG));
-}
-
 static void tf_render(tf *t, u32 y, u32 focused, char *prompt)
 {
 	char *s;
@@ -260,7 +249,7 @@ static void tf_render(tf *t, u32 y, u32 focused, char *prompt)
 
 	for(s = prompt, x = 0; (c = *s); ++x, ++s)
 	{
-		screen_set(x, y, screen_pack(c, ptp(PT_BG, PT_FG)));
+		render_char(x, y, c, COLOR_BG, COLOR_FG);
 	}
 
 	a = tf_sel_min(t);
@@ -269,7 +258,27 @@ static void tf_render(tf *t, u32 y, u32 focused, char *prompt)
 	s = tf_str(t);
 	for(i = 0; x < _screen_width; ++x, ++s, ++i)
 	{
-		screen_set(x, y, screen_pack((i < len) ? *s : ' ',
-			focused ? tf_color_focus(a, b, t->pos, i) : tf_color(a, b, i)));
+		u32 fg = COLOR_BG;
+		u32 bg = COLOR_FG;
+		if(focused)
+		{
+			if(i == t->pos)
+			{
+				fg = COLOR_FG;
+				bg = COLOR_BG;
+			}
+			else if(i >= a && i < b)
+			{
+				fg = COLOR_FG;
+				bg = COLOR_INFO;
+			}
+		}
+		else if(i >= a && i < b)
+		{
+			fg = COLOR_FG;
+			bg = COLOR_GRAY;
+		}
+
+		render_char(x, y, (i < len) ? *s : ' ', fg, bg);
 	}
 }

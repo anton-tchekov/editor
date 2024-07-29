@@ -25,8 +25,8 @@ static u32 msg_render(void)
 	if(_msg_type)
 	{
 		--end;
-		ed_render_line_str(_msg_buf, 0, end,
-			ptp(PT_FG, _msg_type == MSG_INFO ? PT_INFO : PT_ERROR));
+		ed_render_line_str(_msg_buf, 0, end, COLOR_FG,
+			_msg_type == MSG_INFO ? COLOR_INFO : COLOR_ERROR);
 		_msg_type = 0;
 	}
 

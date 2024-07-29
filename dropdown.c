@@ -118,5 +118,5 @@ static void dd_key(dd *d, u32 key)
 
 static u32 dd_color(dd *d, u32 i)
 {
-	return (i == d->pos) ? ptp(PT_COMMENT, PT_GRAY) : ptp(PT_FG, PT_GRAY);
+	return (i == d->pos) ? COLOR_COMMENT : COLOR_FG;
 }
