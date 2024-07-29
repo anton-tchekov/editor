@@ -6,6 +6,7 @@
 static u32 _quit;
 
 static u32 _char_width = 16, _char_height = 29;
+static i32 _line_height = 35;
 static u32 _gfx_width, _gfx_height;
 static u32 _screen_width, _screen_height;
 static u32 _triple_click, _dbl_click;
@@ -25,12 +26,17 @@ static void event_render(void);
 static void event_scroll(i32 y);
 static u32 event_exit(void);
 
+static void update_dim(void)
+{
+	_screen_width = _gfx_width / _char_width;
+	_screen_height = _gfx_height / _line_height;
+}
+
 static void resize(u32 w, u32 h)
 {
 	_gfx_width = w;
 	_gfx_height = h;
-	_screen_width = w / _char_width;
-	_screen_height = h / _char_height;
+	update_dim();
 }
 
 static void init(void)
@@ -109,14 +115,17 @@ static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 	}
 
 	c -= 32;
+	u32 pad = (_line_height - _char_height) / 2;
+
 	SDL_Rect src = { c * _char_width, 0, _char_width, _char_height };
-	SDL_Rect dst = { x * _char_width, y * _char_height, _char_width, _char_height };
+	SDL_Rect dst = { x * _char_width, y * _line_height + pad, _char_width, _char_height };
 
 	SDL_Rect blank = { 1510, 0, _char_width, _char_height };
+	SDL_Rect blank_dst = { x * _char_width, y * _line_height, _char_width, _line_height };
 
 	SDL_SetTextureColorMod(_font,
 		color_r(bg), color_g(bg), color_b(bg));
-	SDL_RenderCopy(_renderer, _font, &blank, &dst);
+	SDL_RenderCopy(_renderer, _font, &blank, &blank_dst);
 
 	if(c != ' ')
 	{
@@ -278,7 +287,7 @@ static void handle_mousedown(void)
 	SDL_GetMouseState(&x, &y);
 	time = SDL_GetTicks();
 	x /= _char_width;
-	y /= _char_height;
+	y /= _line_height;
 	if(time < _triple_click + DBL_CLICK_MS)
 	{
 		_dbl_click = 0;
@@ -319,7 +328,7 @@ static void handle_mousemove(void)
 		SDL_GetMouseState(&x, &y);
 		if(x >= 0 && y >= 0)
 		{
-			event_mousemove(x / _char_width, y / _char_height);
+			event_mousemove(x / _char_width, y / _line_height);
 		}
 	}
 
@@ -329,14 +338,49 @@ static void handle_mousemove(void)
 #endif
 }
 
+static i32 clamp(i32 val, i32 min, i32 max)
+{
+	if(val < min) { val = min; }
+	if(val > max) { val = max; }
+	return val;
+}
+
+static void handle_line_height(i32 y)
+{
+	_line_height += y;
+	_line_height = clamp(_line_height, _char_height, 3 * _char_height / 2);
+	update_dim();
+}
+
+static void handle_zoom(i32 y)
+{
+
+}
+
 static void handle_scroll(i32 y)
 {
 #ifdef TIMEKEY
 	u64 t0, t1;
 	t0 = get_ticks();
 #endif
-	event_scroll(y);
-	handle_mousemove();
+	const uint8_t *state = SDL_GetKeyboardState(NULL);
+	if(state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL])
+	{
+		if(state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT])
+		{
+			handle_line_height(y);
+		}
+		else
+		{
+			handle_zoom(y);
+		}
+	}
+	else
+	{
+		event_scroll(y);
+		handle_mousemove();
+	}
+
 #ifdef TIMEKEY
 	t1 = get_ticks();
 	printf("SCROLL delta_t = %"PRIu64"\n", t1 - t0);
