@@ -9,19 +9,21 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
+### Minor:
 - Indent Selected using Tab (small bug with cursors)
-- Abbreviations
-- Highlight focused word
-- Search and replace in file and whole folder
-- Align defines handle comments
 - Shift tab work with spaces
-- Fix unicode problems
-- Undo / Redo
-- Multiple Cursors
-- Adjust Font and Font Size (CTRL+Scroll)
+- Abbreviations
+- Align defines handle comments
+- Highlight focused word
 - Show memory Usage, current text column,
 	size of file in bytes, length of selection in bytes and lines
 	in bar at bottom of screen (hideable)
+
+### Major:
+- Search and replace in file and whole folder
+- Fix unicode problems
+- Undo / Redo
+- Multiple Cursors
 
 ## Project overview
 
