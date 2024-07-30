@@ -1,9 +1,10 @@
-CFLAGS = -std=c99 -pedantic -Wall -Wextra -Wshadow -lSDL2 -lSDL2_image
+CFLAGS = -std=c99 -pedantic -Wall -Wextra -Wshadow \
+	-lSDL2 -lSDL2_ttf
 
 all: release
 
 release:
-	gcc main.c -o editor $(CFLAGS) -O3 -s -DNDEBUG -DTIMEKEY
+	gcc main.c -o editor $(CFLAGS) -O3 -s -DNDEBUG
 
 debug:
 	gcc main.c -o editor $(CFLAGS) -g

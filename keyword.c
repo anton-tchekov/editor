@@ -366,7 +366,11 @@ static void kw_init(hashmap *hm)
 		while(hm->table[hash % hm->size] >= 0)
 		{
 			++hash;
-			assert(++steps < COLLISION_LIMIT);
+			if(++steps >= COLLISION_LIMIT)
+			{
+				printf("HashTable Collision Limit exceeded!\n");
+				exit(1);
+			}
 		}
 
 		hm->table[hash % hm->size] = i;

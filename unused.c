@@ -80,3 +80,11 @@ static void rect(u32 x, u32 y, u32 w, u32 h, u32 color)
 		--h;
 	}
 }
+
+static void *_calloc(size_t num, size_t size)
+{
+	void *p = calloc(num, size);
+	if(!p) { _alloc_fail(num * size); }
+	++_alloc_cnt;
+	return p;
+}

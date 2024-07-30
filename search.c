@@ -58,7 +58,7 @@ static void mode_replace_in_dir(void)
 
 static void sr_title_render(void)
 {
-	char buf[256];
+	char buf[PATH_MAX + 256];
 	char *action, *print;
 
 	print = action = (_sr_flags & SR_REPLACE) ? "Replace" : "Search";

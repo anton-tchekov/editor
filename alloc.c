@@ -14,14 +14,6 @@ static void *_malloc(size_t size)
 	return p;
 }
 
-static void *_calloc(size_t num, size_t size)
-{
-	void *p = calloc(num, size);
-	if(!p) { _alloc_fail(num * size); }
-	++_alloc_cnt;
-	return p;
-}
-
 static void *_realloc(void *p, size_t size)
 {
 	if(!p)

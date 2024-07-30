@@ -5,6 +5,8 @@
 
 static u32 _quit;
 
+static char *_font_name = "terminus.ttf";
+static u32 _font_size = 16;
 static u32 _char_width = 16, _char_height = 29;
 static i32 _line_height = 35;
 static u32 _gfx_width, _gfx_height;
@@ -26,10 +28,64 @@ static void event_render(void);
 static void event_scroll(i32 y);
 static u32 event_exit(void);
 
+#define NUM_CHARS 95
+
 static void update_dim(void)
 {
 	_screen_width = _gfx_width / _char_width;
 	_screen_height = _gfx_height / _line_height;
+}
+
+int font_load(char *font, i32 size)
+{
+	char chars[128];
+
+	/* Load new ttf font */
+	TTF_Font *ttf = TTF_OpenFont(font, size);
+	if(!ttf)
+	{
+		return 1;
+	}
+
+    SDL_Color color = { 255, 255, 255, 0 };
+
+	for(u32 i = 0; i < NUM_CHARS; ++i)
+	{
+		chars[i] = i + 32;
+	}
+
+	SDL_Surface *surface = TTF_RenderText_Blended(ttf, chars, color);
+
+	/* Recalculate line height as ratio of font height */
+	_line_height = (((_line_height << 8) / _char_height) * surface->h) >> 8;
+
+	/* Only works with monospace fonts */
+	_char_width = surface->w / NUM_CHARS;
+	_char_height = surface->h;
+
+	SDL_Surface *new_surface = SDL_CreateRGBSurface(0,
+		surface->w + _char_width, surface->h,
+		32, 0xff, 0xff00, 0xff0000, 0xff000000);
+
+	SDL_Rect src = { 0, 0, surface->w, surface->h };
+	SDL_Rect dst = { _char_width, 0, surface->w, surface->h };
+	SDL_BlitSurface(surface, &src, new_surface, &dst);
+
+	SDL_Rect rect = { 0, 0, _char_width, _char_height };
+	SDL_FillRect(new_surface, &rect, 0xFFFFFFFF);
+
+	/* Free previous font texture */
+	if(_font)
+	{
+		SDL_DestroyTexture(_font);
+	}
+
+	_font = SDL_CreateTextureFromSurface(_renderer, new_surface);
+	_font_size = size;
+	SDL_FreeSurface(surface);
+	SDL_FreeSurface(new_surface);
+	update_dim();
+	return 0;
 }
 
 static void resize(u32 w, u32 h)
@@ -43,9 +99,8 @@ static void init(void)
 {
 	if(SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
-		printf("Error initializing SDL; SDL_Init: %s\n",
-			SDL_GetError());
-		exit(1);
+		printf("Error initializing SDL; SDL_Init: %s\n", SDL_GetError());
+		goto fail_sdl_init;
 	}
 
 	if(!(_window = SDL_CreateWindow(WINDOW_TITLE,
@@ -53,34 +108,43 @@ static void init(void)
 		GFX_INITIAL_WIDTH, GFX_INITIAL_HEIGHT,
 		SDL_WINDOW_RESIZABLE)))
 	{
-		printf("Error creating SDL_Window: %s\n",
-			SDL_GetError());
-		SDL_Quit();
-		exit(1);
+		printf("Error creating SDL_Window: %s\n", SDL_GetError());
+		goto fail_create_window;
 	}
 
 	if(!(_renderer = SDL_CreateRenderer
 		(_window, -1, SDL_RENDERER_ACCELERATED)))
 	{
-		printf("Error creating SDL_Renderer: %s\n",
-			SDL_GetError());
-		SDL_DestroyWindow(_window);
-		SDL_Quit();
-		exit(1);
+		printf("Error creating SDL_Renderer: %s\n", SDL_GetError());
+		goto fail_create_renderer;
 	}
 
-	if(!(_font = IMG_LoadTexture(_renderer, "font_big.png")))
+	if(TTF_Init())
 	{
-		printf("Error creating SDL_Texture: %s\n",
-			SDL_GetError());
-		SDL_DestroyRenderer(_renderer);
-		SDL_DestroyWindow(_window);
-		SDL_Quit();
-		exit(1);
+		printf("Loading initializing TTF: %s\n", TTF_GetError());
+		goto fail_ttf_init;
 	}
 
-	SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_ADD);
+	if(font_load(_font_name, _font_size))
+	{
+		printf("Loading font failed: %s\n", SDL_GetError());
+		goto fail_font_load;
+	}
+
+	SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
 	resize(GFX_INITIAL_WIDTH, GFX_INITIAL_HEIGHT);
+	return;
+
+fail_font_load:
+	TTF_Quit();
+fail_ttf_init:
+	SDL_DestroyRenderer(_renderer);
+fail_create_renderer:
+	SDL_DestroyWindow(_window);
+fail_create_window:
+	SDL_Quit();
+fail_sdl_init:
+	exit(1);
 }
 
 static void destroy(void)
@@ -114,21 +178,23 @@ static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 		c = '?';
 	}
 
-	c -= 32;
-	u32 pad = (_line_height - _char_height) / 2;
+	if(bg != COLOR_BG)
+	{
+		SDL_Rect blank = { 0, 0, _char_width, _char_height };
+		SDL_Rect blank_dst = { x * _char_width, y * _line_height, _char_width, _line_height };
 
-	SDL_Rect src = { c * _char_width, 0, _char_width, _char_height };
-	SDL_Rect dst = { x * _char_width, y * _line_height + pad, _char_width, _char_height };
-
-	SDL_Rect blank = { 1510, 0, _char_width, _char_height };
-	SDL_Rect blank_dst = { x * _char_width, y * _line_height, _char_width, _line_height };
-
-	SDL_SetTextureColorMod(_font,
-		color_r(bg), color_g(bg), color_b(bg));
-	SDL_RenderCopy(_renderer, _font, &blank, &blank_dst);
+		SDL_SetTextureColorMod(_font,
+			color_r(bg), color_g(bg), color_b(bg));
+		SDL_RenderCopy(_renderer, _font, &blank, &blank_dst);
+	}
 
 	if(c != ' ')
 	{
+		c -= 32;
+		u32 pad = (_line_height - _char_height) / 2;
+		SDL_Rect src = { (c + 1) * _char_width, 0, _char_width, _char_height };
+		SDL_Rect dst = { x * _char_width, y * _line_height + pad, _char_width, _char_height };
+
 		SDL_SetTextureColorMod(_font,
 			color_r(fg), color_g(fg), color_b(fg));
 		SDL_RenderCopy(_renderer, _font, &src, &dst);
@@ -354,7 +420,9 @@ static void handle_line_height(i32 y)
 
 static void handle_zoom(i32 y)
 {
-
+	i32 size = _font_size + y;
+	size = clamp(size, 12, 64);
+	font_load(_font_name, size);
 }
 
 static void handle_scroll(i32 y)
@@ -400,11 +468,10 @@ static int fuzzmain(void)
 {
 	/* CTRL is not included in modifiers to avoid file system corruption */
 	static u32 rmods[] = { 0, KMOD_LSHIFT };
-	u64 t0, t1;
-	u32 cnt;
+	u64 t0 = 0, t1 = 0;
+	u32 cnt = 0;
 	SDL_Event e;
 
-	cnt = 0;
 	init();
 	event_init();
 	srand(time(NULL));

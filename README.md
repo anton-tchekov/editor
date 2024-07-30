@@ -9,7 +9,6 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-### Textbuffer
 - Indent Selected using Tab (small bug with cursors)
 - Abbreviations
 - Highlight focused word
