@@ -10,22 +10,16 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 ### Textbuffer
-- Indent Selected using Tab (small problem with cursors)
+- Indent Selected using Tab (small bug with cursors)
+- Abbreviations
 - Highlight focused word
-
-### Modes
 - Search and replace in file and whole folder
 - Align defines handle comments
 - Shift tab work with spaces
-
-### Future
 - Fix unicode problems
 - Undo / Redo
 - Multiple Cursors
-- Adjust Font Size and Line Spacing (CTRL +/- or scroll)
-- Adjust Font
-- Config File? (Loading, Parsing, Saving)
-- Remember last opened file
+- Adjust Font and Font Size (CTRL+Scroll)
 - Show memory Usage, current text column,
 	size of file in bytes, length of selection in bytes and lines
 	in bar at bottom of screen (hideable)
@@ -34,12 +28,9 @@ that is optimized for C projects, is performant, and productive.
 
 ### Abbreviations Index
 
-I use two (or three) letter abbreviations as a module prefix.
-(Work in progress)
+Two or three letter abbreviations are used as a module prefix.
 
 ```
-DONE:
-
 BF  = Buffer Management [buffers.c]
 TB  = Text Buffer [textbuf.c]
 
@@ -52,10 +43,7 @@ CF  = Confirmation dialog [confirm.c]
 MSG = Message (Error or Info) [msg.c]
 
 VEC = Vector (Dynamic array) [vector.c]
-IO  = Input / Output (Platform dependant) [io.c]
 KW  = Keyword hashtable (for syntax highlighting) [keyword.c]
-
-TODO:
 
 SR  = Search and Replace [search.c]
 SV  = Save File (As) [save_as.c]

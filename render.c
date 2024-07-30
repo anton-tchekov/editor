@@ -574,9 +574,20 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		"CTRL+N or CTRL+T to create a new buffer\0"
 		"CTRL+O to open file\0"
 		"CTRL+S to save\0"
+		"CTRL+SHIFT+S to save under a different name\0"
 		"CTRL+W to discard buffer\0"
 		"CTRL+B or CTRL+P to view open buffers\0"
-		"CTRL+G to go to line number or symbol definiton\0\1";
+		"CTRL+G to go to line number or symbol definiton\0"
+		"CTRL+L to select the current line\0"
+		"CTRL+SHIFT+L to toggle line number visibility\0"
+		"CTRL+J to toggle whitespace visibility\0"
+		"CTRL+SCROLL to change font size\0"
+		"CTRL+SHIFT+SCROLL to change line height\0"
+		"CTRL+D to trim trailing space\0"
+		"CTRL+E to align #define's\0"
+		"CTRL+I to insert #include \"..\"\0"
+		"CTRL+SHIFT+I to insert #include <..>\0"
+		"\1";
 
 	for(; start_y < end_y; ++start_y)
 	{
