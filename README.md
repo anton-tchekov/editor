@@ -12,12 +12,19 @@ that is optimized for C projects, is performant, and productive.
 ### Minor:
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
+
 - Abbreviations
+
 - Align defines handle comments
+
 - Highlight focused word
+
 - Show memory Usage, current text column,
 	size of file in bytes, length of selection in bytes and lines
 	in bar at bottom of screen (hideable)
+
+- Cursor as line, not block and blinking
+- Visible Space special characters (auto generated?)
 
 ### Major:
 - Search and replace in file and whole folder
