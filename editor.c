@@ -14,15 +14,7 @@ enum
 	MODE_COUNT
 };
 
-enum
-{
-	LANGUAGE_UNKNOWN,
-	LANGUAGE_C,
-	LANGUAGE_DEFAULT = LANGUAGE_C,
-	LANGUAGE_ASM6800,
-	LANGUAGE_ASM65C02,
-	LANGUAGE_COUNT
-};
+#include "lang.c"
 
 #define DD_PAGE          12
 #define COMMENT_LOOKBACK 10
@@ -230,7 +222,8 @@ static void ed_render(void)
 		break;
 	}
 
-	end_y = msg_render();
+	msg_render();
+	end_y = _screen_height;
 	if(_tb)
 	{
 		ed_render_buffer(start_y, end_y);
@@ -369,6 +362,12 @@ static void event_mousedown(u32 x, u32 y)
 {
 	if(!_tb) { return; }
 	tb_mouse_cursor(_tb, x, y);
+}
+
+static void event_shift_mousedown(u32 x, u32 y)
+{
+	if(!_tb) { return; }
+	tb_mouse_sel(_tb, x, y);
 }
 
 static void event_mousemove(u32 x, u32 y)

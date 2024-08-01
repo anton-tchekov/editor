@@ -3,6 +3,8 @@
 #define WINDOW_TITLE             "Editor"
 #define DBL_CLICK_MS          500
 
+#define COLOR_WHITE              0xFFFFFFFF
+
 static u32 _quit;
 
 static char *_font_name = "terminus.ttf";
@@ -10,7 +12,7 @@ static u32 _font_size = 16;
 static u32 _char_width = 16, _char_height = 29;
 static i32 _line_height = 35;
 static u32 _gfx_width, _gfx_height;
-static u32 _screen_width, _screen_height;
+static u32 _screen_width, _screen_height, _full_height;
 static u32 _triple_click, _dbl_click;
 static int _down;
 
@@ -22,6 +24,7 @@ static void event_dblclick(u32 x, u32 y);
 static void event_tripleclick(u32 x, u32 y);
 static void event_mousemove(u32 x, u32 y);
 static void event_mousedown(u32 x, u32 y);
+static void event_shift_mousedown(u32 x, u32 y);
 static void event_init(void);
 static void event_key(u32 key, u32 chr);
 static void event_render(void);
@@ -33,14 +36,13 @@ static u32 event_exit(void);
 static void update_dim(void)
 {
 	_screen_width = _gfx_width / _char_width;
-	_screen_height = _gfx_height / _line_height;
+	_full_height = _gfx_height / _line_height;
+	_screen_height = _full_height - 1;
 }
 
-int font_load(char *font, i32 size)
+static int font_load(char *font, i32 size)
 {
-	char chars[128];
-
-	/* Load new ttf font */
+	SDL_Surface *chars[NUM_CHARS];
 	TTF_Font *ttf = TTF_OpenFont(font, size);
 	if(!ttf)
 	{
@@ -48,42 +50,148 @@ int font_load(char *font, i32 size)
 	}
 
     SDL_Color color = { 255, 255, 255, 0 };
+	char letter[2];
+	letter[1] = '\0';
+	for(u32 i = 0; i < NUM_CHARS; ++i)
+	{
+		letter[0] = i + 32;
+		chars[i] = TTF_RenderText_Blended(ttf, letter, color);
+	}
+
+	TTF_CloseFont(ttf);
+
+	int max_h = 0, max_w = 0;
+	for(u32 i = 0; i < NUM_CHARS; ++i)
+	{
+		SDL_Surface *s = chars[i];
+		if(s->w > max_w)
+		{
+			max_w = s->w;
+		}
+
+		if(s->h > max_h)
+		{
+			max_h = s->h;
+		}
+	}
+
+	_line_height = (((_line_height << 8) / _char_height) * max_h) >> 8;
+	_char_width = max_w;
+	_char_height = max_h;
+
+	SDL_Surface *surface = SDL_CreateRGBSurface(0,
+		_char_width * 16, _char_height * 8,
+		32, 0xff, 0xff00, 0xff0000, 0xff000000);
 
 	for(u32 i = 0; i < NUM_CHARS; ++i)
 	{
-		chars[i] = i + 32;
+		SDL_Surface *s = chars[i];
+		SDL_Rect src = { 0, 0, s->w, s->h };
+		int c = i + 32;
+		int x = (c & 0x0F) * _char_width;
+		int y = (c >> 4) * _char_height;
+		SDL_Rect dst = { x, y, s->w, s->h };
+		SDL_BlitSurface(s, &src, surface, &dst);
 	}
 
-	SDL_Surface *surface = TTF_RenderText_Blended(ttf, chars, color);
+	for(u32 i = 0; i < NUM_CHARS; ++i)
+	{
+		SDL_FreeSurface(chars[i]);
+	}
 
-	/* Recalculate line height as ratio of font height */
-	_line_height = (((_line_height << 8) / _char_height) * surface->h) >> 8;
+	{
+		SDL_Rect rect =
+		{
+			CHAR_BLOCK * _char_width,
+			0,
+			_char_width,
+			_char_height
+		};
 
-	/* Only works with monospace fonts */
-	_char_width = surface->w / NUM_CHARS;
-	_char_height = surface->h;
+		SDL_FillRect(surface, &rect, COLOR_WHITE);
+	}
 
-	SDL_Surface *new_surface = SDL_CreateRGBSurface(0,
-		surface->w + _char_width, surface->h,
-		32, 0xff, 0xff00, 0xff0000, 0xff000000);
+	int thick = _char_height / 16;
+	if(thick == 0) { thick = 1; }
 
-	SDL_Rect src = { 0, 0, surface->w, surface->h };
-	SDL_Rect dst = { _char_width, 0, surface->w, surface->h };
-	SDL_BlitSurface(surface, &src, new_surface, &dst);
+	{
+		SDL_Rect hline =
+		{
+			CHAR_TAB_START * _char_width + thick,
+			_char_height / 2 - thick / 2,
+			_char_width - thick,
+			thick
+		};
 
-	SDL_Rect rect = { 0, 0, _char_width, _char_height };
-	SDL_FillRect(new_surface, &rect, 0xFFFFFFFF);
+		SDL_FillRect(surface, &hline, COLOR_WHITE);
 
-	/* Free previous font texture */
+		int h = _char_height / 2;
+		SDL_Rect vline =
+		{
+			CHAR_TAB_START * _char_width + thick,
+			_char_height / 2 - h / 2,
+			thick,
+			h
+		};
+
+		SDL_FillRect(surface, &vline, COLOR_WHITE);
+	}
+
+	{
+		SDL_Rect hline =
+		{
+			CHAR_TAB_MIDDLE * _char_width,
+			_char_height / 2 - thick / 2,
+			_char_width,
+			thick
+		};
+
+		SDL_FillRect(surface, &hline, COLOR_WHITE);
+	}
+
+	{
+		int h = 1;
+		int start = CHAR_TAB_END * _char_width;
+		int x = _char_width - 2 * thick;
+		for(; h < _char_height / 2; h += 2)
+		{
+			--x;
+			SDL_Rect vline =
+			{
+				start + x,
+				_char_height / 2 - h / 2,
+				1,
+				h
+			};
+
+			SDL_FillRect(surface, &vline, COLOR_WHITE);
+		}
+
+		SDL_Rect hline =
+		{
+			start,
+			_char_height / 2 - thick / 2,
+			x,
+			thick
+		};
+
+		SDL_FillRect(surface, &hline, COLOR_WHITE);
+	}
+
+	{
+	}
+
+	{
+	}
+
 	if(_font)
 	{
 		SDL_DestroyTexture(_font);
 	}
 
-	_font = SDL_CreateTextureFromSurface(_renderer, new_surface);
+	_font = SDL_CreateTextureFromSurface(_renderer, surface);
 	_font_size = size;
 	SDL_FreeSurface(surface);
-	SDL_FreeSurface(new_surface);
 	update_dim();
 	return 0;
 }
@@ -150,6 +258,7 @@ fail_sdl_init:
 static void destroy(void)
 {
 	SDL_DestroyTexture(_font);
+	TTF_Quit();
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
 	SDL_Quit();
@@ -173,11 +282,6 @@ static u32 color_b(u32 color)
 
 static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 {
-	if(c < 32 || c > 126)
-	{
-		c = '?';
-	}
-
 	if(bg != COLOR_BG)
 	{
 		SDL_Rect blank = { 0, 0, _char_width, _char_height };
@@ -190,9 +294,8 @@ static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 
 	if(c != ' ')
 	{
-		c -= 32;
 		u32 pad = (_line_height - _char_height) / 2;
-		SDL_Rect src = { (c + 1) * _char_width, 0, _char_width, _char_height };
+		SDL_Rect src = { (c & 0x0F) * _char_width, (c >> 4) * _char_height, _char_width, _char_height };
 		SDL_Rect dst = { x * _char_width, y * _line_height + pad, _char_width, _char_height };
 
 		SDL_SetTextureColorMod(_font,
@@ -203,9 +306,7 @@ static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 
 static u32 convert_key(i32 scancode, i32 mod)
 {
-	u32 key;
-
-	key = scancode;
+	u32 key = scancode;
 	if(mod & (KMOD_LCTRL | KMOD_RCTRL))
 	{
 		key |= MOD_CTRL;
@@ -369,7 +470,15 @@ static void handle_mousedown(void)
 	else
 	{
 		_dbl_click = time;
-		event_mousedown(x, y);
+		const u8 *state = SDL_GetKeyboardState(NULL);
+		if(state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT])
+		{
+			event_shift_mousedown(x, y);
+		}
+		else
+		{
+			event_mousedown(x, y);
+		}
 	}
 
 #ifdef TIMEKEY

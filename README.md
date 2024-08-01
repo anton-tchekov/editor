@@ -9,25 +9,20 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-### Minor:
-- Indent Selected using Tab (small bug with cursors)
-- Shift tab work with spaces
-
-- Abbreviations
-
-- Align defines handle comments
-
+### Current:
 - Highlight focused word
-
-- Show memory Usage, current text column,
-	size of file in bytes, length of selection in bytes and lines
-	in bar at bottom of screen (hideable)
-
+- Bottom bar: File name, Cursor/selection Pos, length of selection in XY
 - Cursor as line, not block and blinking
 - Visible Space special characters (auto generated?)
 
-### Major:
+### Next:
 - Search and replace in file and whole folder
+- Indent Selected using Tab (small bug with cursors)
+- Shift tab work with spaces
+- Abbreviations
+- Align defines handle comments
+
+### Future:
 - Fix unicode problems
 - Undo / Redo
 - Multiple Cursors

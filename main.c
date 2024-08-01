@@ -20,5 +20,6 @@
 #include "vector.c"
 #include "file.c"
 #include "colors.c"
+#include "chars.c"
 #include "gfx.c"
 #include "editor.c"
