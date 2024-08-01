@@ -7,30 +7,25 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 	u32 x, y, lnr_max, lnr_width, lines, lnr;
 
 	lines = tb_num_lines(_tb);
-	lnr = _tb->page_y + start_y;
-	lnr_max = lnr + _screen_height;
+	lnr = _tb->page_y + start_y + 1;
+	lnr_max = lnr + (end_y - start_y - 1);
 	lnr_max = lnr_max < lines ? lnr_max : lines;
 	lnr_width = dec_digit_cnt(lnr_max);
-	for(y = start_y; y < end_y; ++y)
+	for(y = start_y; y < end_y && lnr <= lines; ++y, ++lnr)
 	{
 		u32 fg = COLOR_GRAY;
 		u32 bg = COLOR_BG;
-		if(lnr == _tb->sel.c[1].y)
+		if(lnr == _tb->sel.c[1].y + 1)
 		{
 			fg = COLOR_FG;
 			bg = COLOR_BG;
 		}
 
-		++lnr;
-		if(lnr <= lines)
+		char lnr_buf[16];
+		linenr_str(lnr_buf, lnr, lnr_width);
+		for(x = 0; x < lnr_width; ++x)
 		{
-			char lnr_buf[16];
-
-			linenr_str(lnr_buf, lnr, lnr_width);
-			for(x = 0; x < lnr_width; ++x)
-			{
-				render_char(x, y, lnr_buf[x], fg, bg);
-			}
+			render_char(x, y, lnr_buf[x], fg, bg);
 		}
 	}
 
@@ -58,20 +53,9 @@ static u32 is_sel(u32 x, u32 y)
 	return 1;
 }
 
-static u32 is_cursor(u32 x, u32 y)
-{
-	return y == _vcursor.y && x == _vcursor.x;
-}
-
 static void ed_put(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 {
-	if(is_cursor(x, y))
-	{
-		u32 v = fg;
-		fg = bg;
-		bg = v;
-	}
-	else if(is_sel(x, y))
+	if(is_sel(x, y))
 	{
 		bg = COLOR_SEL;
 	}
@@ -430,10 +414,8 @@ static u32 ed_syntax(u32 y)
 
 static void ed_render_line(u32 y)
 {
-	u32 x, line;
-
-	x = 0;
-	line = _tb->page_y + y;
+	u32 x = 0;
+	u32 line = _tb->page_y + y;
 	if(line < tb_num_lines(_tb))
 	{
 		switch(_tb->language)
@@ -545,20 +527,23 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 		_offset_x = 0;
 	}
 
-#if 0
+#if 1
 	{
-		u32 len;
-		char *s;
-
-		len = 0;
-		s = tb_cur_line_span(_tb, &len);
+		u32 len = 0;
+		char *s = tb_cur_line_span(_tb, &len);
 		printf("%.*s - %d\n", len, s, len);
 	}
 #endif
 
-	for(; start_y < end_y; ++start_y)
+	for(u32 y = start_y; y < end_y; ++y)
 	{
-		ed_render_line(start_y);
+		ed_render_line(y);
+	}
+
+	u32 pos_y = _vcursor.y - _tb->page_y;
+	if(pos_y >= start_y && pos_y < end_y)
+	{
+		render_cursor(_vcursor.x + _offset_x, pos_y, COLOR_CURSOR);
 	}
 }
 

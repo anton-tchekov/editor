@@ -12,7 +12,6 @@ that is optimized for C projects, is performant, and productive.
 ### Current:
 - Highlight focused word
 - Bottom bar: File name, Cursor/selection Pos, length of selection in XY
-- Cursor as line, not block and blinking
 - Visible Space special characters (auto generated?)
 
 ### Next:

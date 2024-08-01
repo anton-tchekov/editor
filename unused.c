@@ -88,3 +88,8 @@ static void *_calloc(size_t num, size_t size)
 	++_alloc_cnt;
 	return p;
 }
+
+static u32 is_cursor(u32 x, u32 y)
+{
+	return y == _vcursor.y && x == _vcursor.x;
+}

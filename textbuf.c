@@ -1623,10 +1623,10 @@ static char *tb_cur_line_span(textbuf *t, u32 *out_len)
 			len = vec_len(v);
 
 			/* Find start */
-			for(start = x; start > 0 && isalnum(s[start - 1]); --start) {}
+			for(start = x; start > 0 && is_ident(s[start - 1]); --start) {}
 
 			/* Find end */
-			for(end = x; end < len && isalnum(s[end]); ++end) {}
+			for(end = x; end < len && is_ident(s[end]); ++end) {}
 
 			if(start == end)
 			{

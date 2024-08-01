@@ -280,16 +280,21 @@ static u32 color_b(u32 color)
 	return (color) & 0xFF;
 }
 
+static void fastrect(u32 x, u32 y, u32 w, u32 h, u32 color)
+{
+	SDL_Rect blank = { 0, 0, _char_width, _char_height };
+	SDL_Rect blank_dst = { x, y, w, h };
+
+	SDL_SetTextureColorMod(_font,
+		color_r(color), color_g(color), color_b(color));
+	SDL_RenderCopy(_renderer, _font, &blank, &blank_dst);
+}
+
 static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 {
 	if(bg != COLOR_BG)
 	{
-		SDL_Rect blank = { 0, 0, _char_width, _char_height };
-		SDL_Rect blank_dst = { x * _char_width, y * _line_height, _char_width, _line_height };
-
-		SDL_SetTextureColorMod(_font,
-			color_r(bg), color_g(bg), color_b(bg));
-		SDL_RenderCopy(_renderer, _font, &blank, &blank_dst);
+		fastrect(x * _char_width, y * _line_height, _char_width, _line_height, bg);
 	}
 
 	if(c != ' ')
@@ -302,6 +307,13 @@ static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 			color_r(fg), color_g(fg), color_b(fg));
 		SDL_RenderCopy(_renderer, _font, &src, &dst);
 	}
+}
+
+static void render_cursor(u32 x, u32 y, u32 color)
+{
+	u32 thick = _char_height / 8;
+	if(!thick) { thick = 1; }
+	fastrect(x * _char_width, y * _line_height, thick, _line_height, color);
 }
 
 static u32 convert_key(i32 scancode, i32 mod)
@@ -660,6 +672,7 @@ int main(int argc, char *argv[])
 #endif
 		}
 
+waitagain:
 		if(!SDL_WaitEvent(&e))
 		{
 			break;
@@ -677,6 +690,9 @@ int main(int argc, char *argv[])
 		case SDL_QUIT:
 			_quit = event_exit();
 			break;
+
+		case SDL_KEYUP:
+			goto waitagain;
 
 		case SDL_KEYDOWN:
 			{
