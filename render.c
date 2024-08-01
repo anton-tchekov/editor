@@ -527,7 +527,7 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 		_offset_x = 0;
 	}
 
-#if 1
+#if 0
 	{
 		u32 len = 0;
 		char *s = tb_cur_line_span(_tb, &len);

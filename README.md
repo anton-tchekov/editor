@@ -10,11 +10,11 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 ### Current:
-- Highlight focused word
 - Bottom bar: File name, Cursor/selection Pos, length of selection in XY
 - Visible Space special characters (auto generated?)
 
 ### Next:
+- Highlight focused word
 - Search and replace in file and whole folder
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
