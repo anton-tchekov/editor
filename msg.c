@@ -47,33 +47,3 @@ static void msg_tryclose(void)
 		_msg_type = MSG_STATUS;
 	}
 }
-
-static void msg_render(void)
-{
-	char *out = _msg_buf;
-
-	if(_msg_type == MSG_STATUS)
-	{
-		/*if(tb)
-		{
-			snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines] [%d:%d - %d:%d] [%s]",
-				tb->filename, tb->modified ? "*" : "", vec_len(&tb->lines),
-				tb->sel.c[0].x,
-				tb->sel.c[0].y,
-				tb->sel.c[1].x,
-				tb->sel.c[1].y,
-				lang_str(tb->language));
-
-			// return;
-		}
-		else*/
-		{
-			out = "Version 0.9";
-		}
-	}
-
-	ed_render_line_str(out, 0, _full_height - 1, COLOR_FG,
-		msg_color(_msg_type));
-
-	msg_tryclose();
-}

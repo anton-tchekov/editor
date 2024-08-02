@@ -586,3 +586,52 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 		}
 	}
 }
+
+static void msg_render(void)
+{
+	char *out = _msg_buf;
+
+	if(_msg_type == MSG_STATUS)
+	{
+		if(_tb)
+		{
+			int rlen = 0;
+			char buf[128];
+			if(sel_wide(&_tb->sel))
+			{
+				int x1 = tb_cursor_pos_x(_tb, _tb->sel.c[0].y, _tb->sel.c[0].x);
+				int x2 = tb_cursor_pos_x(_tb, _tb->sel.c[1].y, _tb->sel.c[1].x);
+				int y1 = _tb->sel.c[0].y + 1;
+				int y2 = _tb->sel.c[1].y + 1;
+				int dx = abs(x1 - x2);
+				int dy = abs(y1 - y2) + 1;
+				rlen = snprintf(buf, sizeof(buf),
+					"   [%4d|%4d] [%4d|%4d] [%4d|%4d] [%s]",
+					dy, dx, y1, x1, y2, x2, lang_str(_tb->language));
+			}
+			else
+			{
+				rlen = snprintf(buf, sizeof(buf), "   [%4d|%4d] [%s]",
+					_tb->sel.c[0].y + 1,
+					tb_cursor_pos_x(_tb, _tb->sel.c[0].y, _tb->sel.c[0].x),
+					lang_str(_tb->language));
+			}
+
+			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines]",
+				_tb->filename, _tb->modified ? "*" : "", tb_num_lines(_tb));
+
+			memset(_msg_buf + len, ' ', _screen_width - len);
+			memcpy(_msg_buf + _screen_width - rlen, buf, rlen);
+			_msg_buf[_screen_width] = '\0';
+		}
+		else
+		{
+			out = "Version 0.9";
+		}
+	}
+
+	ed_render_line_str(out, 0, _full_height - 1, COLOR_FG,
+		msg_color(_msg_type));
+
+	msg_tryclose();
+}

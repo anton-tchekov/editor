@@ -9,25 +9,19 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-### Current:
-- Bottom bar: File name, Cursor/selection Pos, length of selection in XY
-
-### Next:
 - Highlight focused word
 - Search and replace in file and whole folder
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
 - Abbreviations
 - Align defines handle comments
-
-### Future:
-- Fix unicode problems
+- Unicode
 - Undo / Redo
 - Multiple Cursors
 
 ## Project overview
 
-### Abbreviations Index
+### Abbreviations
 
 Two or three letter abbreviations are used as a module prefix.
 
