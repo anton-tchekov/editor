@@ -40,6 +40,60 @@ static void update_dim(void)
 	_screen_height = _full_height - 1;
 }
 
+static void arrow(SDL_Surface *surface, int thick, int pos)
+{
+	u32 h = 1;
+	int start = pos * _char_width;
+	int x = _char_width - 2 * thick;
+	for(; h < _char_height / 2; h += 2)
+	{
+		--x;
+		SDL_Rect vline =
+		{
+			start + x,
+			_char_height / 2 - h / 2,
+			1,
+			h
+		};
+
+		SDL_FillRect(surface, &vline, COLOR_WHITE);
+	}
+
+	SDL_Rect hline =
+	{
+		start,
+		_char_height / 2 - thick / 2,
+		x,
+		thick
+	};
+
+	SDL_FillRect(surface, &hline, COLOR_WHITE);
+}
+
+static void circle(SDL_Surface *surface, int pos)
+{
+	int ox = pos * _char_width;
+	int cx = _char_width / 2;
+	int cy = _char_height / 2;
+	int r = _char_width / 6;
+	int r2 = r * r;
+	for(u32 y = 0; y < _char_height; ++y)
+	{
+		int a = y - cy;
+		int a2 = a * a;
+		for(u32 x = 0; x < _char_width; ++x)
+		{
+			int b = x - cx;
+			int b2 = b * b;
+			if(a2 + b2 <= r2)
+			{
+				SDL_Rect rect = { ox + x, y, 1, 1 };
+				SDL_FillRect(surface, &rect, COLOR_WHITE);
+			}
+		}
+	}
+}
+
 static int font_load(char *font, i32 size)
 {
 	SDL_Surface *chars[NUM_CHARS];
@@ -114,76 +168,49 @@ static int font_load(char *font, i32 size)
 	int thick = _char_height / 16;
 	if(thick == 0) { thick = 1; }
 
+	/* Tab Start */
+	SDL_Rect shline =
 	{
-		SDL_Rect hline =
-		{
-			CHAR_TAB_START * _char_width + thick,
-			_char_height / 2 - thick / 2,
-			_char_width - thick,
-			thick
-		};
+		CHAR_TAB_START * _char_width + thick,
+		_char_height / 2 - thick / 2,
+		_char_width - thick,
+		thick
+	};
 
-		SDL_FillRect(surface, &hline, COLOR_WHITE);
+	SDL_FillRect(surface, &shline, COLOR_WHITE);
 
-		int h = _char_height / 2;
-		SDL_Rect vline =
-		{
-			CHAR_TAB_START * _char_width + thick,
-			_char_height / 2 - h / 2,
-			thick,
-			h
-		};
-
-		SDL_FillRect(surface, &vline, COLOR_WHITE);
-	}
-
+	int h = _char_height / 2;
+	SDL_Rect vline =
 	{
-		SDL_Rect hline =
-		{
-			CHAR_TAB_MIDDLE * _char_width,
-			_char_height / 2 - thick / 2,
-			_char_width,
-			thick
-		};
+		CHAR_TAB_START * _char_width + thick,
+		_char_height / 2 - h / 2,
+		thick,
+		h
+	};
 
-		SDL_FillRect(surface, &hline, COLOR_WHITE);
-	}
+	SDL_FillRect(surface, &vline, COLOR_WHITE);
 
+	/* Tab Middle */
+	SDL_Rect mhline =
 	{
-		int h = 1;
-		int start = CHAR_TAB_END * _char_width;
-		int x = _char_width - 2 * thick;
-		for(; h < _char_height / 2; h += 2)
-		{
-			--x;
-			SDL_Rect vline =
-			{
-				start + x,
-				_char_height / 2 - h / 2,
-				1,
-				h
-			};
+		CHAR_TAB_MIDDLE * _char_width,
+		_char_height / 2 - thick / 2,
+		_char_width,
+		thick
+	};
 
-			SDL_FillRect(surface, &vline, COLOR_WHITE);
-		}
+	SDL_FillRect(surface, &mhline, COLOR_WHITE);
 
-		SDL_Rect hline =
-		{
-			start,
-			_char_height / 2 - thick / 2,
-			x,
-			thick
-		};
+	/* Tab End */
+	arrow(surface, thick, CHAR_TAB_END);
 
-		SDL_FillRect(surface, &hline, COLOR_WHITE);
-	}
+	/* Tab Both */
+	arrow(surface, thick, CHAR_TAB_BOTH);
 
-	{
-	}
+	/* Visible Space*/
+	circle(surface, CHAR_VISIBLE_SPACE);
 
-	{
-	}
-
+	/* Font */
 	if(_font)
 	{
 		SDL_DestroyTexture(_font);

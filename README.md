@@ -11,7 +11,6 @@ that is optimized for C projects, is performant, and productive.
 
 ### Current:
 - Bottom bar: File name, Cursor/selection Pos, length of selection in XY
-- Visible Space special characters (auto generated?)
 
 ### Next:
 - Highlight focused word
