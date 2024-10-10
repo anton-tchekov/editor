@@ -21,12 +21,13 @@ enum
 	CHAR_MICRO         = 20
 };
 
-struct
+typedef struct
 {
 	u32 chr;
 	char utf8[4];
-}
-_extra_chars[] =
+} ExtraChar;
+
+static ExtraChar _extra_chars[] =
 {
 	{ CHAR_AE_LOWER,  "\xC3\xA4" },
 	{ CHAR_AE_UPPER,  "\xC3\x84" },
@@ -42,3 +43,22 @@ _extra_chars[] =
 	{ CHAR_EURO,      "\xE2\x82\xAC" },
 	{ CHAR_MICRO,     "\xC2\xB5" }
 };
+
+typedef struct
+{
+	u32 len;
+	char *utf8;
+} LutChar;
+
+static LutChar utf8_lut[32];
+
+static void utf8_lut_init(void)
+{
+	for(u32 i = 0; i < ARRLEN(_extra_chars); ++i)
+	{
+		ExtraChar *ec = _extra_chars + i;
+		LutChar *lp = utf8_lut + ec->chr;
+		lp->len = strlen(ec->utf8);
+		lp->utf8 = ec->utf8;
+	}
+}

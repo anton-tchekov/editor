@@ -141,6 +141,7 @@ static void ed_init(void)
 {
 	bf_init();
 	sr_init();
+	utf8_lut_init();
 	kw_init(&_kw_c);
 	kw_init(&_kw_asm_6800);
 	kw_init(&_kw_asm_65C02);

@@ -1216,9 +1216,26 @@ static void tb_bottom(textbuf *t)
 static void tb_copy(textbuf *t)
 {
 	u32 len;
+	vec fixed;
 	char *text = tb_sel_get(t, &len);
-	clipboard_store(text);
+	vec_init(&fixed, len + 1);
+	u32 c;
+	for(char *s = text; (c = *s); ++s)
+	{
+		if(isprint(c) || c == '\t' || c == '\n')
+		{
+			vec_pushbyte(&fixed, c);
+		}
+		else
+		{
+			vec_push(&fixed, utf8_lut[c].len, utf8_lut[c].utf8);
+		}
+	}
+
+	vec_pushbyte(&fixed, '\0');
 	_free(text);
+	clipboard_store(vec_data(&fixed));
+	vec_destroy(&fixed);
 }
 
 static void tb_cut(textbuf *t)

@@ -149,3 +149,9 @@ static void vec_push(vec *v, u32 bytes, void *elem)
 {
 	vec_insert(v, v->len, bytes, elem);
 }
+
+static void vec_pushbyte(vec *v, u32 c)
+{
+	char b[1] = { c };
+	vec_push(v, 1, b);
+}
