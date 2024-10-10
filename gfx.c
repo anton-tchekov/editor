@@ -31,7 +31,7 @@ static void event_render(void);
 static void event_scroll(i32 y);
 static u32 event_exit(void);
 
-#define NUM_CHARS 95
+#define NUM_CHARS 128
 
 static void update_dim(void)
 {
@@ -103,13 +103,22 @@ static int font_load(char *font, i32 size)
 		return 1;
 	}
 
-    SDL_Color color = { 255, 255, 255, 0 };
+	SDL_Color color = { 255, 255, 255, 0 };
 	char letter[2];
 	letter[1] = '\0';
-	for(u32 i = 0; i < NUM_CHARS; ++i)
+
+	memset(chars, 0, sizeof(chars));
+
+	for(u32 i = 33; i <= 126; ++i)
 	{
-		letter[0] = i + 32;
+		letter[0] = i;
 		chars[i] = TTF_RenderText_Blended(ttf, letter, color);
+	}
+
+	for(u32 i = 0; i < ARRLEN(_extra_chars); ++i)
+	{
+		chars[_extra_chars[i].chr] =
+			TTF_RenderUTF8_Blended(ttf, _extra_chars[i].utf8, color);
 	}
 
 	TTF_CloseFont(ttf);
@@ -118,6 +127,7 @@ static int font_load(char *font, i32 size)
 	for(u32 i = 0; i < NUM_CHARS; ++i)
 	{
 		SDL_Surface *s = chars[i];
+		if(!s) { continue; }
 		if(s->w > max_w)
 		{
 			max_w = s->w;
@@ -140,10 +150,10 @@ static int font_load(char *font, i32 size)
 	for(u32 i = 0; i < NUM_CHARS; ++i)
 	{
 		SDL_Surface *s = chars[i];
+		if(!s) { continue; }
 		SDL_Rect src = { 0, 0, s->w, s->h };
-		int c = i + 32;
-		int x = (c & 0x0F) * _char_width;
-		int y = (c >> 4) * _char_height;
+		int x = (i & 0x0F) * _char_width;
+		int y = (i >> 4) * _char_height;
 		SDL_Rect dst = { x, y, s->w, s->h };
 		SDL_BlitSurface(s, &src, surface, &dst);
 	}
@@ -166,7 +176,7 @@ static int font_load(char *font, i32 size)
 	}
 
 	int thick = _char_height / 16;
-	if(thick == 0) { thick = 1; }
+	if(thick < 1) { thick = 1; }
 
 	/* Tab Start */
 	SDL_Rect shline =
@@ -376,13 +386,18 @@ static u32 convert_key(i32 scancode, i32 mod)
 
 static u32 key_to_chr(u32 k)
 {
-	u32 nomods;
-
-	nomods = k & 0xFF;
+	u32 nomods = k & 0xFF;
 	if(nomods == KEY_TAB)                             { return '\t'; }
 	else if(nomods == KEY_BACKSPACE)                  { return '\b'; }
 	else if(nomods == KEY_RETURN)                     { return '\n'; }
 	else if(nomods == KEY_SPACE)                      { return ' '; }
+	else if(k == KEY_MINUS)                           { return CHAR_SZ; }
+	else if(k == KEY_APOSTROPHE)                      { return CHAR_AE_LOWER; }
+	else if(k == (KEY_APOSTROPHE | MOD_SHIFT))        { return CHAR_AE_UPPER; }
+	else if(k == KEY_SEMICOLON)                       { return CHAR_OE_LOWER; }
+	else if(k == (KEY_SEMICOLON | MOD_SHIFT))         { return CHAR_OE_UPPER; }
+	else if(k == KEY_L_BRACKET)                       { return CHAR_UE_LOWER; }
+	else if(k == (KEY_L_BRACKET | MOD_SHIFT))         { return CHAR_UE_UPPER; }
 	else if(k == (KEY_COMMA | MOD_SHIFT))             { return ';'; }
 	else if(k == (KEY_COMMA))                         { return ','; }
 	else if(k == (KEY_PERIOD | MOD_SHIFT))            { return ':'; }
@@ -403,15 +418,15 @@ static u32 key_to_chr(u32 k)
 	else if(k == KEY_GRAVE)                           { return '^'; }
 	else if(nomods >= KEY_A && nomods <= KEY_Z)
 	{
-		u32 c;
-
-		c = nomods - KEY_A + 'a';
+		u32 c = nomods - KEY_A + 'a';
 		if(c == 'z') { c = 'y'; }
 		else if(c == 'y') { c = 'z'; }
 
 		if(k & MOD_ALT_GR)
 		{
 			if(c == 'q') { return '@'; }
+			else if(c == 'e') { return CHAR_EURO; }
+			else if(c == 'm') { return CHAR_MICRO; }
 		}
 
 		if(k & MOD_SHIFT)
@@ -427,14 +442,12 @@ static u32 key_to_chr(u32 k)
 			{ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
 
 		static char numbers_shift[] =
-			{ '!', '\"', 0, '$', '%', '&', '/', '(', ')', '=' };
+			{ '!', '\"', CHAR_PARAGRAPH, '$', '%', '&', '/', '(', ')', '=' };
 
 		static char numbers_altgr[] =
-			{ 0, 0, 0, 0, 0, 0, '{', '[', ']', '}' };
+			{ 0, CHAR_POW2, CHAR_POW3, 0, 0, 0, '{', '[', ']', '}' };
 
-		u32 idx;
-
-		idx = nomods - KEY_1;
+		u32 idx = nomods - KEY_1;
 		if(k & MOD_SHIFT)
 		{
 			return numbers_shift[idx];
@@ -569,7 +582,7 @@ static void handle_line_height(i32 y)
 static void handle_zoom(i32 y)
 {
 	i32 size = _font_size + y;
-	size = clamp(size, 12, 64);
+	size = clamp(size, 14, 64);
 	font_load(_font_name, size);
 }
 

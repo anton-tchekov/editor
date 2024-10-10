@@ -11,11 +11,8 @@ static void gt_key(u32 key, u32 c)
 	key &= 0xFF;
 	if(key == KEY_RETURN)
 	{
-		char *s;
-		u32 lnr;
-
-		s = tf_str(&_fld);
-		lnr = conv_lnr_str(s);
+		char *s = tf_str(&_fld);
+		u32 lnr = conv_lnr_str(s);
 		if(lnr)
 		{
 			tb_goto_xy(_tb, 0, lnr - 1);

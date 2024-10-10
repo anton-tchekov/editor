@@ -1,7 +1,7 @@
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -Wshadow \
 	-lSDL2 -lSDL2_ttf
 
-all: release
+all: debug
 
 release:
 	gcc main.c -o editor $(CFLAGS) -O3 -s -DNDEBUG

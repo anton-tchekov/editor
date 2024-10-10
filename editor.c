@@ -192,13 +192,11 @@ static void ed_save(void)
 
 static void ed_render(void)
 {
-	u32 start_y, end_y;
-
-	start_y = 0;
+	u32 start_y = 0;
 	switch(_mode)
 	{
 	case MODE_OPEN:
-		start_y = open_render();
+		start_y = op_render();
 		break;
 
 	case MODE_GOTO:
@@ -206,7 +204,7 @@ static void ed_render(void)
 		break;
 
 	case MODE_SAVE_AS:
-		start_y = save_as_render();
+		start_y = sv_render();
 		break;
 
 	case MODE_OPENED:
@@ -223,7 +221,7 @@ static void ed_render(void)
 	}
 
 	msg_render();
-	end_y = _screen_height;
+	u32 end_y = _screen_height;
 	if(_tb)
 	{
 		ed_render_buffer(start_y, end_y);
@@ -332,7 +330,7 @@ static void default_key(u32 key, u32 cp)
 	case MOD_SHIFT | KEY_TAB:               tb_sel_unindent(_tb);    break;
 	case MOD_CTRL | KEY_E:                  tb_align_defines(_tb);   break;
 	default:
-		if(isprint(cp) || cp == '\t')
+		if(cp)
 		{
 			tb_char(_tb, cp);
 		}
@@ -385,7 +383,7 @@ static void event_key(u32 key, u32 chr)
 		break;
 
 	case MODE_OPEN:
-		open_key(key, chr);
+		op_key(key, chr);
 		break;
 
 	case MODE_GOTO:
@@ -393,7 +391,7 @@ static void event_key(u32 key, u32 chr)
 		break;
 
 	case MODE_SAVE_AS:
-		save_as_key(key, chr);
+		sv_key(key, chr);
 		break;
 
 	case MODE_OPENED:

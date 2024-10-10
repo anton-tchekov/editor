@@ -1,6 +1,6 @@
 static u8 _sv_focus;
 
-static void save_as_dir_reload(void)
+static void sv_dir_reload(void)
 {
 	_free(_dir_list);
 	_dir_list = dir_sorted(_path_buf, &_dir_count);
@@ -12,15 +12,13 @@ static void mode_save_as(void)
 {
 	_mode = MODE_SAVE_AS;
 	tf_clear(&_fld);
-	save_as_dir_reload();
+	sv_dir_reload();
 }
 
-static void ed_save_as(void)
+static void sv_write(void)
 {
 	u32 len;
-	char *buf;
-
-	buf = tb_export(_tb, &len);
+	char *buf = tb_export(_tb, &len);
 	if(file_write(_fname_buf, buf, len))
 	{
 		msg_show(MSG_ERROR, "Writing file failed");
@@ -38,11 +36,11 @@ static void ed_save_as(void)
 	mode_default();
 }
 
-static void save_as_confirm(u32 yes)
+static void sv_confirm(u32 yes)
 {
 	if(yes)
 	{
-		ed_save_as();
+		sv_write();
 	}
 	else
 	{
@@ -50,7 +48,7 @@ static void save_as_confirm(u32 yes)
 	}
 }
 
-static void save_as_path(void)
+static void sv_path(void)
 {
 	if(bf_opened_and_modified(_fname_buf))
 	{
@@ -60,37 +58,35 @@ static void save_as_path(void)
 
 	if(file_exists(_fname_buf))
 	{
-		cf_open(save_as_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
+		cf_open(sv_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
 		return;
 	}
 
-	ed_save_as();
+	sv_write();
 }
 
-static void save_as_dir_return(void)
+static void sv_dir_return(void)
 {
-	char *cur;
-
-	cur = _dir_list[_dd.pos];
+	char *cur = _dir_list[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
-		save_as_dir_reload();
+		sv_dir_reload();
 	}
 	else if(path_is_dir(cur))
 	{
 		strcat(_path_buf, cur);
-		save_as_dir_reload();
+		sv_dir_reload();
 	}
 	else
 	{
 		strcpy(_fname_buf, _path_buf);
 		strcat(_fname_buf, cur);
-		save_as_path();
+		sv_path();
 	}
 }
 
-static void save_as_fld_return(void)
+static void sv_fld_return(void)
 {
 	if(!tf_len(&_fld))
 	{
@@ -99,10 +95,10 @@ static void save_as_fld_return(void)
 
 	strcpy(_fname_buf, _path_buf);
 	strcat(_fname_buf, tf_str(&_fld));
-	save_as_path();
+	sv_path();
 }
 
-static void save_as_key(u32 key, u32 c)
+static void sv_key(u32 key, u32 c)
 {
 	if(key == KEY_ESCAPE)
 	{
@@ -130,7 +126,7 @@ static void save_as_key(u32 key, u32 c)
 			break;
 
 		case KEY_RETURN:
-			save_as_fld_return();
+			sv_fld_return();
 			break;
 
 		default:
@@ -143,7 +139,7 @@ static void save_as_key(u32 key, u32 c)
 		switch(key)
 		{
 		case KEY_RETURN:
-			save_as_dir_return();
+			sv_dir_return();
 			break;
 
 		default:
@@ -161,7 +157,7 @@ static void save_as_key(u32 key, u32 c)
 	}
 }
 
-static u32 save_as_dir_render(u32 y)
+static u32 sv_dir_render(u32 y)
 {
 	u32 i, end;
 
@@ -185,9 +181,9 @@ static u32 save_as_dir_render(u32 y)
 	return y;
 }
 
-static u32 save_as_render(void)
+static u32 sv_render(void)
 {
 	nav_title_render("Save As");
 	tf_render(&_fld, 1, _sv_focus, "Filename: ");
-	return save_as_dir_render(2);
+	return sv_dir_render(2);
 }

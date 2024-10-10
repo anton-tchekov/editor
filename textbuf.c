@@ -1216,9 +1216,7 @@ static void tb_bottom(textbuf *t)
 static void tb_copy(textbuf *t)
 {
 	u32 len;
-	char *text;
-
-	text = tb_sel_get(t, &len);
+	char *text = tb_sel_get(t, &len);
 	clipboard_store(text);
 	_free(text);
 }
@@ -1232,9 +1230,7 @@ static void tb_cut(textbuf *t)
 
 static void tb_paste(textbuf *t)
 {
-	char *text;
-
-	text = clipboard_load();
+	char *text = clipboard_load();
 	tb_insert(t, text);
 	free(text);
 	tb_scroll_to_cursor(t);

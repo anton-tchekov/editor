@@ -1,9 +1,7 @@
-static void open_filter(void)
+static void op_filter(void)
 {
 	u32 i, cnt;
-	char *s;
-
-	s = tf_str(&_fld);
+	char *s = tf_str(&_fld);
 	vec_clear(&_filt_dir);
 	for(cnt = 0, i = 0; i < _dir_count; ++i)
 	{
@@ -17,18 +15,15 @@ static void open_filter(void)
 	dd_reset(&_dd, cnt);
 }
 
-static void open_tab(void)
+static void op_tab(void)
 {
-	u32 i, first, sl;
-	char *s, *fs;
-
-	s = tf_str(&_fld);
-	first = 1;
+	u32 i, sl;
+	char *fs;
+	char *s = tf_str(&_fld);
+	u32 first = 1;
 	for(i = 0; i < _dir_count; ++i)
 	{
-		char *cur;
-
-		cur = _dir_list[i];
+		char *cur = _dir_list[i];
 		if(starts_with(cur, s))
 		{
 			if(first)
@@ -39,10 +34,8 @@ static void open_tab(void)
 			}
 			else
 			{
-				char *p;
 				u32 len;
-
-				p = fs;
+				char *p = fs;
 				for(len = 0; len < sl && *p == *cur; ++len, ++p, ++cur) {}
 				sl = len;
 			}
@@ -55,36 +48,34 @@ static void open_tab(void)
 	}
 }
 
-static void open_dir_reload(void)
+static void op_dir_reload(void)
 {
 	_free(_dir_list);
 	_dir_list = dir_sorted(_path_buf, &_dir_count);
-	open_filter();
+	op_filter();
 }
 
 static void mode_open(void)
 {
 	_mode = MODE_OPEN;
 	tf_clear(&_fld);
-	open_dir_reload();
+	op_dir_reload();
 }
 
-static void open_return(void)
+static void op_return(void)
 {
-	char *cur;
-
-	cur = ((char **)vec_data(&_filt_dir))[_dd.pos];
+	char *cur = ((char **)vec_data(&_filt_dir))[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
 		path_parent_dir(_path_buf);
 		tf_clear(&_fld);
-		open_dir_reload();
+		op_dir_reload();
 	}
 	else if(path_is_dir(cur))
 	{
 		strcat(_path_buf, cur);
 		tf_clear(&_fld);
-		open_dir_reload();
+		op_dir_reload();
 	}
 	else
 	{
@@ -94,23 +85,23 @@ static void open_return(void)
 	}
 }
 
-static void open_key(u32 key, u32 c)
+static void op_key(u32 key, u32 c)
 {
 	dd_key(&_dd, key);
 	if(tf_key(&_fld, key, c))
 	{
-		open_filter();
+		op_filter();
 	}
 
 	switch(key & 0xFF)
 	{
-	case KEY_TAB:    open_tab();     break;
-	case KEY_RETURN: open_return();  break;
+	case KEY_TAB:    op_tab();     break;
+	case KEY_RETURN: op_return();  break;
 	case KEY_ESCAPE: mode_default(); break;
 	}
 }
 
-static u32 open_dir_render(u32 y)
+static u32 op_dir_render(u32 y)
 {
 	char **list;
 	u32 i, end;
@@ -125,9 +116,9 @@ static u32 open_dir_render(u32 y)
 	return y;
 }
 
-static u32 open_render(void)
+static u32 op_render(void)
 {
 	nav_title_render("Open");
 	tf_render(&_fld, 1, 1, "Filter: ");
-	return open_dir_render(2);
+	return op_dir_render(2);
 }
