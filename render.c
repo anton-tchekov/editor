@@ -67,9 +67,7 @@ static u32 ed_syntax_sub(u32 c, u32 fg, u32 y, u32 x)
 {
 	if(c == '\t')
 	{
-		u32 n;
-
-		n = x & (_tabsize - 1);
+		u32 n = x & (_tabsize - 1);
 		if(_show_whitespace)
 		{
 			if(n == (u32)_tabsize - 1)
@@ -446,10 +444,8 @@ static void ed_render_line(u32 y)
 
 static u32 ed_prev_comment(void)
 {
-	u32 i, result;
-
-	i = 0;
-	result = 0;
+	u32 i = 0;
+	u32 result = 0;
 	if(_tb->page_y > COMMENT_LOOKBACK)
 	{
 		i = _tb->page_y - COMMENT_LOOKBACK;
@@ -490,9 +486,7 @@ static u32 ed_prev_comment(void)
 
 static void ed_render_buffer(u32 start_y, u32 end_y)
 {
-	u32 lines;
-
-	lines = tb_num_lines(_tb);
+	u32 lines = tb_num_lines(_tb);
 	if(lines > _screen_height && _tb->page_y + _screen_height >= lines)
 	{
 		_tb->page_y = lines - _screen_height;
@@ -527,7 +521,7 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 		_offset_x = 0;
 	}
 
-#if 0
+#if 1
 	{
 		u32 len = 0;
 		char *s = tb_cur_line_span(_tb, &len);
@@ -549,10 +543,7 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 
 static void ed_render_blank(u32 start_y, u32 end_y)
 {
-	u32 x;
-	char *help;
-
-	help =
+	char *help =
 		"Editor \"Haven't come up with a good name yet\" V0.9\0"
 		"  by Anton Tchekov\0"
 		"\0"
@@ -578,10 +569,11 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 	{
 		if(start_y >= 15 && *help != 1)
 		{
-			for(x = 1; *help && x < _screen_width; ++help, ++x)
+			for(u32 x = 1; *help && x < _screen_width; ++help, ++x)
 			{
 				render_char(x, start_y, *help, COLOR_FG, COLOR_BG);
 			}
+
 			++help;
 		}
 	}
@@ -590,7 +582,6 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 static void msg_render(void)
 {
 	char *out = _msg_buf;
-
 	if(_msg_type == MSG_STATUS)
 	{
 		if(_tb)

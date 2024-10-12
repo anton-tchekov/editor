@@ -13,25 +13,16 @@ that is optimized for C projects, is performant, and productive.
 - Highlight current line with different bg color
 - Mouse Support in menus
 - Highlight focused word
-
 - Umlaut support
-	- Typing  [DONE]
-	- Rendering [DONE]
-	- Saving
-	- Loading
-	- Copying
-	- Pasting
+	- Loading []
+	- Pasting []
 
 - Blinking Cursor
 - Command mode ctrl+t
 - Align defines handle comments
 - Convert upper, lower, camel snake case automagically
-
-### Tabs
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
-
-### Major
 - Undo / Redo
 - Multiple Cursors
 - Search and replace in file and whole folder

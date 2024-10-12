@@ -1216,26 +1216,11 @@ static void tb_bottom(textbuf *t)
 static void tb_copy(textbuf *t)
 {
 	u32 len;
-	vec fixed;
 	char *text = tb_sel_get(t, &len);
-	vec_init(&fixed, len + 1);
-	u32 c;
-	for(char *s = text; (c = *s); ++s)
-	{
-		if(isprint(c) || c == '\t' || c == '\n')
-		{
-			vec_pushbyte(&fixed, c);
-		}
-		else
-		{
-			vec_push(&fixed, utf8_lut[c].len, utf8_lut[c].utf8);
-		}
-	}
-
-	vec_pushbyte(&fixed, '\0');
+	char *utf8 = convert_to_utf8(text, &len);
 	_free(text);
-	clipboard_store(vec_data(&fixed));
-	vec_destroy(&fixed);
+	clipboard_store(utf8);
+	_free(utf8);
 }
 
 static void tb_cut(textbuf *t)
@@ -1255,16 +1240,13 @@ static void tb_paste(textbuf *t)
 
 static void tb_scroll(textbuf *t, i32 offset)
 {
-	u32 num_lines;
-	i32 y;
-
-	y = t->page_y + offset;
+	i32 y = t->page_y + offset;
 	if(y < 0)
 	{
 		y = 0;
 	}
 
-	num_lines = tb_num_lines(t);
+	u32 num_lines = tb_num_lines(t);
 	if(y + _screen_height > num_lines)
 	{
 		y = (num_lines > _screen_height) ? num_lines - _screen_height : 0;

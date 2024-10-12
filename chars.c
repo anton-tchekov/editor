@@ -62,3 +62,25 @@ static void utf8_lut_init(void)
 		lp->utf8 = ec->utf8;
 	}
 }
+
+static char *convert_to_utf8(char *s, u32 *len)
+{
+	vec fixed;
+	vec_init(&fixed, *len + 1);
+	u32 c;
+	for(; (c = *s); ++s)
+	{
+		if(isprint(c) || c == '\t' || c == '\n')
+		{
+			vec_pushbyte(&fixed, c);
+		}
+		else
+		{
+			vec_push(&fixed, utf8_lut[c].len, utf8_lut[c].utf8);
+		}
+	}
+
+	*len = vec_len(&fixed);
+	vec_pushbyte(&fixed, '\0');
+	return vec_data(&fixed);
+}

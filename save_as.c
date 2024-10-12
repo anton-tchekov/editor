@@ -19,7 +19,9 @@ static void sv_write(void)
 {
 	u32 len;
 	char *buf = tb_export(_tb, &len);
-	if(file_write(_fname_buf, buf, len))
+	char *utf8 = convert_to_utf8(buf, &len);
+	_free(buf);
+	if(file_write(_fname_buf, utf8, len))
 	{
 		msg_show(MSG_ERROR, "Writing file failed");
 	}
@@ -32,7 +34,7 @@ static void sv_write(void)
 		bf_close_other(_fname_buf, _cur_buf);
 	}
 
-	_free(buf);
+	_free(utf8);
 	mode_default();
 }
 

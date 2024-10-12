@@ -14,6 +14,6 @@
 #define COLOR_SEL      0xFF264F78 /* Selection */
 #define COLOR_INFO     0xFF0078D4 /* Info */
 #define COLOR_ERROR    0xFFFF0000 /* Error */
-#define COLOR_STATUS   0xFF378805 /* Status bar color */
+#define COLOR_STATUS   0xFF479815 /* Status bar color */
 #define COLOR_CURSOR   0xFFAEAFAD /* Cursor Color */
 #define COLOR_MARK     0xFF484848 /* Current Word Hightlight */

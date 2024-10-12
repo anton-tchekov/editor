@@ -187,11 +187,9 @@ static void tf_sel_all(tf *t)
 static void tf_copy(tf *t)
 {
 	char *buf, *end;
-	u32 c;
-
 	buf = tf_str(t);
 	end = buf + tf_sel_max(t);
-	c = *end;
+	u32 c = *end;
 	*end = '\0';
 	clipboard_store(buf + tf_sel_min(t));
 	*end = c;
@@ -205,9 +203,7 @@ static void tf_cut(tf *t)
 
 static void tf_paste(tf *t)
 {
-	char *s;
-
-	s = clipboard_load();
+	char *s = clipboard_load();
 	tf_sel_replace(t, s, strlen(s));
 	free(s);
 }
