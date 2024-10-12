@@ -20,7 +20,7 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 		if(lnr == _tb->sel.c[1].y + 1)
 		{
 			fg = COLOR_FG;
-			bg = COLOR_BG;
+			bg = COLOR_LINE;
 		}
 
 		char lnr_buf[16];
@@ -28,6 +28,14 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 		for(x = 0; x < lnr_width; ++x)
 		{
 			render_char(x, y, lnr_buf[x], fg, bg);
+		}
+
+		if(bg == COLOR_LINE)
+		{
+			for(; x < _screen_width; ++x)
+			{
+				render_char(x, y, ' ', COLOR_BG, bg);
+			}
 		}
 	}
 

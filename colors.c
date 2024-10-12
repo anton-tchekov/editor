@@ -17,3 +17,4 @@
 #define COLOR_STATUS   0xFF479815 /* Status bar color */
 #define COLOR_CURSOR   0xFFAEAFAD /* Cursor Color */
 #define COLOR_MARK     0xFF484848 /* Current Word Hightlight */
+#define COLOR_LINE     0xFF303030 /* Current Line Hightlight */
