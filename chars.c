@@ -84,3 +84,8 @@ static char *convert_to_utf8(char *s, u32 *len)
 	vec_pushbyte(&fixed, '\0');
 	return vec_data(&fixed);
 }
+
+static char *convert_from_utf8(char *s, u32 *len)
+{
+	return NULL;
+}

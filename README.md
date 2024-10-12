@@ -19,8 +19,9 @@ that is optimized for C projects, is performant, and productive.
 
 - Blinking Cursor
 - Command mode ctrl+t
-- Align defines handle comments
-- Convert upper, lower, camel snake case automagically
+	- Align defines handle comments
+	- Convert upper, lower, camel snake case automagically
+
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
 - Undo / Redo

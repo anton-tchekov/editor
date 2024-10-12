@@ -1,6 +1,8 @@
 static selection _vsel;
 static cursor _vcursor;
 static u8 _in_comment;
+static char *_span;
+static u32 _span_len;
 
 static void ed_render_linenr(u32 start_y, u32 end_y)
 {
@@ -189,11 +191,10 @@ static u32 ed_asm(u32 y, hashmap *kw)
 		}
 		else if(is_ident_start(c))
 		{
-			u32 fg, end, start;
-
+			u32 start;
 			for(start = i; i < len && (is_asm_ident(c = line[i])); ++i) {}
-			end = i;
-			fg = kw_detect(kw, line + start, end - start);
+			u32 end = i;
+			u32 fg = kw_detect(kw, line + start, end - start);
 			for(i = start; i < end; ++i)
 			{
 				if(x >= _page_w) { return x; }
@@ -295,10 +296,8 @@ static u32 ed_syntax(u32 y)
 		}
 		else if(c == '\"' || c == '\'' || (c == '<' && incflag))
 		{
-			u32 save, esc;
-
-			save = c == '<' ? '>' : c;
-			esc = 0;
+			u32 save = c == '<' ? '>' : c;
+			u32 esc = 0;
 			if(x >= _page_w) { return x; }
 			ed_put(x++, y, c, COLOR_STRING, COLOR_BG);
 			for(++i; i < len; ++i)
@@ -341,11 +340,17 @@ static u32 ed_syntax(u32 y)
 		}
 		else if(is_ident_start(c))
 		{
-			u32 fg, end, start;
-
+			u32 start;
 			for(start = i; i < len && (is_ident(c = line[i])); ++i) {}
-			end = i;
-			fg = kw_detect(&_kw_c, line + start, end - start);
+			u32 end = i;
+			u32 bg = COLOR_BG;
+			if(_span != NULL &&
+				str_equals_len(_span, _span_len, line + start, end - start))
+			{
+				bg = COLOR_MARK;
+			}
+
+			u32 fg = kw_detect(&_kw_c, line + start, end - start);
 			if(fg == COLOR_FG)
 			{
 				if(c == '(')
@@ -361,14 +366,12 @@ static u32 ed_syntax(u32 y)
 			for(i = start; i < end; ++i)
 			{
 				if(x >= _page_w) { return x; }
-				ed_put(x++, y, line[i], fg, COLOR_BG);
+				ed_put(x++, y, line[i], fg, bg);
 			}
 		}
 		else if(isdigit(c))
 		{
-			u32 e;
-
-			e = i + 1;
+			u32 e = i + 1;
 			if(c == '0')
 			{
 				if(e < len)
@@ -521,13 +524,7 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 		_offset_x = 0;
 	}
 
-#if 1
-	{
-		u32 len = 0;
-		char *s = tb_cur_line_span(_tb, &len);
-		printf("%.*s - %d\n", len, s, len);
-	}
-#endif
+	_span = tb_cur_line_span(_tb, &_span_len);
 
 	for(u32 y = start_y; y < end_y; ++y)
 	{

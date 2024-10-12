@@ -233,6 +233,11 @@ static u32 match_part(char *str, char *cmp, u32 len)
 	return len == strlen(cmp) && !strncmp(str, cmp, len);
 }
 
+static u32 str_equals_len(char *s1, u32 l1, char *s2, u32 l2)
+{
+	return l1 == l2 && !memcmp(s1, s2, l1);
+}
+
 static u32 count_char(char *s, u32 val)
 {
 	u32 c, cnt;
