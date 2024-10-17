@@ -582,7 +582,7 @@ static void handle_line_height(i32 y)
 static void handle_zoom(i32 y)
 {
 	i32 size = _font_size + y;
-	size = clamp(size, 14, 64);
+	size = clamp(size, 14, 36);
 	font_load(_font_name, size);
 }
 
