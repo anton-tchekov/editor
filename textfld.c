@@ -173,7 +173,6 @@ static void tf_end(tf *t)
 static void tf_char(tf *t, u32 chr)
 {
 	char ins[1];
-
 	ins[0] = chr;
 	tf_sel_replace(t, ins, 1);
 }

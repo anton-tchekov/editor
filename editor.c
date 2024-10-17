@@ -11,6 +11,7 @@ enum
 	MODE_OPENED,
 	MODE_CONFIRM,
 	MODE_SEARCH,
+	MODE_CMD,
 	MODE_COUNT
 };
 
@@ -51,6 +52,7 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 #include "buffers.c"
 #include "render.c"
 #include "confirm.c"
+#include "cmd.c"
 
 static u32 ed_detect_language(char *filename)
 {
@@ -82,7 +84,8 @@ static void ed_load(char *filename)
 		return;
 	}
 
-	switch(textfile_read(filename, &buf))
+	u32 len;
+	switch(textfile_read(filename, &buf, &len))
 	{
 	case FILE_READ_FAIL:
 		msg_show(MSG_ERROR, "Failed to open file");
@@ -93,9 +96,17 @@ static void ed_load(char *filename)
 		return;
 	}
 
-	t = tb_new(filename, buf, 1, ed_detect_language(filename));
-	bf_insert_cur(t);
+	char *conv = convert_from_utf8(buf, &len);
 	_free(buf);
+	if(!conv)
+	{
+		msg_show(MSG_ERROR, "Unsupported UTF8 character");
+		return;
+	}
+
+	t = tb_new(filename, conv, 1, ed_detect_language(filename));
+	bf_insert_cur(t);
+	_free(conv);
 	mode_default();
 }
 
@@ -168,10 +179,10 @@ static void ed_save(void)
 	if(_tb->exists)
 	{
 		u32 len;
-		char *buf;
-
-		buf = tb_export(_tb, &len);
-		if(file_write(_tb->filename, buf, len))
+		char *buf = tb_export(_tb, &len);
+		char *utf8 = convert_to_utf8(buf, &len);
+		_free(buf);
+		if(file_write(_tb->filename, utf8, len))
 		{
 			msg_show(MSG_ERROR, "Writing file failed");
 		}
@@ -181,7 +192,7 @@ static void ed_save(void)
 			_tb->modified = 0;
 		}
 
-		_free(buf);
+		_free(utf8);
 	}
 	else
 	{
@@ -252,7 +263,6 @@ static void default_key(u32 key, u32 cp)
 		switch(key)
 		{
 		case MOD_CTRL | KEY_O:  mode_open();   break;
-		case MOD_CTRL | KEY_T:
 		case MOD_CTRL | KEY_N:  ed_new();      break;
 		case MOD_CTRL | KEY_Q:  ed_quit();     break;
 		case MOD_CTRL | KEY_B:
@@ -311,7 +321,6 @@ static void default_key(u32 key, u32 cp)
 	case MOD_CTRL | KEY_S:                  ed_save();               break;
 	case MOD_CTRL | MOD_SHIFT | KEY_S:      mode_save_as();          break;
 	case MOD_CTRL | MOD_SHIFT | KEY_T:      ed_tab_size();           break;
-	case MOD_CTRL | KEY_T:
 	case MOD_CTRL | KEY_N:                  ed_new();                break;
 	case MOD_CTRL | KEY_W:                  bf_discard_cur();        break;
 	case MOD_CTRL | KEY_Q:                  ed_quit();               break;
@@ -330,6 +339,7 @@ static void default_key(u32 key, u32 cp)
 	case MOD_CTRL | MOD_SHIFT | KEY_H:      mode_replace_in_dir();   break;
 	case MOD_SHIFT | KEY_TAB:               tb_sel_unindent(_tb);    break;
 	case MOD_CTRL | KEY_E:                  tb_align_defines(_tb);   break;
+	case MOD_CTRL | KEY_T:                  cmd_open();              break;
 	default:
 		if(cp)
 		{

@@ -23,7 +23,7 @@ static u32 is_text(u8 *s, size_t len)
 	return 1;
 }
 
-static u32 textfile_read(char *filename, char **out)
+static u32 textfile_read(char *filename, char **out, u32 *len)
 {
 	vec v;
 	u32 rb;
@@ -37,12 +37,12 @@ static u32 textfile_read(char *filename, char **out)
 	for(;;)
 	{
 		rb = fread((u8 *)v.data + v.len, 1, FILE_CHUNK, fp);
-		if(!is_text((u8 *)v.data + v.len, rb))
+		/*if(!is_text((u8 *)v.data + v.len, rb))
 		{
 			vec_destroy(&v);
 			fclose(fp);
 			return FILE_READ_NOT_TEXT;
-		}
+		}*/
 
 		v.len += rb;
 		if(rb < FILE_CHUNK)
@@ -60,12 +60,8 @@ static u32 textfile_read(char *filename, char **out)
 		return FILE_READ_FAIL;
 	}
 
-	{
-		u8 nt[1];
-		nt[0] = '\0';
-		vec_push(&v, 1, nt);
-	}
-
+	*len = v.len;
+	vec_pushbyte(&v, '\0');
 	*out = v.data;
 	fclose(fp);
 	return FILE_READ_OK;
@@ -118,7 +114,6 @@ static char **dir_sorted(const char *path, u32 *len)
 	DIR *dir;
 	struct dirent *dp;
 	u32 i, count;
-	char c[1];
 	char *strs;
 	char **ptrs;
 
@@ -139,12 +134,10 @@ static char **dir_sorted(const char *path, u32 *len)
 		vec_push(&v, strlen(dp->d_name), dp->d_name);
 		if(dp->d_type == DT_DIR)
 		{
-			c[0] = '/';
-			vec_push(&v, 1, c);
+			vec_pushbyte(&v, '/');
 		}
 
-		c[0] = '\0';
-		vec_push(&v, 1, c);
+		vec_pushbyte(&v, '\0');
 		++count;
 	}
 

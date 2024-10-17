@@ -10,23 +10,19 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 ### Cur
-- Highlight current line with different bg color
-- Mouse Support in menus
-- Highlight focused word
-- Umlaut support
-	- Loading []
-	- Pasting []
-
-- Blinking Cursor
 - Command mode ctrl+t
 	- Align defines handle comments
 	- Convert upper, lower, camel snake case automagically
+	- Indent Selected using Tab (small bug with cursors)
+	- Shift tab work with spaces
 
-- Indent Selected using Tab (small bug with cursors)
-- Shift tab work with spaces
+### Then
+- Search and replace in file and whole folder
+- Mouse Support in menus
+
+### Later
 - Undo / Redo
 - Multiple Cursors
-- Search and replace in file and whole folder
 
 ## Project overview
 

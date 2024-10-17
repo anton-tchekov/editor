@@ -509,7 +509,6 @@ static void tb_char(textbuf *t, u32 c)
 		else
 		{
 			u8 ins[1];
-
 			ins[0] = c;
 			vec_insert(line, t->sel.c[1].x, 1, ins);
 		}
@@ -645,11 +644,8 @@ static char *tb_export(textbuf *t, u32 *len)
 	num_lines = tb_num_lines(t);
 	for(i = 0; i < num_lines; ++i)
 	{
-		vec *cur;
-		u32 line_len;
-
-		cur = tb_get_line(t, i);
-		line_len = vec_len(cur);
+		vec *cur = tb_get_line(t, i);
+		u32 line_len = vec_len(cur);
 		memcpy(p, vec_data(cur), line_len);
 		p += line_len;
 		if(i < num_lines - 1)
@@ -1233,8 +1229,17 @@ static void tb_cut(textbuf *t)
 static void tb_paste(textbuf *t)
 {
 	char *text = clipboard_load();
-	tb_insert(t, text);
+	u32 len = strlen(text);
+	char *conv = convert_from_utf8(text, &len);
 	free(text);
+	if(!conv)
+	{
+		msg_show(MSG_ERROR, "Unsupported UTF8 character");
+		return;
+	}
+
+	tb_insert(t, conv);
+	_free(conv);
 	tb_scroll_to_cursor(t);
 }
 
