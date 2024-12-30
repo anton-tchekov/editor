@@ -103,12 +103,9 @@ static void op_key(u32 key, u32 c)
 
 static u32 op_dir_render(u32 y)
 {
-	char **list;
-	u32 i, end;
-
-	list = vec_data(&_filt_dir);
-	end = umin(_dd.offset + DD_PAGE, _dd.count);
-	for(i = _dd.offset; i < end; ++i, ++y)
+	char **list = vec_data(&_filt_dir);
+	u32 end = umin(_dd.offset + DD_PAGE, _dd.count);
+	for(u32 i = _dd.offset; i < end; ++i, ++y)
 	{
 		ed_render_line_str(list[i], 0, y, dd_color(&_dd, i), COLOR_GRAY);
 	}

@@ -542,8 +542,7 @@ static void handle_mousedown(void)
 static void handle_mousemove(void)
 {
 #ifdef TIMEKEY
-	u64 t0, t1;
-	t0 = get_ticks();
+	u64 t0 = get_ticks();
 #endif
 
 	_dbl_click = 0;
@@ -551,7 +550,6 @@ static void handle_mousemove(void)
 	if(_down)
 	{
 		int x, y;
-
 		SDL_GetMouseState(&x, &y);
 		if(x >= 0 && y >= 0)
 		{
@@ -560,7 +558,7 @@ static void handle_mousemove(void)
 	}
 
 #ifdef TIMEKEY
-	t1 = get_ticks();
+	u64 t1 = get_ticks();
 	printf("MOUSEMOVE delta_t = %"PRIu64"\n", t1 - t0);
 #endif
 }

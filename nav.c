@@ -25,7 +25,6 @@ static void nav_destroy(void)
 static void nav_title_render(char *s)
 {
 	char buf[PATH_MAX + 256];
-
 	snprintf(buf, sizeof(buf), "%s: %s [%d]",
 		s, _path_buf, _dir_count - 1);
 	ed_render_line_str(buf, 0, 0, COLOR_BG, COLOR_FG);

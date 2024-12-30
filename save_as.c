@@ -161,10 +161,8 @@ static void sv_key(u32 key, u32 c)
 
 static u32 sv_dir_render(u32 y)
 {
-	u32 i, end;
-
-	i = _dd.offset;
-	end = umin(i + DD_PAGE, _dd.count);
+	u32 i = _dd.offset;
+	u32 end = umin(i + DD_PAGE, _dd.count);
 	if(_sv_focus)
 	{
 		for(; i < end; ++i, ++y)

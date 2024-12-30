@@ -877,9 +877,7 @@ static u32 tb_chr_x_inc(u32 c, u32 x)
 static u32 tb_cursor_pos_x(textbuf *t, u32 y, u32 end)
 {
 	u32 i, x;
-	char *line;
-
-	line = tb_line_data(t, y);
+	char *line = tb_line_data(t, y);
 	for(i = 0, x = 0; i < end; ++i)
 	{
 		x = tb_chr_x_inc(line[i], x);
@@ -920,9 +918,7 @@ static void tb_sel_up(textbuf *t)
 	}
 	else
 	{
-		u32 prev_y;
-
-		prev_y = t->sel.c[1].y;
+		u32 prev_y = t->sel.c[1].y;
 		--t->sel.c[1].y;
 		tb_move_vertical(t, prev_y);
 	}
@@ -945,9 +941,7 @@ static void tb_sel_down(textbuf *t)
 	}
 	else
 	{
-		u32 prev_y;
-
-		prev_y = t->sel.c[1].y;
+		u32 prev_y = t->sel.c[1].y;
 		++t->sel.c[1].y;
 		tb_move_vertical(t, prev_y);
 	}

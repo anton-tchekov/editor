@@ -75,9 +75,6 @@ static u32 ed_detect_language(char *filename)
 
 static void ed_load(char *filename)
 {
-	textbuf *t;
-	char *buf;
-
 	if(bf_switch_name(filename))
 	{
 		mode_default();
@@ -85,6 +82,7 @@ static void ed_load(char *filename)
 	}
 
 	u32 len;
+	char *buf;
 	switch(textfile_read(filename, &buf, &len))
 	{
 	case FILE_READ_FAIL:
@@ -104,7 +102,7 @@ static void ed_load(char *filename)
 		return;
 	}
 
-	t = tb_new(filename, conv, 1, ed_detect_language(filename));
+	textbuf *t = tb_new(filename, conv, 1, ed_detect_language(filename));
 	bf_insert_cur(t);
 	_free(conv);
 	mode_default();
@@ -112,11 +110,9 @@ static void ed_load(char *filename)
 
 static void ed_new(void)
 {
-	textbuf *t;
 	char name[32];
-
 	snprintf(name, sizeof(name), "untitled-%d", _untitled_cnt++);
-	t = tb_new(name, NULL, 0, LANGUAGE_DEFAULT);
+	textbuf *t = tb_new(name, NULL, 0, LANGUAGE_DEFAULT);
 	bf_insert_cur(t);
 	mode_default();
 }

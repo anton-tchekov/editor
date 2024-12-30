@@ -91,14 +91,13 @@ static void ob_key(u32 key)
 static u32 ob_render(void)
 {
 	char buf[64];
-	u32 i, y, end;
-
 	snprintf(buf, sizeof(buf), "%d buffer%s - %d unsaved",
 		_dd.count, (_dd.count == 1 ? "" : "s"), bf_num_unsaved());
 
 	ed_render_line_str(buf, 0, 0, COLOR_FG, COLOR_INFO);
-	end = umin(_dd.offset + DD_PAGE, _dd.count);
-	for(y = 1, i = _dd.offset; i < end; ++i, ++y)
+	u32 end = umin(_dd.offset + DD_PAGE, _dd.count);
+	u32 y = 1;
+	for(u32 i = _dd.offset; i < end; ++i, ++y)
 	{
 		textbuf *t = bf_get(i);
 		u32 fg = dd_color(&_dd, i);

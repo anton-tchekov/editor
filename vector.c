@@ -6,9 +6,7 @@ typedef struct
 
 static u32 _next_pot(u32 n)
 {
-	u32 power;
-
-	power = 1;
+	u32 power = 1;
 	while(power < n)
 	{
 		power <<= 1;
@@ -46,18 +44,15 @@ static void vec_from(vec *v, void *buf, u32 bytes)
 
 static void vec_makespace(vec *v, u32 pos, u32 bytes)
 {
-	u32 new_length;
-	u8 *offset;
-
 	assert(pos <= v->len);
-	new_length = v->len + bytes;
+	u32 new_length = v->len + bytes;
 	if(new_length > v->capacity)
 	{
 		v->capacity = _next_pot(new_length);
 		v->data = _realloc(v->data, v->capacity);
 	}
 
-	offset = (u8 *)v->data + pos;
+	u8 *offset = (u8 *)v->data + pos;
 	memmove(offset + bytes, offset, v->len - pos);
 	v->len = new_length;
 }
@@ -74,13 +69,11 @@ static void vec_reserve(vec *v, u32 capacity)
 static void vec_replace(
 	vec *v, u32 index, u32 count, void *elems, u32 new_count)
 {
-	u32 new_length;
-
 	assert(index <= v->len);
 	assert(count <= v->len);
 	assert(index + count <= v->len);
 
-	new_length = v->len - count + new_count;
+	u32 new_length = v->len - count + new_count;
 	if(new_length > v->capacity)
 	{
 		v->capacity = _next_pot(new_length);
@@ -118,10 +111,8 @@ static char *vec_str(vec *v)
 
 static void vec_str_clear(vec *v)
 {
-	char *s;
-
 	vec_reserve(v, 1);
-	s = v->data;
+	char *s = v->data;
 	s[0] = '\0';
 	v->len = 1;
 }

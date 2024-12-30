@@ -339,9 +339,9 @@ static hashmap _kw_asm_65C02 =
 
 static u32 kw_hash(char *word, u32 len)
 {
-	u32 i, c;
+	u32 c;
 	u32 hash = 0x12345678;
-	for(i = 0; i < len && (c = word[i]); ++i)
+	for(u32 i = 0; i < len && (c = word[i]); ++i)
 	{
 		hash ^= c;
 		hash *= 0x5bd1e995;
@@ -353,13 +353,12 @@ static u32 kw_hash(char *word, u32 len)
 
 static void kw_init(hashmap *hm)
 {
-	u32 i;
-	for(i = 0; i < hm->size; ++i)
+	for(u32 i = 0; i < hm->size; ++i)
 	{
 		hm->table[i] = -1;
 	}
 
-	for(i = 0; i < hm->num_keywords; ++i)
+	for(u32 i = 0; i < hm->num_keywords; ++i)
 	{
 		u32 steps = 0;
 		u32 hash = kw_hash(hm->keywords[i].name, UINT32_MAX);
@@ -379,9 +378,8 @@ static void kw_init(hashmap *hm)
 
 static u32 kw_detect(hashmap *hm, char *str, u32 len)
 {
-	u32 i;
 	u32 hash = kw_hash(str, len);
-	for(i = 0; i < COLLISION_LIMIT; ++i)
+	for(u32 i = 0; i < COLLISION_LIMIT; ++i)
 	{
 		i32 index = hm->table[hash % hm->size];
 		if(index < 0)
