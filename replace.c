@@ -18,17 +18,15 @@ typedef struct
 	u32 flags;
 } re_param;
 
-void search_replace(re_param *param, vec *result)
+static void search_replace(re_param *param, vec *result)
 {
-	/* TODO: Finish code */
-	char *p, *end;
 	vec out;
-
 	vec_init(&out, param->input_len);
+	char *p = param->input;
+	char *last_part = p;
+	char *end = p + param->input_len;
 	if(param->search_len <= param->input_len)
 	{
-		p = param->input;
-		end = p + param->input_len;
 		while(p < end)
 		{
 			if(p + param->search_len > end)
@@ -36,11 +34,15 @@ void search_replace(re_param *param, vec *result)
 				break;
 			}
 
-			if(matches(p, param->search, param->search_len))
+			if(!memcmp(p, param->search, param->search_len))
 			{
-				vec_push(&out, );
-				vec_push(&out, );
+				/* Part before replacement */
+				vec_push(&out, last_part - p, last_part);
+
+				/* Replacement part */
+				vec_push(&out, param->replace_len, param->replace);
 				p += param->search_len;
+				last_part = p;
 			}
 			else
 			{
@@ -50,7 +52,6 @@ void search_replace(re_param *param, vec *result)
 	}
 
 	/* Last part */
-	vec_push(&out, );
-
+	vec_push(&out, end - last_part, last_part);
 	*result = out;
 }

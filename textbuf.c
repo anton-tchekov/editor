@@ -1338,9 +1338,7 @@ static void tb_triple_click(textbuf *t, u32 x, u32 y)
 static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 {
 	u32 qc, tc;
-	vec *line;
-
-	line = tb_get_line(t, y);
+	vec *line = tb_get_line(t, y);
 	for(; (qc = *q); ++q)
 	{
 		if(x >= vec_len(line))
