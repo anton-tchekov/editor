@@ -104,9 +104,7 @@ static u32 conv_lnr_str(char *s)
 
 static u32 dec_digit_cnt(u32 n)
 {
-	u32 cnt;
-
-	cnt = 0;
+	u32 cnt = 0;
 	while(n)
 	{
 		++cnt;
@@ -118,9 +116,7 @@ static u32 dec_digit_cnt(u32 n)
 
 static void linenr_str(char *s, u32 n, u32 width)
 {
-	char *p;
-
-	p = s + width;
+	char *p = s + width;
 	*p-- = '\0';
 	do
 	{
@@ -322,4 +318,34 @@ static u32 umin(u32 a, u32 b)
 static u32 umax(u32 a, u32 b)
 {
 	return a > b ? a : b;
+}
+
+static void uppercase(char *s, u32 len)
+{
+	for(char *end = s + len; s < end; ++s) { *s = toupper(*s); }
+}
+
+static void lowercase(char *s, u32 len)
+{
+	for(char *end = s + len; s < end; ++s) { *s = tolower(*s); }
+}
+
+static void camelcase(char *s, u32 len, char *out)
+{
+
+}
+
+static void pascalcase(char *s, u32 len, char *out)
+{
+	
+}
+
+static void kebabcase(char *s, u32 len)
+{
+	
+}
+
+static void snakecase(char *s, u32 len)
+{
+	
 }

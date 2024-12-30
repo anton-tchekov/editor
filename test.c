@@ -100,6 +100,44 @@ static void test_match_part(void)
 	TEST(!match_part("aaafa", "aaaga", 5));
 }
 
+static void test_uppercase(void)
+{
+	char buf[] = "_lOwEr_case_1";
+	uppercase(buf, sizeof(buf) - 1);
+	TEST(!strcmp(buf, "_LOWER_CASE_1"));
+}
+
+static void test_lowercase(void)
+{
+	char buf[] = "_lOwEr_CASE_1";
+	lowercase(buf, sizeof(buf) - 1);
+	TEST(!strcmp(buf, "_lower_case_1"));
+}
+
+static void test_camelcase(void)
+{
+	{
+		char buf[] = "THIS_IS_A_CONSTANT";
+		char res[sizeof(buf)];
+		camelcase(buf, sizeof(buf) - 1, res);
+		TEST(!strcmp(res, "thisIsAConstant"));
+	}
+
+	{
+		char buf[] = "PascalCase";
+		char res[sizeof(buf)];
+		camelcase(buf, sizeof(buf) - 1, res);
+		TEST(!strcmp(res, "pascalCase"));
+	}
+
+	{
+		char buf[] = "__variable_name";
+		char res[sizeof(buf)];
+		camelcase(buf, sizeof(buf) - 1, res);
+		TEST(!strcmp(res, "variableName"));
+	}
+}
+
 static void test_run_all(void)
 {
 	_test_all_count = 0;
@@ -111,6 +149,8 @@ static void test_run_all(void)
 	TEST_FN(test_linenr_str);
 	TEST_FN(test_starts_with);
 	TEST_FN(test_match_part);
+	TEST_FN(test_uppercase);
+	TEST_FN(test_lowercase);
 
 	printf(TERM_BLUE "--- ALL TESTS COMPLETED ---" TERM_RESET "\n");
 	print_success(_test_all_success, _test_all_count);

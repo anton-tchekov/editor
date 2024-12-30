@@ -586,6 +586,7 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 
 static void msg_render(void)
 {
+	/* TODO: BUGS!!! */
 	char *out = _msg_buf;
 	if(_msg_type == MSG_STATUS)
 	{

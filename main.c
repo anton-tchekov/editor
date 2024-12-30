@@ -22,4 +22,5 @@
 #include "colors.c"
 #include "chars.c"
 #include "gfx.c"
+#include "config.c"
 #include "editor.c"

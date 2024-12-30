@@ -1,5 +1,4 @@
 /* CF (Confirm) */
-
 static char _cf_buf[256];
 static void (*_cf_callback)(u32);
 

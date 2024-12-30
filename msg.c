@@ -12,7 +12,6 @@ static char _msg_buf[256];
 static void msg_show(MessageType type, char *msg, ...)
 {
 	va_list args;
-
 	_msg_open_ts = get_ticks();
 	_msg_type = type;
 	va_start(args, msg);

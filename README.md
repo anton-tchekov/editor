@@ -10,17 +10,23 @@ that is optimized for C projects, is performant, and productive.
 ## TODO
 
 ### Cur
+- Side bar for file manager (Ctrl+b)
+	- Menu System Overhaul
+	- Mouse Support in menus
+	- Bottom Line crash bug
+	- Open Files
+	- File browser
+
+- 80 Col Limit line
 - Command mode ctrl+t
-	- Align defines handle comments
-	- Convert upper, lower, camel snake case automagically
-	- Indent Selected using Tab (small bug with cursors)
-	- Shift tab work with spaces
-
-### Then
+- Align defines handle comments
+- Convert upper, lower, camel snake case automagically
+- Indent Selected using Tab (small bug with cursors)
+- Shift tab work with spaces
 - Search and replace in file and whole folder
-- Mouse Support in menus
-
-### Later
+- String Library (replace strcat!!)
+- Config File
+- "Installation Package"
 - Undo / Redo
 - Multiple Cursors
 
