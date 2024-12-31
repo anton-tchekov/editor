@@ -183,6 +183,7 @@ static void sr_esc_free(char *s)
 	}
 }
 
+static char *_sr_err_empty = "Search is empty!";
 static char *_sr_err_search = "Invalid escape sequence in search field!";
 static char *_sr_err_replace = "Invalid escape sequence in replace field!";
 
@@ -206,6 +207,13 @@ static void sr_replace(void)
 	if(!search)
 	{
 		msg_show(MSG_ERROR, _sr_err_search);
+		return;
+	}
+
+	if(!search_len)
+	{
+		sr_esc_free(search);
+		msg_show(MSG_ERROR, _sr_err_empty);
 		return;
 	}
 

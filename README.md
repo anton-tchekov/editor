@@ -16,7 +16,6 @@ that is optimized for C projects, is performant, and productive.
 	- Open Files
 	- File browser
 
-- 80 Col Limit line
 - Command mode ctrl+t
 - Align defines handle comments
 - Convert upper, lower, camel snake case automagically
@@ -25,11 +24,14 @@ that is optimized for C projects, is performant, and productive.
 - Search and replace in file and whole folder
 - String Library (replace strcat!!)
 - Config File
-- "Installation Package"
+- Builtin Terminal
+- Installation Package Generator, Linux + Windows Release Build 64+32 bit
+
+## Later
+
 - Undo / Redo
 - Multiple Cursors
 - Minimap
-- Builtin Terminal
 
 ## Project overview
 
