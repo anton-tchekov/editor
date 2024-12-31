@@ -151,6 +151,7 @@ static void test_run_all(void)
 	TEST_FN(test_match_part);
 	TEST_FN(test_uppercase);
 	TEST_FN(test_lowercase);
+	TEST_FN(test_camelcase);
 
 	printf(TERM_BLUE "--- ALL TESTS COMPLETED ---" TERM_RESET "\n");
 	print_success(_test_all_success, _test_all_count);

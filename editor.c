@@ -142,6 +142,7 @@ static void ed_whitespace(void)
 #include "goto.c"
 #include "open.c"
 #include "save_as.c"
+#include "replace.c"
 #include "search.c"
 
 static void ed_init(void)

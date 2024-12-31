@@ -1,5 +1,4 @@
 /* SR (Search and Replace) */
-
 enum
 {
 	SR_INP_MATCH_CASE,
@@ -158,15 +157,12 @@ static void sr_destroy(void)
 
 static char *sr_tf_esc(tf *t, u32 *out_len)
 {
-	i32 ret;
-	char *out, *in;
-
-	in = tf_str(t);
+	char *in = tf_str(t);
 	if(_sr_flags & SR_INP_USE_ESCSEQ)
 	{
 		/* Escaped string is never longer */
-		out = _malloc(tf_bufsiz(t));
-		ret = escape_seq(out, in);
+		char *out = _malloc(tf_bufsiz(t));
+		i32 ret = escape_seq(out, in);
 		if(ret < 0)
 		{
 			return NULL;
@@ -193,9 +189,8 @@ static char *_sr_err_replace = "Invalid escape sequence in replace field!";
 static void sr_search(void)
 {
 	u32 slen;
-	char *search;
-
-	if(!(search = sr_tf_esc(&_sr_tf_search, &slen)))
+	char *search = sr_tf_esc(&_sr_tf_search, &slen);
+	if(!search)
 	{
 		msg_show(MSG_ERROR, _sr_err_search);
 		return;
@@ -206,42 +201,27 @@ static void sr_search(void)
 
 static void sr_replace(void)
 {
-	u32 slen, rlen;
-	char *search, *replace;
-
-	if(!(search = sr_tf_esc(&_sr_tf_search, &slen)))
+	u32 slen;
+	char *search = sr_tf_esc(&_sr_tf_search, &slen);
+	if(!search)
 	{
 		msg_show(MSG_ERROR, _sr_err_search);
 		return;
 	}
 
-	if(!(replace = sr_tf_esc(&_sr_tf_replace, &rlen)))
+	u32 rlen;
+	char *replace = sr_tf_esc(&_sr_tf_replace, &rlen);
+	if(!replace)
 	{
+		sr_esc_free(search);
 		msg_show(MSG_ERROR, _sr_err_replace);
 		return;
 	}
 
+	// TODO: Do replacing
+
 	sr_esc_free(search);
 	sr_esc_free(replace);
-
-	/*
-	char *s, *end;
-	vec v;
-	u32 in_len;
-
-
-	in_len = *len;
-	vec_init(&v, in_len);
-
-	end = in + in_len;
-	for(s = in; s < end; ++s)
-	{
-		if(matches())
-		{
-
-		}
-	}
-	*/
 }
 
 static void sr_chk_toggle(void)
