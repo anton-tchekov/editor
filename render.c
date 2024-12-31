@@ -495,6 +495,25 @@ static u32 ed_prev_comment(void)
 	return result;
 }
 
+static void render_col_line(u32 x, u32 sy, u32 ey)
+{
+	if(!_col_line)
+	{
+		return;
+	}
+
+	u32 px = (x + _col_line) * _char_width;
+	if(px >= _gfx_width)
+	{
+		return;
+	}
+
+	u32 py = sy * _line_height;
+	u32 h = (ey - sy) * _line_height;
+
+	fastrect(px, py, 1, h, COLOR_GRAY);
+}
+
 static void ed_render_buffer(u32 start_y, u32 end_y)
 {
 	u32 lines = tb_num_lines(_tb);
@@ -544,6 +563,8 @@ static void ed_render_buffer(u32 start_y, u32 end_y)
 	{
 		render_cursor(_vcursor.x + _offset_x, pos_y, COLOR_CURSOR);
 	}
+
+	render_col_line(_offset_x, start_y, end_y);
 }
 
 static void ed_render_blank(u32 start_y, u32 end_y)

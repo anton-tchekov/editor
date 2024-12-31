@@ -28,6 +28,8 @@ static u8
 	_show_linenr,
 	_show_whitespace;
 
+static u32 _col_line = 80;
+
 static void mode_default(void)
 {
 	_mode = MODE_DEFAULT;
