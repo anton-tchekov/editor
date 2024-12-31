@@ -9,7 +9,6 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-### Cur
 - Side bar for file manager (Ctrl+b)
 	- Menu System Overhaul
 	- Mouse Support in menus

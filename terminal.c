@@ -25,7 +25,7 @@ void launch(char *cmd)
 		prctl(PR_SET_PDEATHSIG, SIGTERM);
 		close(outpipefd[1]);
 		close(inpipefd[0]);
-		execl("/usr/bin/tee", "tee", (char*) NULL);
+		execl(cmd, "tee", (char *)NULL);
 		exit(1);
 	}
 
