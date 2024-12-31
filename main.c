@@ -23,4 +23,5 @@
 #include "chars.c"
 #include "gfx.c"
 #include "config.c"
+#include "allocinfo.c"
 #include "editor.c"

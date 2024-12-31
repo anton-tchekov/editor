@@ -613,8 +613,10 @@ static void msg_render(void)
 					lang_str(_tb->language));
 			}
 
-			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines]",
-				_tb->filename, _tb->modified ? "*" : "", tb_num_lines(_tb));
+			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines] [%d KB]",
+				_tb->filename, _tb->modified ? "*" : "",
+				tb_num_lines(_tb),
+				heap_size_get() >> 10);
 
 			if(len < _screen_width)
 			{
