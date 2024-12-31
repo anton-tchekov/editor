@@ -1,7 +1,8 @@
 enum
 {
-	RE_MATCH_CASE = 0x01,
-	RE_WHOLE_WORD = 0x02
+	/* Must match values in SR */
+	RE_MATCH_CASE = 0x04,
+	RE_WHOLE_WORD = 0x08
 };
 
 typedef struct
@@ -18,7 +19,7 @@ typedef struct
 	u32 flags;
 } re_param;
 
-static int matches(char *in, re_param *params)
+static int re_matches(char *in, re_param *params)
 {
 	if(params->flags & RE_MATCH_CASE)
 	{
@@ -62,30 +63,30 @@ static int matches(char *in, re_param *params)
 	return 1;
 }
 
-static void search_replace(re_param *param, vec *result)
+static void re_replace_all(re_param *params, vec *result)
 {
 	vec out;
-	vec_init(&out, param->input_len);
-	char *p = param->input;
+	vec_init(&out, params->input_len);
+	char *p = params->input;
 	char *last_part = p;
-	char *end = p + param->input_len;
-	if(param->search_len <= param->input_len)
+	char *end = p + params->input_len;
+	if(params->search_len <= params->input_len)
 	{
 		while(p < end)
 		{
-			if(p + param->search_len > end)
+			if(p + params->search_len > end)
 			{
 				break;
 			}
 
-			if(matches(p, param))
+			if(re_matches(p, params))
 			{
 				/* Part before replacement */
 				vec_push(&out, last_part - p, last_part);
 
 				/* Replacement part */
-				vec_push(&out, param->replace_len, param->replace);
-				p += param->search_len;
+				vec_push(&out, params->replace_len, params->replace);
+				p += params->search_len;
 				last_part = p;
 			}
 			else

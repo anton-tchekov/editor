@@ -201,16 +201,16 @@ static void sr_search(void)
 
 static void sr_replace(void)
 {
-	u32 slen;
-	char *search = sr_tf_esc(&_sr_tf_search, &slen);
+	u32 search_len;
+	char *search = sr_tf_esc(&_sr_tf_search, &search_len);
 	if(!search)
 	{
 		msg_show(MSG_ERROR, _sr_err_search);
 		return;
 	}
 
-	u32 rlen;
-	char *replace = sr_tf_esc(&_sr_tf_replace, &rlen);
+	u32 replace_len;
+	char *replace = sr_tf_esc(&_sr_tf_replace, &replace_len);
 	if(!replace)
 	{
 		sr_esc_free(search);
@@ -218,7 +218,26 @@ static void sr_replace(void)
 		return;
 	}
 
-	// TODO: Do replacing
+	u32 input_len;
+	char *input = tb_export(_tb, &input_len);
+	re_param params =
+	{
+		input,
+		input_len,
+		search,
+		search_len,
+		replace,
+		replace_len,
+		_sr_flags
+	};
+
+	vec result;
+	re_replace_all(&params, &result);
+	_free(input);
+	tb_sel_all(_tb);
+	vec_pushbyte(&result, '\0');
+	tb_insert(_tb, vec_data(&result));
+	vec_destroy(&result);
 
 	sr_esc_free(search);
 	sr_esc_free(replace);

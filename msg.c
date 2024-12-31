@@ -7,7 +7,7 @@ typedef enum
 
 static u64 _msg_open_ts;
 static u8 _msg_type;
-static char _msg_buf[256];
+static char _msg_buf[1024];
 
 static void msg_show(MessageType type, char *msg, ...)
 {

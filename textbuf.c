@@ -743,13 +743,13 @@ static void tb_trailing(textbuf *t)
 
 static void tb_insert(textbuf *t, char *text)
 {
-	u32 c, y, new_lines;
+	u32 c;
 	char *p, *s;
 
 	tb_sel_clear(t);
 
 	/* Count number of newlines and store position of last line */
-	new_lines = 0;
+	u32 new_lines = 0;
 	for(s = text; (c = *s); ++s)
 	{
 		if(c == '\n')
@@ -759,12 +759,10 @@ static void tb_insert(textbuf *t, char *text)
 		}
 	}
 
-	y = t->sel.c[1].y;
+	u32 y = t->sel.c[1].y;
 	if(!new_lines)
 	{
-		u32 len;
-
-		len = s - text;
+		u32 len = s - text;
 		vec_insert(tb_get_line(t, y), t->sel.c[1].x, len, text);
 		t->sel.c[1].x += len;
 	}
@@ -818,9 +816,7 @@ static u32 tb_line_hidden(textbuf *t, u32 y)
 
 static void tb_goto_xy(textbuf *t, u32 x, u32 y)
 {
-	u32 num_lines;
-
-	num_lines = tb_num_lines(t);
+	u32 num_lines = tb_num_lines(t);
 	if(y >= num_lines)
 	{
 		y = num_lines - 1;

@@ -29,6 +29,8 @@ that is optimized for C projects, is performant, and productive.
 - "Installation Package"
 - Undo / Redo
 - Multiple Cursors
+- Minimap
+- Builtin Terminal
 
 ## Project overview
 

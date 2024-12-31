@@ -586,7 +586,6 @@ static void ed_render_blank(u32 start_y, u32 end_y)
 
 static void msg_render(void)
 {
-	/* TODO: BUGS!!! */
 	char *out = _msg_buf;
 	if(_msg_type == MSG_STATUS)
 	{
@@ -617,8 +616,16 @@ static void msg_render(void)
 			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines]",
 				_tb->filename, _tb->modified ? "*" : "", tb_num_lines(_tb));
 
-			memset(_msg_buf + len, ' ', _screen_width - len);
-			memcpy(_msg_buf + _screen_width - rlen, buf, rlen);
+			if(len < _screen_width)
+			{
+				memset(_msg_buf + len, ' ', _screen_width - len);
+			}
+
+			if(rlen < _screen_width)
+			{
+				memcpy(_msg_buf + _screen_width - rlen, buf, rlen);
+			}
+
 			_msg_buf[_screen_width] = '\0';
 		}
 		else
