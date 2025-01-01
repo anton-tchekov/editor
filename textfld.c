@@ -239,19 +239,18 @@ static u32 tf_key(tf *t, u32 key, u32 chr)
 
 static void tf_render(tf *t, u32 y, u32 focused, char *prompt)
 {
-	char *s;
-	u32 x, a, b, i, c, len;
-
-	for(s = prompt, x = 0; (c = *s); ++x, ++s)
+	char *s = prompt;
+	u32 x = 0;
+	for(u32 c; (c = *s); ++x, ++s)
 	{
 		render_char(x, y, c, COLOR_BG, COLOR_FG);
 	}
 
-	a = tf_sel_min(t);
-	b = tf_sel_max(t);
-	len = tf_len(t);
+	u32 a = tf_sel_min(t);
+	u32 b = tf_sel_max(t);
+	u32 len = tf_len(t);
 	s = tf_str(t);
-	for(i = 0; x < _screen_width; ++x, ++s, ++i)
+	for(u32 i = 0; x < _screen_width; ++x, ++s, ++i)
 	{
 		u32 fg = COLOR_BG;
 		u32 bg = COLOR_FG;

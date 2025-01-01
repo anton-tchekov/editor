@@ -6,14 +6,12 @@ static u32 _span_len;
 
 static void ed_render_linenr(u32 start_y, u32 end_y)
 {
-	u32 x, y, lnr_max, lnr_width, lines, lnr;
-
-	lines = tb_num_lines(_tb);
-	lnr = _tb->page_y + start_y + 1;
-	lnr_max = lnr + (end_y - start_y - 1);
+	u32 lines = tb_num_lines(_tb);
+	u32 lnr = _tb->page_y + start_y + 1;
+	u32 lnr_max = lnr + (end_y - start_y - 1);
 	lnr_max = lnr_max < lines ? lnr_max : lines;
-	lnr_width = dec_digit_cnt(lnr_max);
-	for(y = start_y; y < end_y && lnr <= lines; ++y, ++lnr)
+	u32 lnr_width = dec_digit_cnt(lnr_max);
+	for(u32 y = start_y; y < end_y && lnr <= lines; ++y, ++lnr)
 	{
 		u32 fg = COLOR_GRAY;
 		u32 bg = COLOR_BG;
@@ -25,7 +23,8 @@ static void ed_render_linenr(u32 start_y, u32 end_y)
 
 		char lnr_buf[16];
 		linenr_str(lnr_buf, lnr, lnr_width);
-		for(x = 0; x < lnr_width; ++x)
+		u32 x = 0;
+		for(; x < lnr_width; ++x)
 		{
 			render_char(x, y, lnr_buf[x], fg, bg);
 		}
@@ -124,14 +123,11 @@ static u32 ed_syntax_sub(u32 c, u32 fg, u32 y, u32 x)
 
 static u32 ed_plain(u32 y)
 {
-	u32 i, x, len;
-	vec *lv;
-	char *line;
-
-	lv = tb_get_line(_tb, y);
-	line = vec_data(lv);
-	len = vec_len(lv);
-	for(x = 0, i = 0; i < len; ++i)
+	vec *lv = tb_get_line(_tb, y);
+	char *line = vec_data(lv);
+	u32 len = vec_len(lv);
+	u32 x = 0;
+	for(u32 i = 0; i < len; ++i)
 	{
 		x = ed_syntax_sub(line[i], COLOR_FG, y, x);
 		if(x >= _page_w) { return x; }
@@ -142,18 +138,14 @@ static u32 ed_plain(u32 y)
 
 static u32 ed_asm(u32 y, hashmap *kw)
 {
-	u32 len, i, x, c;
-	vec *lv;
-	char *line;
-
-	lv = tb_get_line(_tb, y);
-	len = vec_len(lv);
-	line = vec_data(lv);
-	i = 0;
-	x = 0;
+	vec *lv = tb_get_line(_tb, y);
+	u32 len = vec_len(lv);
+	char *line = vec_data(lv);
+	u32 i = 0;
+	u32 x = 0;
 	while(i < len)
 	{
-		c = line[i];
+		u32 c = line[i];
 		if(c == ';')
 		{
 			for(; i < len; ++i)
@@ -246,20 +238,15 @@ static u32 ed_asm(u32 y, hashmap *kw)
 
 static u32 ed_syntax(u32 y)
 {
-	u32 len, incflag, i, x, c;
-	vec *lv;
-	char *line;
-
-	lv = tb_get_line(_tb, y);
-	len = vec_len(lv);
-	line = vec_data(lv);
-
-	incflag = 0;
-	i = 0;
-	x = 0;
+	vec *lv = tb_get_line(_tb, y);
+	u32 len = vec_len(lv);
+	char *line = vec_data(lv);
+	u32 incflag = 0;
+	u32 i = 0;
+	u32 x = 0;
 	while(i < len)
 	{
-		c = line[i];
+		u32 c = line[i];
 		if(_in_comment)
 		{
 			x = ed_syntax_sub(c, COLOR_COMMENT, y, x);
@@ -464,14 +451,10 @@ static u32 ed_prev_comment(void)
 
 	for(; i < _tb->page_y; ++i)
 	{
-		i32 p, len;
-		vec *line;
-		char *data;
-
-		line = tb_get_line(_tb, i);
-		data = vec_data(line);
-		len = vec_len(line);
-		for(p = 0; p < len - 1; ++p)
+		vec *line = tb_get_line(_tb, i);
+		char *data = vec_data(line);
+		i32 len = vec_len(line);
+		for(i32 p = 0; p < len - 1; ++p)
 		{
 			if(result)
 			{

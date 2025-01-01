@@ -5,10 +5,8 @@ static void (*_cf_callback)(u32);
 static void cf_open(void (*callback)(u32), char *msg, ...)
 {
 	va_list args;
-
 	_mode = MODE_CONFIRM;
 	_cf_callback = callback;
-
 	va_start(args, msg);
 	vsnprintf(_cf_buf, sizeof(_cf_buf), msg, args);
 	va_end(args);

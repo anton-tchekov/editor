@@ -9,11 +9,9 @@ enum
 
 static u32 is_text(u8 *s, size_t len)
 {
-	u32 c;
-	u8 *end;
-	for(end = s + len; s < end; ++s)
+	for(u8 *end = s + len; s < end; ++s)
 	{
-		c = *s;
+		u32 c = *s;
 		if(!isprint(c) && c != '\n' && c != '\t')
 		{
 			return 0;
@@ -25,25 +23,17 @@ static u32 is_text(u8 *s, size_t len)
 
 static u32 textfile_read(char *filename, char **out, u32 *len)
 {
-	vec v;
-	u32 rb;
 	FILE *fp;
 	if(!(fp = fopen(filename, "r")))
 	{
 		return FILE_READ_FAIL;
 	}
 
+	vec v;
 	vec_init(&v, FILE_CHUNK);
 	for(;;)
 	{
-		rb = fread((u8 *)v.data + v.len, 1, FILE_CHUNK, fp);
-		/*if(!is_text((u8 *)v.data + v.len, rb))
-		{
-			vec_destroy(&v);
-			fclose(fp);
-			return FILE_READ_NOT_TEXT;
-		}*/
-
+		u32 rb = fread((u8 *)v.data + v.len, 1, FILE_CHUNK, fp);
 		v.len += rb;
 		if(rb < FILE_CHUNK)
 		{
@@ -86,9 +76,8 @@ static u32 file_write(char *filename, void *data, size_t len)
 
 static u32 get_working_dir(char *buf)
 {
-	size_t len;
 	getcwd(buf, PATH_MAX);
-	len = strlen(buf);
+	size_t len = strlen(buf);
 	if(!len || (len > 0 && buf[len - 1] != '/'))
 	{
 		strcpy(buf + len, "/");
@@ -111,19 +100,16 @@ static int dir_sort_callback(const void *a, const void *b)
 static char **dir_sorted(const char *path, u32 *len)
 {
 	vec v;
-	DIR *dir;
-	struct dirent *dp;
-	u32 i, count;
-	char *strs;
-	char **ptrs;
-
 	vec_init(&v, 1024);
+
+	DIR *dir;
 	if(!(dir = opendir(path)))
 	{
 		return NULL;
 	}
 
-	count = 0;
+	u32 count = 0;
+	struct dirent *dp;
 	while((dp = readdir(dir)))
 	{
 		if(!strcmp(dp->d_name, "."))
@@ -143,9 +129,9 @@ static char **dir_sorted(const char *path, u32 *len)
 
 	closedir(dir);
 	vec_makespace(&v, 0, count * sizeof(char *));
-	strs = (char *)v.data + count * sizeof(char *);
-	ptrs = v.data;
-	for(i = 0; i < count; ++i)
+	char *strs = (char *)v.data + count * sizeof(char *);
+	char **ptrs = v.data;
+	for(u32 i = 0; i < count; ++i)
 	{
 		ptrs[i] = strs;
 		strs += strlen(strs) + 1;

@@ -1,9 +1,9 @@
 static void op_filter(void)
 {
-	u32 i, cnt;
 	char *s = tf_str(&_fld);
 	vec_clear(&_filt_dir);
-	for(cnt = 0, i = 0; i < _dir_count; ++i)
+	u32 cnt = 0;
+	for(u32 i = 0; i < _dir_count; ++i)
 	{
 		if(starts_with(_dir_list[i], s))
 		{
@@ -17,11 +17,11 @@ static void op_filter(void)
 
 static void op_tab(void)
 {
-	u32 i, sl;
-	char *fs;
+	u32 sl = 0;
+	char *fs = NULL;
 	char *s = tf_str(&_fld);
 	u32 first = 1;
-	for(i = 0; i < _dir_count; ++i)
+	for(u32 i = 0; i < _dir_count; ++i)
 	{
 		char *cur = _dir_list[i];
 		if(starts_with(cur, s))

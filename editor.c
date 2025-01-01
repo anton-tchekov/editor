@@ -1,20 +1,7 @@
 #include "util.c"
 #include "keyword.c"
 #include "test.c"
-
-enum
-{
-	MODE_DEFAULT,
-	MODE_OPEN,
-	MODE_GOTO,
-	MODE_SAVE_AS,
-	MODE_OPENED,
-	MODE_CONFIRM,
-	MODE_SEARCH,
-	MODE_CMD,
-	MODE_COUNT
-};
-
+#include "mode.c"
 #include "lang.c"
 
 #define DD_PAGE          12
@@ -23,17 +10,11 @@ enum
 static u32 _offset_x, _page_w;
 
 static u8
-	_mode,
 	_tabsize,
 	_show_linenr,
 	_show_whitespace;
 
 static u32 _col_line = 80;
-
-static void mode_default(void)
-{
-	_mode = MODE_DEFAULT;
-}
 
 static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 {
@@ -48,6 +29,7 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 	}
 }
 
+#include "terminal.c"
 #include "cursor.c"
 #include "msg.c"
 #include "textbuf.c"
@@ -58,9 +40,7 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 
 static u32 ed_detect_language(char *filename)
 {
-	char *ext;
-
-	ext = get_file_ext(filename);
+	char *ext = get_file_ext(filename);
 	if(!strcmp(ext, "c") || !strcmp(ext, "cpp") ||
 		!strcmp(ext, "h") || !strcmp(ext, "hpp"))
 	{

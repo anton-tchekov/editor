@@ -48,7 +48,6 @@ static int re_matches(char *in, re_param *params)
 		u32 next_c = (in + params->search_len >= params->input + params->input_len) ? 0 : in[params->search_len];
 		u32 first_c = in[0];
 		u32 last_c = in[params->search_len - 1];
-
 		if(isalpha(first_c) && isalpha(prev_c))
 		{
 			return 0;
@@ -63,26 +62,6 @@ static int re_matches(char *in, re_param *params)
 	return 1;
 }
 
-/*
-static void re_printparams(re_param *params)
-{
-	printf("input %.*s (%d bytes)\n",
-		(int)params->input_len,
-		params->input,
-		(int)params->input_len);
-
-	printf("search %.*s (%d bytes)\n",
-		(int)params->search_len,
-		params->search,
-		(int)params->search_len);
-
-	printf("replace %.*s (%d bytes)\n",
-		(int)params->replace_len,
-		params->replace,
-		(int)params->replace_len);
-}
-*/
-
 static void re_replace_all(re_param *params, vec *result)
 {
 	vec out;
@@ -90,8 +69,6 @@ static void re_replace_all(re_param *params, vec *result)
 	char *p = params->input;
 	char *last_part = p;
 	char *end = p + params->input_len;
-
-	/* re_printparams(params); */
 	if(params->search_len <= params->input_len)
 	{
 		while(p < end)

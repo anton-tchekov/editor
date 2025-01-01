@@ -1,11 +1,12 @@
 /* TE: Terminal */
-#include<unistd.h>
-#include<sys/wait.h>
-#include<sys/prctl.h>
-#include<signal.h>
-#include<stdlib.h>
-#include<string.h>
-#include<stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/prctl.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 typedef struct
 {
@@ -15,12 +16,14 @@ typedef struct
 typedef struct
 {
 	vec Lines;
+	pid_t PID;
 	
 } Terminal;
 
 static TerminalChar tc_create(u32 c, u32 fg, u32 bg)
 {
-	return 
+	TerminalChar tc = { c | (fg & ~0xFF), bg};
+	return tc;
 }
 
 static u32 tc_char(TerminalChar tc)
@@ -28,9 +31,9 @@ static u32 tc_char(TerminalChar tc)
 	return tc.FG & 0xFF;
 }
 
-static u32 tc_color(TerminalChar tc)
+static u32 tc_fg(TerminalChar tc)
 {
-	return tc.FG;
+	return tc.FG | 0xFF;
 }
 
 static u32 tc_bg(TerminalChar tc)
@@ -110,8 +113,9 @@ static void te_render(Terminal *te)
 
 }
 
-static void te_kill()
+static void te_kill(Terminal *te)
 {
-	kill(pid, SIGKILL);
-	waitpid(pid, &status, 0);
+	int status;
+	kill(te->PID, SIGKILL);
+	waitpid(te->PID, &status, 0);
 }

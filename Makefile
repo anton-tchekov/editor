@@ -1,5 +1,5 @@
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -Wshadow \
-	-lSDL2 -lSDL2_ttf
+	-lSDL2 -lSDL2_ttf -O2
 
 all: debug
 
