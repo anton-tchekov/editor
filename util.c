@@ -195,9 +195,7 @@ static void path_parent_dir(char *s)
 
 static u32 last_char_is(char *s, u32 c)
 {
-	u32 len;
-
-	len = strlen(s);
+	u32 len = strlen(s);
 	if(len == 0)
 	{
 		return 0;
@@ -236,9 +234,7 @@ static u32 str_equals_len(char *s1, u32 l1, char *s2, u32 l2)
 
 static u32 count_char(char *s, u32 val)
 {
-	u32 c, cnt;
-
-	cnt = 0;
+	u32 c, cnt = 0;
 	for(; (c = *s); ++s)
 	{
 		if(c == val)
@@ -252,14 +248,12 @@ static u32 count_char(char *s, u32 val)
 
 static i32 str_find(char *haystack, u32 len, char *needle, u32 sl)
 {
-	u32 i;
-
 	if(len < sl)
 	{
 		return -1;
 	}
 
-	for(i = 0; i < len - sl; ++i)
+	for(u32 i = 0; i < len - sl; ++i)
 	{
 		if(!memcmp(haystack + i, needle, sl))
 		{
@@ -301,11 +295,8 @@ static i32 escape_seq(char *out, char *s)
 
 static char *_strdup(char *s)
 {
-	size_t len;
-	char *p;
-
-	len  = strlen(s) + 1;
-	p = _malloc(len);
+	size_t len  = strlen(s) + 1;
+	char *p = _malloc(len);
 	memcpy(p, s, len);
 	return p;
 }
@@ -347,5 +338,69 @@ static void kebabcase(char *s, u32 len)
 
 static void snakecase(char *s, u32 len)
 {
-	
+	/*
+
+public static string ToSnakeCase(this string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
+
+            var builder = new StringBuilder(text.Length + Math.Min(2, text.Length / 5));
+            var previousCategory = default(UnicodeCategory?);
+
+            for (var currentIndex = 0; currentIndex < text.Length; currentIndex++)
+            {
+                var currentChar = text[currentIndex];
+                if (currentChar == '_')
+                {
+                    builder.Append('_');
+                    previousCategory = null;
+                    continue;
+                }
+
+                var currentCategory = char.GetUnicodeCategory(currentChar);
+                switch (currentCategory)
+                {
+                    case UnicodeCategory.UppercaseLetter:
+                    case UnicodeCategory.TitlecaseLetter:
+                        if (previousCategory == UnicodeCategory.SpaceSeparator ||
+                            previousCategory == UnicodeCategory.LowercaseLetter ||
+                            previousCategory != UnicodeCategory.DecimalDigitNumber &&
+                            previousCategory != null &&
+                            currentIndex > 0 &&
+                            currentIndex + 1 < text.Length &&
+                            char.IsLower(text[currentIndex + 1]))
+                        {
+                            builder.Append('_');
+                        }
+
+                        currentChar = char.ToLower(currentChar, CultureInfo.InvariantCulture);
+                        break;
+
+                    case UnicodeCategory.LowercaseLetter:
+                    case UnicodeCategory.DecimalDigitNumber:
+                        if (previousCategory == UnicodeCategory.SpaceSeparator)
+                        {
+                            builder.Append('_');
+                        }
+                        break;
+
+                    default:
+                        if (previousCategory != null)
+                        {
+                            previousCategory = UnicodeCategory.SpaceSeparator;
+                        }
+                        continue;
+                }
+
+                builder.Append(currentChar);
+                previousCategory = currentCategory;
+            }
+
+            return builder.ToString();
+        }
+
+	 */
 }

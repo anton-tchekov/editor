@@ -1367,13 +1367,9 @@ static u32 tb_matches(textbuf *t, u32 x, u32 y, char *q)
 
 static void tb_find_next(textbuf *t, char *q)
 {
-	u32 x, y;
-	cursor *last;
-
-	last = sel_last(&t->sel);
-	x = last->x;
-	y = last->y;
-
+	cursor *last = sel_last(&t->sel);
+	u32 x = last->x;
+	u32 y = last->y;
 	for(;;)
 	{
 		if(tb_matches(t, x, y, q))
@@ -1387,9 +1383,7 @@ static char define[] = "#define ";
 
 static u32 tb_ad_is_define(char *s, u32 len)
 {
-	u32 i;
-
-	i = sizeof(define) - 1;
+	u32 i = sizeof(define) - 1;
 	if((i < len) && !memcmp(s, define, i))
 	{
 		/* Skip spaces after #define */
@@ -1444,10 +1438,8 @@ static u32 tb_ad_declen(char *s, u32 i, u32 len)
 
 static u32 tb_ad_identlen(char *s, u32 i, u32 len)
 {
-	u32 slen;
-
 	/* Determine identifier length */
-	slen = i;
+	u32 slen = i;
 	for(++i; i < len && is_ident(s[i]); ++i) {}
 	slen = i - slen;
 
@@ -1469,9 +1461,7 @@ static u32 tb_ad_skipspace(char *s, u32 i, u32 len)
 static void tb_ad_line_stat(vec *v, u32 *maxs, u32 *maxn)
 {
 	u32 i, len, slen, nlen;
-	char *s;
-
-	s = vec_str(v);
+	char *s = vec_str(v);
 	len = vec_len(v);
 	if(!(i = tb_ad_is_define(s, len))) { return; }
 	if(!(slen = tb_ad_identlen(s, i, len))) { return; }
@@ -1555,21 +1545,18 @@ static void tb_ad_line_mod(vec *v, u32 pad)
 
 static void tb_align_defines(textbuf *t)
 {
-	u32 y, end, maxs, maxn;
 	range r;
-
 	if(tb_sel_y_range(t, &r))
 	{
 		msg_show(MSG_INFO, "No selection!");
 		return;
 	}
 
-	end = r.b;
-	maxs = 0;
-	maxn = 0;
+	u32 maxs = 0;
+	u32 maxn = 0;
 
 	/* Get length of longest identifier and longest decimal integer */
-	for(y = r.a; y <= end; ++y)
+	for(u32 y = r.a; y <= r.b; ++y)
 	{
 		tb_ad_line_stat(tb_get_line(t, y), &maxs, &maxn);
 	}
@@ -1581,7 +1568,7 @@ static void tb_align_defines(textbuf *t)
 	}
 
 	/* Process each line and align parts */
-	for(y = r.a; y <= end; ++y)
+	for(u32 y = r.a; y <= r.b; ++y)
 	{
 		tb_ad_line_mod(tb_get_line(t, y), maxs + maxn + 1);
 	}
@@ -1591,9 +1578,7 @@ static void tb_align_defines(textbuf *t)
 
 static char *tb_cur_line_span(textbuf *t, u32 *out_len)
 {
-	selection nsel;
-
-	nsel = t->sel;
+	selection nsel = t->sel;
 	sel_norm(&nsel);
 	if(nsel.c[0].y == nsel.c[1].y)
 	{

@@ -1,4 +1,4 @@
-/* Go to line or symbol definition */
+/* GT: Go to line or symbol definition */
 static void gt_open(void)
 {
 	_mode = MODE_GOTO;

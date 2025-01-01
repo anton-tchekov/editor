@@ -9,6 +9,10 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
+- Remove vec_init_full
+- String Library (replace strcat!!)
+
+
 - Side bar for file manager (Ctrl+b)
 	- Menu System Overhaul
 	- Mouse Support in menus
@@ -22,7 +26,6 @@ that is optimized for C projects, is performant, and productive.
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
 - Search and replace in file and whole folder
-- String Library (replace strcat!!)
 - Config File
 - Builtin Terminal
 - Installation Package Generator, Linux + Windows Release Build 64+32 bit
