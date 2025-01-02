@@ -22,13 +22,6 @@ static void vec_init(vec *v, u32 capacity)
 	v->data = _malloc(capacity);
 }
 
-static void vec_init_full(vec *v, u32 capacity)
-{
-	v->capacity = capacity;
-	v->len = capacity;
-	v->data = _malloc(capacity);
-}
-
 static void vec_clear(vec *v)
 {
 	v->len = 0;
@@ -139,6 +132,13 @@ static void vec_remove(vec *v, u32 offset, u32 bytes)
 static void vec_push(vec *v, u32 bytes, void *elem)
 {
 	vec_insert(v, v->len, bytes, elem);
+}
+
+static void vec_pushn(vec *v, u32 byte, u32 count)
+{
+	vec_reserve(v, v->len + count);
+	memset(v->data + v->len, byte, count);
+	v->len += count;
 }
 
 static void vec_pushbyte(vec *v, u32 c)

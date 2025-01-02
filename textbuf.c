@@ -707,10 +707,9 @@ static void tb_insert(textbuf *t, char *text)
 		u32 slen = s - p;
 
 		vec line;
-		vec_init_full(&line, rlen + slen);
-		char *last = vec_data(&line);
-		memcpy(last, p, slen);
-		memcpy(last + slen, (u8 *)vec_data(first) + t->sel.c[1].x, rlen);
+		vec_init(&line, rlen + slen);
+		vec_push(&line, slen, p);
+		vec_push(&line, rlen, vec_str(first) + t->sel.c[1].x);
 		lines[y + new_lines] = line;
 
 		first->len = t->sel.c[1].x;
@@ -1384,12 +1383,6 @@ static char *padchr(char *s, u32 c, u32 count)
 	return s;
 }
 
-static char *append(char *dst, char *src, size_t count)
-{
-	memcpy(dst, src, count);
-	return dst + count;
-}
-
 static u32 revspace(char *s, u32 i, u32 len)
 {
 	for(; len > i && isspace(s[len - 1]); --len) {}
@@ -1436,12 +1429,11 @@ static void tb_ad_line_mod(vec *v, u32 pad)
 
 	/* Rebuild vec */
 	vec repl;
-	vec_init_full(&repl, total);
-	char *rs = vec_str(&repl);
-	rs = append(rs, define, sizeof(define) - 1);
-	rs = append(rs, s + spos, slen);
-	rs = padchr(rs, ' ', nspc);
-	append(rs, s + npos, nlen);
+	vec_init(&repl, total);
+	vec_push(&repl, sizeof(define) - 1, define);
+	vec_push(&repl, slen, s + spos);
+	vec_pushn(&repl, ' ', nspc);
+	vec_push(&repl, nlen, s + npos);
 	vec_destroy(v);
 	*v = repl;
 }

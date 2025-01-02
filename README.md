@@ -28,7 +28,12 @@ that is optimized for C projects, is performant, and productive.
 - Search and replace in file and whole folder
 - Config File
 - Builtin Terminal
-- Installation Package Generator, Linux + Windows Release Build 64+32 bit
+
+- Installation Package Generator, Linux + Windows Release Build 64 bit
+	- Version
+	// mingw-w64-sdl2_ttf
+	Editor-V104-Windows-x86_64.zip
+	Editor-V104-Linux-x86_64.zip
 
 ## Later
 

@@ -119,3 +119,8 @@ static void te_kill(Terminal *te)
 	kill(te->PID, SIGKILL);
 	waitpid(te->PID, &status, 0);
 }
+
+static void te_key(Terminal *te, u32 key, u32 chr)
+{
+
+}

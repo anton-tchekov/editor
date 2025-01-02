@@ -395,6 +395,10 @@ static void event_key(u32 key, u32 chr)
 	case MODE_SEARCH:
 		sr_key(key, chr);
 		break;
+	
+	case MODE_TERMINAL:
+		// te_key(key, chr);
+		break;
 	}
 
 	switch(key)
