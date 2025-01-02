@@ -7,20 +7,6 @@ enum
 	FILE_READ_NOT_TEXT
 };
 
-static u32 is_text(u8 *s, size_t len)
-{
-	for(u8 *end = s + len; s < end; ++s)
-	{
-		u32 c = *s;
-		if(!isprint(c) && c != '\n' && c != '\t')
-		{
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
 static u32 textfile_read(char *filename, char **out, u32 *len)
 {
 	FILE *fp;

@@ -1372,17 +1372,6 @@ static void tb_ad_line_stat(vec *v, u32 *maxs, u32 *maxn)
 	*maxn = umax(nlen, *maxn);
 }
 
-static char *padchr(char *s, u32 c, u32 count)
-{
-	while(count)
-	{
-		--count;
-		*s++ = c;
-	}
-
-	return s;
-}
-
 static u32 revspace(char *s, u32 i, u32 len)
 {
 	for(; len > i && isspace(s[len - 1]); --len) {}

@@ -137,7 +137,7 @@ static void vec_push(vec *v, u32 bytes, void *elem)
 static void vec_pushn(vec *v, u32 byte, u32 count)
 {
 	vec_reserve(v, v->len + count);
-	memset(v->data + v->len, byte, count);
+	memset((u8 *)v->data + v->len, byte, count);
 	v->len += count;
 }
 

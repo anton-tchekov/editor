@@ -9,9 +9,7 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
-- Remove vec_init_full
 - String Library (replace strcat!!)
-
 
 - Side bar for file manager (Ctrl+b)
 	- Menu System Overhaul

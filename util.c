@@ -86,10 +86,8 @@ static u32 char_type(u32 c)
 
 static u32 conv_lnr_str(char *s)
 {
-	u32 c;
-	u32 lnr;
-
-	for(lnr = 0; (c = *s); ++s)
+	u32 lnr = 0;
+	for(u32 c; (c = *s); ++s)
 	{
 		if(!isdigit(c))
 		{

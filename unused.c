@@ -93,3 +93,34 @@ static u32 is_cursor(u32 x, u32 y)
 {
 	return y == _vcursor.y && x == _vcursor.x;
 }
+
+static u32 is_text(u8 *s, size_t len)
+{
+	for(u8 *end = s + len; s < end; ++s)
+	{
+		u32 c = *s;
+		if(!isprint(c) && c != '\n' && c != '\t')
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static char *padchr(char *s, u32 c, u32 count)
+{
+	while(count)
+	{
+		--count;
+		*s++ = c;
+	}
+
+	return s;
+}
+
+static char *append(char *dst, char *src, size_t count)
+{
+	memcpy(dst, src, count);
+	return dst + count;
+}
