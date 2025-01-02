@@ -3,7 +3,7 @@ static u8 _sv_focus;
 static void sv_dir_reload(void)
 {
 	_free(_dir_list);
-	_dir_list = dir_sorted(_path_buf, &_dir_count);
+	_dir_list = dir_sorted(&_path_buf, &_dir_count);
 	dd_reset(&_dd, _dir_count);
 	_sv_focus = 1;
 }
@@ -21,17 +21,17 @@ static void sv_write(void)
 	char *buf = tb_export(_tb, &len);
 	char *utf8 = convert_to_utf8(buf, &len);
 	_free(buf);
-	if(file_write(_fname_buf, utf8, len))
+	if(file_write(vec_cstr(&_fname_buf), utf8, len))
 	{
 		msg_show(MSG_ERROR, "Writing file failed");
 	}
 	else
 	{
 		msg_show(MSG_INFO, "File saved");
-		tb_change_filename(_tb, _fname_buf);
+		tb_change_filename(_tb, &_fname_buf);
 		_tb->modified = 0;
 		_tb->exists = 1;
-		bf_close_other(_fname_buf, _cur_buf);
+		bf_close_other(&_fname_buf, _cur_buf);
 	}
 
 	_free(utf8);
@@ -52,13 +52,13 @@ static void sv_confirm(u32 yes)
 
 static void sv_path(void)
 {
-	if(bf_opened_and_modified(_fname_buf))
+	if(bf_opened_and_modified(&_fname_buf))
 	{
 		msg_show(MSG_ERROR, "Target has unsaved changes in editor!");
 		return;
 	}
 
-	if(file_exists(_fname_buf))
+	if(file_exists(vec_cstr(&_fname_buf)))
 	{
 		cf_open(sv_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
 		return;
@@ -72,18 +72,18 @@ static void sv_dir_return(void)
 	char *cur = _dir_list[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
-		path_parent_dir(_path_buf);
+		path_parent_dir(&_path_buf);
 		sv_dir_reload();
 	}
 	else if(path_is_dir(cur))
 	{
-		strcat(_path_buf, cur);
+		vec_cstrcat(&_path_buf, cur);
 		sv_dir_reload();
 	}
 	else
 	{
-		strcpy(_fname_buf, _path_buf);
-		strcat(_fname_buf, cur);
+		vec_strcpy(&_fname_buf, &_path_buf);
+		vec_cstrcat(&_fname_buf, cur);
 		sv_path();
 	}
 }
@@ -95,8 +95,8 @@ static void sv_fld_return(void)
 		return;
 	}
 
-	strcpy(_fname_buf, _path_buf);
-	strcat(_fname_buf, tf_str(&_fld));
+	vec_strcpy(&_fname_buf, &_path_buf);
+	vec_strcat(&_fname_buf, tf_buf(&_fld));
 	sv_path();
 }
 

@@ -251,3 +251,11 @@ static void te_key(Terminal *te, u32 key, u32 chr)
 {
 
 }
+
+static char *str_heapcopy(char *s)
+{
+	size_t len  = strlen(s) + 1;
+	char *p = _malloc(len);
+	memcpy(p, s, len);
+	return p;
+}

@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <errno.h>
 
 #define FILE_CHUNK (16 * 1024)
 
@@ -61,17 +62,34 @@ static u32 file_write(char *filename, void *data, size_t len)
 	return 0;
 }
 
-static u32 get_working_dir(char *buf)
+static vec get_working_dir(void)
 {
-	getcwd(buf, 4096);
-	size_t len = strlen(buf);
-	if(!len || (len > 0 && buf[len - 1] != '/'))
+	vec v = vec_init(256);
+	for(;;)
 	{
-		strcpy(buf + len, "/");
-		++len;
+		char *p = getcwd(v.data, v.capacity);
+		if(p)
+		{
+			v.len = strlen(v.data);
+			break;
+		}
+
+		if(errno == ERANGE)
+		{
+			vec_reserve(&v, 2 * v.capacity);
+			continue;
+		}
+
+		fprintf(stderr, "Error reading current directory\n");
+		exit(1);
 	}
 
-	return len;
+	if(!v.len || (v.len > 0 && vec_str(&v)[v.len - 1] != '/'))
+	{
+		vec_pushbyte(&v, '/');
+	}
+
+	return v;
 }
 
 static u32 file_exists(char *fname)
@@ -95,12 +113,13 @@ static int is_dir(char *path)
 	return S_ISDIR(statbuf.st_mode);
 }
 
-static char **dir_sorted(char *path, u32 *len)
+// TODO: Use vec
+static char **dir_sorted(vec *path, u32 *len)
 {
 	vec v = vec_init(1024);
 
 	DIR *dir;
-	if(!(dir = opendir(path)))
+	if(!(dir = opendir(vec_cstr(path))))
 	{
 		return NULL;
 	}
@@ -116,14 +135,11 @@ static char **dir_sorted(char *path, u32 *len)
 			continue;
 		}
 
-		vec_push(&v, strlen(dp->d_name), dp->d_name);
-		
-		vec_clear(&curfile);
-		vec_push(&curfile, strlen(path), path);
-		vec_push(&curfile, strlen(dp->d_name), dp->d_name);
-		vec_pushbyte(&curfile, '\0');
-
-		if(is_dir(vec_str(&curfile)))
+		u32 namelen = strlen(dp->d_name);
+		vec_push(&v, namelen, dp->d_name);
+		vec_strcpy(&curfile, path);
+		vec_push(&curfile, namelen, dp->d_name);
+		if(is_dir(vec_cstr(&curfile)))
 		{
 			vec_pushbyte(&v, '/');
 		}

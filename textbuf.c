@@ -2,7 +2,7 @@ typedef struct
 {
 	vec lines;
 	selection sel;
-	char *filename;
+	vec filename;
 	u32 page_y;
 	i32 cursor_save_x;
 	u8 language;
@@ -23,11 +23,11 @@ static void tb_reset_cursor(textbuf *t)
 	memset(&t->sel, 0, sizeof(t->sel));
 }
 
-static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
+static textbuf *tb_new(vec *name, char *text, u32 on_disk, u32 lang)
 {
 	vec line;
 	textbuf *t = _malloc(sizeof(textbuf));
-	t->filename = str_heapcopy(name);
+	t->filename = *name;
 	t->language = lang;
 	t->modified = 0;
 	t->exists = on_disk;
@@ -67,10 +67,9 @@ static void tb_toggle_insert(textbuf *t)
 	t->insert = !t->insert;
 }
 
-static void tb_change_filename(textbuf *t, char *name)
+static void tb_change_filename(textbuf *t, vec *name)
 {
-	_free(t->filename);
-	t->filename = str_heapcopy(name);
+	vec_strcpy(&t->filename, name);
 }
 
 static vec *tb_get_line(textbuf *t, u32 i)
@@ -157,7 +156,7 @@ static void tb_destroy(textbuf *t)
 	}
 
 	vec_destroy(&t->lines);
-	_free(t->filename);
+	vec_destroy(&t->filename);
 	_free(t);
 }
 

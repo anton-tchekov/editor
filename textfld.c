@@ -37,6 +37,11 @@ static void tf_destroy(tf *t)
 	vec_destroy(&t->v);
 }
 
+static vec *tf_buf(tf *t)
+{
+	return &t->v;
+}
+
 static u32 tf_bufsiz(tf *t)
 {
 	return vec_len(&t->v);

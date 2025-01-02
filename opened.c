@@ -102,7 +102,7 @@ static u32 ob_render(void)
 		textbuf *t = bf_get(i);
 		u32 fg = dd_color(&_dd, i);
 		render_char(0, y, t->modified ? '*' : ' ', fg, COLOR_GRAY);
-		ed_render_line_str(t->filename, 1, y, fg, COLOR_GRAY);
+		ed_render_line_str(vec_cstr(&t->filename), 1, y, fg, COLOR_GRAY);
 	}
 
 	return y;

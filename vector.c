@@ -150,3 +150,42 @@ static void vec_pushbyte(vec *v, u32 c)
 	char b[1] = { c };
 	vec_push(v, 1, b);
 }
+
+static void vec_strcpy(vec *to, vec *from)
+{
+	vec_replace(to, 0, to->len, from->data, from->len);
+}
+
+static void vec_strcat(vec *to, vec *from)
+{
+	vec_push(to, from->len, from->data);
+}
+
+static void vec_cstrcat(vec *to, char *from)
+{
+	vec_push(to, strlen(from), from);
+}
+
+static char *vec_cstr(vec *v)
+{
+	vec_reserve(v, v->len + 1);
+	((char *)v->data)[v->len] = '\0';
+	return v->data;
+}
+
+static u32 vec_strcmp(vec *a, vec *b)
+{
+	if(a->len != b->len)
+	{
+		return 0;
+	}
+
+	return !memcmp(a->data, b->data, a->len);
+}
+
+static vec vec_copy(vec *v)
+{
+	vec to = vec_init(v->len);
+	vec_strcpy(&to, v);
+	return to;
+}

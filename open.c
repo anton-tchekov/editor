@@ -51,7 +51,7 @@ static void op_tab(void)
 static void op_dir_reload(void)
 {
 	_free(_dir_list);
-	_dir_list = dir_sorted(_path_buf, &_dir_count);
+	_dir_list = dir_sorted(&_path_buf, &_dir_count);
 	op_filter();
 }
 
@@ -67,21 +67,21 @@ static void op_return(void)
 	char *cur = ((char **)vec_data(&_filt_dir))[_dd.pos];
 	if(!strcmp(cur, "../"))
 	{
-		path_parent_dir(_path_buf);
+		path_parent_dir(&_path_buf);
 		tf_clear(&_fld);
 		op_dir_reload();
 	}
 	else if(path_is_dir(cur))
 	{
-		strcat(_path_buf, cur);
+		vec_cstrcat(&_path_buf, cur);
 		tf_clear(&_fld);
 		op_dir_reload();
 	}
 	else
 	{
-		strcpy(_fname_buf, _path_buf);
-		strcat(_fname_buf, cur);
-		ed_load(_fname_buf);
+		vec_strcpy(&_fname_buf, &_path_buf);
+		vec_cstrcat(&_fname_buf, cur);
+		ed_load(&_fname_buf);
 	}
 }
 

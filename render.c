@@ -618,15 +618,16 @@ static void msg_render(void)
 			}
 
 			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines]",
-				_tb->filename, _tb->modified ? "*" : "",
+				vec_cstr(&_tb->filename),
+				_tb->modified ? "*" : "",
 				tb_num_lines(_tb));
 
-			if(len < _screen_width)
+			if(len < (int)_screen_width)
 			{
 				memset(_msg_buf + len, ' ', _screen_width - len);
 			}
 
-			if(rlen < _screen_width)
+			if(rlen < (int)_screen_width)
 			{
 				memcpy(_msg_buf + _screen_width - rlen, buf, rlen);
 			}

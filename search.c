@@ -63,7 +63,8 @@ static void sr_title_render(void)
 	print = action = (_sr_flags & SR_REPLACE) ? "Replace" : "Search";
 	if(_sr_flags & SR_IN_DIR)
 	{
-		snprintf(buf, sizeof(buf), "%s in directory %s", action, _path_buf);
+		snprintf(buf, sizeof(buf), "%s in directory %s",
+			action, vec_cstr(&_path_buf));
 		print = buf;
 	}
 

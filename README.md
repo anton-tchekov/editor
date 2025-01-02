@@ -9,7 +9,25 @@ that is optimized for C projects, is performant, and productive.
 
 ## TODO
 
+### Today
 - String Library (replace strcat!!)
+- Config File
+
+### Tomorrow
+- Command mode ctrl+t
+- More Tests
+- Make vec faster
+- Align defines handle comments
+- Convert upper, lower, camel snake case automagically
+- Indent Selected using Tab (small bug with cursors)
+- Shift tab work with spaces
+- Installation Package Generator, Linux + Windows Release Build 64 bit
+	- Version
+	// mingw-w64-sdl2_ttf
+	Editor-V104-Windows-x86_64.zip
+	Editor-V104-Linux-x86_64.zip
+
+### Think this through
 
 - Side bar for file manager (Ctrl+b)
 	- Menu System Overhaul
@@ -18,22 +36,9 @@ that is optimized for C projects, is performant, and productive.
 	- Open Files
 	- File browser
 
-- Command mode ctrl+t
-- Align defines handle comments
-- Convert upper, lower, camel snake case automagically
-- Indent Selected using Tab (small bug with cursors)
-- Shift tab work with spaces
+### Later
+
 - Search and replace in file and whole folder
-- Config File
-
-- Installation Package Generator, Linux + Windows Release Build 64 bit
-	- Version
-	// mingw-w64-sdl2_ttf
-	Editor-V104-Windows-x86_64.zip
-	Editor-V104-Linux-x86_64.zip
-
-## Later
-
 - Undo / Redo
 - Multiple Cursors
 - Minimap

@@ -169,14 +169,13 @@ static char *get_file_ext(char *s)
 	return p;
 }
 
-static void path_parent_dir(char *s)
+static void path_parent_dir(vec *v)
 {
-	u32 c;
-	char *p, *prev, *slash;
-
-	prev = NULL;
-	slash = NULL;
-	for(p = s; (c = *p); ++p)
+	char *s = vec_str(v);
+	char *prev = NULL;
+	char *slash = NULL;
+	char *p = s;
+	for(u32 c; (c = *p); ++p)
 	{
 		if(c == '/')
 		{
@@ -289,14 +288,6 @@ static i32 escape_seq(char *out, char *s)
 
 	*p = '\0';
 	return p - out;
-}
-
-static char *str_heapcopy(char *s)
-{
-	size_t len  = strlen(s) + 1;
-	char *p = _malloc(len);
-	memcpy(p, s, len);
-	return p;
 }
 
 static u32 umin(u32 a, u32 b)

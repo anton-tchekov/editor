@@ -55,7 +55,7 @@ static u32 ed_detect_language(char *filename)
 	return LANGUAGE_UNKNOWN;
 }
 
-static void ed_load(char *filename)
+static void ed_load(vec *filename)
 {
 	if(bf_switch_name(filename))
 	{
@@ -65,7 +65,7 @@ static void ed_load(char *filename)
 
 	u32 len;
 	char *buf;
-	switch(file_read(filename, &buf, &len))
+	switch(file_read(vec_cstr(filename), &buf, &len))
 	{
 	case FILE_READ_FAIL:
 		msg_show(MSG_ERROR, "Failed to open file");
@@ -84,7 +84,10 @@ static void ed_load(char *filename)
 		return;
 	}
 
-	textbuf *t = tb_new(filename, conv, 1, ed_detect_language(filename));
+	vec filename_copy = vec_copy(filename);
+	textbuf *t = tb_new(&filename_copy, conv, 1, 
+		ed_detect_language(vec_cstr(filename)));
+
 	bf_insert_cur(t);
 	_free(conv);
 	mode_default();
@@ -92,9 +95,11 @@ static void ed_load(char *filename)
 
 static void ed_new(void)
 {
-	char name[32];
-	snprintf(name, sizeof(name), "untitled-%d", _untitled_cnt++);
-	textbuf *t = tb_new(name, NULL, 0, LANGUAGE_DEFAULT);
+	vec name = vec_init(32);
+	name.len = snprintf(vec_str(&name), name.capacity,
+		"untitled-%d", _untitled_cnt++);
+
+	textbuf *t = tb_new(&name, NULL, 0, LANGUAGE_DEFAULT);
 	bf_insert_cur(t);
 	mode_default();
 }
@@ -162,7 +167,7 @@ static void ed_save(void)
 		char *buf = tb_export(_tb, &len);
 		char *utf8 = convert_to_utf8(buf, &len);
 		_free(buf);
-		if(file_write(_tb->filename, utf8, len))
+		if(file_write(vec_cstr(&_tb->filename), utf8, len))
 		{
 			msg_show(MSG_ERROR, "Writing file failed");
 		}
@@ -395,10 +400,6 @@ static void event_key(u32 key, u32 chr)
 
 	case MODE_SEARCH:
 		sr_key(key, chr);
-		break;
-	
-	case MODE_TERMINAL:
-		// te_key(key, chr);
 		break;
 	}
 
