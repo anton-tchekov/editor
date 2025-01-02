@@ -27,7 +27,7 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 {
 	vec line;
 	textbuf *t = _malloc(sizeof(textbuf));
-	t->filename = _strdup(name);
+	t->filename = str_heapcopy(name);
 	t->language = lang;
 	t->modified = 0;
 	t->exists = on_disk;
@@ -70,7 +70,7 @@ static void tb_toggle_insert(textbuf *t)
 static void tb_change_filename(textbuf *t, char *name)
 {
 	_free(t->filename);
-	t->filename = _strdup(name);
+	t->filename = str_heapcopy(name);
 }
 
 static vec *tb_get_line(textbuf *t, u32 i)

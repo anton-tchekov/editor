@@ -1,4 +1,22 @@
-const char *configfile = "editor.ini";
+const char *_configfile = "editor.ini";
+
+enum
+{
+	CONFIG_U8,
+	CONFIG_U32
+};
+
+typedef struct
+{
+	char *Name;
+	int Type;
+	void *Addr;
+} ConfigItem;
+
+static ConfigItem _config_items[] =
+{
+	{ "TabSize", CONFIG_U32, &_tabsize }
+};
 
 static void config_write_defaults(FILE *fp)
 {
@@ -7,11 +25,11 @@ static void config_write_defaults(FILE *fp)
 
 static void config_write(void)
 {
-	FILE *fp = fopen(configfile, "w");
+	FILE *fp = fopen(_configfile, "w");
 	if(!fp)
 	{
 		fprintf(stderr, "Failed to open config file %s for writing\n",
-			configfile);
+			_configfile);
 		return;
 	}
 
@@ -54,14 +72,14 @@ static void config_read(FILE *fp)
 	if(ferror(fp))
 	{
 		fprintf(stderr, "I/O Error while reading config file %s\n",
-			configfile);
+			_configfile);
 		return;
 	}
 }
 
 static void config_load(void)
 {
-	FILE *fp = fopen(configfile, "r");
+	FILE *fp = fopen(_configfile, "r");
 	if(!fp)
 	{
 		config_write();

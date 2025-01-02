@@ -291,7 +291,7 @@ static i32 escape_seq(char *out, char *s)
 	return p - out;
 }
 
-static char *_strdup(char *s)
+static char *str_heapcopy(char *s)
 {
 	size_t len  = strlen(s) + 1;
 	char *p = _malloc(len);

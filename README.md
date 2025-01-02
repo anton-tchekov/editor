@@ -25,7 +25,6 @@ that is optimized for C projects, is performant, and productive.
 - Shift tab work with spaces
 - Search and replace in file and whole folder
 - Config File
-- Builtin Terminal
 
 - Installation Package Generator, Linux + Windows Release Build 64 bit
 	- Version

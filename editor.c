@@ -29,7 +29,6 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 	}
 }
 
-#include "terminal.c"
 #include "cursor.c"
 #include "msg.c"
 #include "textbuf.c"
@@ -37,6 +36,7 @@ static void ed_render_line_str(char *s, u32 x, u32 y, u32 fg, u32 bg)
 #include "render.c"
 #include "confirm.c"
 #include "cmd.c"
+#include "config.c"
 
 static u32 ed_detect_language(char *filename)
 {
@@ -65,7 +65,7 @@ static void ed_load(char *filename)
 
 	u32 len;
 	char *buf;
-	switch(textfile_read(filename, &buf, &len))
+	switch(file_read(filename, &buf, &len))
 	{
 	case FILE_READ_FAIL:
 		msg_show(MSG_ERROR, "Failed to open file");
@@ -131,6 +131,7 @@ static void ed_init(void)
 {
 	bf_init();
 	sr_init();
+	config_load();
 	utf8_lut_init();
 	kw_init(&_kw_c);
 	kw_init(&_kw_asm_6800);

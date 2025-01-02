@@ -1,6 +1,6 @@
 /* Common functions for "Load File" and "Save As" file browser */
-static char _path_buf[PATH_MAX];
-static char _fname_buf[PATH_MAX];
+static char _path_buf[4096];
+static char _fname_buf[4096];
 static tf _fld;
 
 static dd _dd;
@@ -24,7 +24,7 @@ static void nav_destroy(void)
 
 static void nav_title_render(char *s)
 {
-	char buf[PATH_MAX + 256];
+	char buf[4096 + 256];
 	snprintf(buf, sizeof(buf), "%s: %s [%d]",
 		s, _path_buf, _dir_count - 1);
 	ed_render_line_str(buf, 0, 0, COLOR_BG, COLOR_FG);

@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <dirent.h>
@@ -22,6 +21,4 @@
 #include "colors.c"
 #include "chars.c"
 #include "gfx.c"
-#include "config.c"
-#include "allocinfo.c"
 #include "editor.c"
