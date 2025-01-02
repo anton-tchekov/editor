@@ -15,11 +15,13 @@ static u32 _next_pot(u32 n)
 	return power;
 }
 
-static void vec_init(vec *v, u32 capacity)
+static vec vec_init(u32 capacity)
 {
-	v->capacity = capacity;
-	v->len = 0;
-	v->data = _malloc(capacity);
+	vec v;
+	v.capacity = capacity;
+	v.len = 0;
+	v.data = _malloc(capacity);
+	return v;
 }
 
 static void vec_clear(vec *v)
@@ -27,12 +29,14 @@ static void vec_clear(vec *v)
 	v->len = 0;
 }
 
-static void vec_from(vec *v, void *buf, u32 bytes)
+static vec vec_from(void *buf, u32 bytes)
 {
-	v->capacity = bytes;
-	v->len = bytes;
-	v->data = _malloc(v->capacity);
-	memcpy(v->data, buf, bytes);
+	vec v;
+	v.capacity = bytes;
+	v.len = bytes;
+	v.data = _malloc(bytes);
+	memcpy(v.data, buf, bytes);
+	return v;
 }
 
 static void vec_makespace(vec *v, u32 pos, u32 bytes)

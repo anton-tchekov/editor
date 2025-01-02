@@ -35,7 +35,7 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 	tb_reset_cursor(t);
 	if(text)
 	{
-		vec_init(&t->lines, count_char(text, '\n') + 1);
+		t->lines = vec_init(count_char(text, '\n') + 1);
 		char *p = text;
 		char *linestart = text;
 		u32 c;
@@ -44,7 +44,7 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 			c = *p;
 			if(c == '\0' || c == '\n')
 			{
-				vec_from(&line, linestart, p - linestart);
+				line = vec_from(linestart, p - linestart);
 				vec_push(&t->lines, sizeof(line), &line);
 				linestart = p + 1;
 			}
@@ -54,8 +54,8 @@ static textbuf *tb_new(char *name, char *text, u32 on_disk, u32 lang)
 	}
 	else
 	{
-		vec_init(&t->lines, 32 * sizeof(vec));
-		vec_init(&line, 8);
+		t->lines = vec_init(32 * sizeof(vec));
+		line = vec_init(8);
 		vec_push(&t->lines, sizeof(line), &line);
 	}
 
@@ -470,8 +470,7 @@ static void tb_char(textbuf *t, u32 c)
 
 static void tb_enter_before(textbuf *t)
 {
-	vec new_line;
-	vec_init(&new_line, 8);
+	vec new_line = vec_init(8);
 	tb_ins_line(t, t->sel.c[1].y, &new_line);
 	t->sel.c[1].x = 0;
 	t->cursor_save_x = 0;
@@ -482,8 +481,7 @@ static void tb_enter_before(textbuf *t)
 
 static void tb_enter_after(textbuf *t)
 {
-	vec new_line;
-	vec_init(&new_line, 8);
+	vec new_line = vec_init(8);
 	tb_ins_line(t, ++t->sel.c[1].y, &new_line);
 	t->sel.c[1].x = 0;
 	t->cursor_save_x = 0;
@@ -501,9 +499,7 @@ static void tb_enter(textbuf *t)
 	u32 len = vec_len(cur) - t->sel.c[1].x;
 
 	/* Copy characters after cursor on current line to new line */
-	vec new_line;
-	vec_init(&new_line, len);
-	vec_push(&new_line, len, str);
+	vec new_line = vec_from(str, len);
 
 	/* Insert new line */
 	tb_ins_line(t, t->sel.c[1].y + 1, &new_line);
@@ -706,8 +702,7 @@ static void tb_insert(textbuf *t, char *text)
 		u32 rlen = vec_len(first) - t->sel.c[1].x;
 		u32 slen = s - p;
 
-		vec line;
-		vec_init(&line, rlen + slen);
+		vec line = vec_init(rlen + slen);
 		vec_push(&line, slen, p);
 		vec_push(&line, rlen, vec_str(first) + t->sel.c[1].x);
 		lines[y + new_lines] = line;
@@ -724,8 +719,7 @@ static void tb_insert(textbuf *t, char *text)
 		/* Other lines */
 		while((p = strchr(text, '\n')))
 		{
-			vec_from(&line, text, p - text);
-			lines[++y] = line;
+			lines[++y] = vec_from(text, p - text);
 			text = p + 1;
 		}
 	}
@@ -1417,8 +1411,7 @@ static void tb_ad_line_mod(vec *v, u32 pad)
 	}
 
 	/* Rebuild vec */
-	vec repl;
-	vec_init(&repl, total);
+	vec repl = vec_init(total);
 	vec_push(&repl, sizeof(define) - 1, define);
 	vec_push(&repl, slen, s + spos);
 	vec_pushn(&repl, ' ', nspc);

@@ -66,8 +66,7 @@ static void utf8_lut_init(void)
 
 static char *convert_to_utf8(char *s, u32 *len)
 {
-	vec fixed;
-	vec_init(&fixed, *len + 1);
+	vec fixed = vec_init(*len + 1);
 	char *e = s + *len;
 	for(; s < e; ++s)
 	{
@@ -105,9 +104,8 @@ static u32 utf8_find(char *in, u32 *len)
 
 static char *convert_from_utf8(char *s, u32 *len)
 {
-	vec out;
 	char *e = s + *len;
-	vec_init(&out, *len);
+	vec out = vec_init(*len);
 	while(s < e)
 	{
 		u32 c = *s;

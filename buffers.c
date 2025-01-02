@@ -5,7 +5,7 @@ static textbuf *_tb;
 
 static void bf_init(void)
 {
-	vec_init(&_buffers, 8 * sizeof(textbuf *));
+	_buffers = vec_init(8 * sizeof(textbuf *));
 }
 
 static u32 bf_count(void)

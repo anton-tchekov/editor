@@ -12,7 +12,7 @@ static void nav_init(void)
 {
 	tf_init(&_fld);
 	get_working_dir(_path_buf);
-	vec_init(&_filt_dir, 64 * sizeof(char *));
+	_filt_dir = vec_init(64 * sizeof(char *));
 }
 
 static void nav_destroy(void)

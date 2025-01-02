@@ -14,7 +14,7 @@ static void tf_clear(tf *t)
 
 static void tf_init(tf *t)
 {
-	vec_init(&t->v, 64);
+	t->v = vec_init(64);
 	tf_clear(t);
 }
 

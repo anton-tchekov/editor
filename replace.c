@@ -64,8 +64,7 @@ static int re_matches(char *in, re_param *params)
 
 static void re_replace_all(re_param *params, vec *result)
 {
-	vec out;
-	vec_init(&out, params->input_len);
+	vec out = vec_init(params->input_len);
 	char *p = params->input;
 	char *last_part = p;
 	char *end = p + params->input_len;

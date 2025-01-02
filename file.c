@@ -17,8 +17,7 @@ static u32 file_read(char *filename, char **out, u32 *len)
 		return FILE_READ_FAIL;
 	}
 
-	vec v;
-	vec_init(&v, FILE_CHUNK);
+	vec v = vec_init(FILE_CHUNK);
 	for(;;)
 	{
 		u32 rb = fread((u8 *)v.data + v.len, 1, FILE_CHUNK, fp);
@@ -98,8 +97,7 @@ static int is_dir(char *path)
 
 static char **dir_sorted(char *path, u32 *len)
 {
-	vec v;
-	vec_init(&v, 1024);
+	vec v = vec_init(1024);
 
 	DIR *dir;
 	if(!(dir = opendir(path)))
@@ -107,8 +105,7 @@ static char **dir_sorted(char *path, u32 *len)
 		return NULL;
 	}
 
-	vec curfile;
-	vec_init(&curfile, 1024);
+	vec curfile = vec_init(1024);
 
 	u32 count = 0;
 	struct dirent *dp;
