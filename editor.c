@@ -10,9 +10,10 @@
 static u32 _offset_x, _page_w;
 
 static u8
-	_tabsize,
-	_show_linenr,
-	_show_whitespace;
+	_usespaces = 0,
+	_tabsize = 4,
+	_show_linenr = 1,
+	_show_whitespace = 1;
 
 static u32 _col_line = 80;
 
@@ -141,9 +142,6 @@ static void ed_init(void)
 	kw_init(&_kw_c);
 	kw_init(&_kw_asm_6800);
 	kw_init(&_kw_asm_65C02);
-	_tabsize = 4;
-	_show_whitespace = 1;
-	_show_linenr = 1;
 	nav_init();
 }
 

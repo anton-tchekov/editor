@@ -15,12 +15,14 @@ typedef struct
 
 static ConfigItem _config_items[] =
 {
-	{ "TabSize", CONFIG_U32, &_tabsize }
+	{ "TabSize", CONFIG_U8, &_tabsize },
+	{ "IndentSpaces", CONFIG_U8, &_usespaces },
+	{ "ShowLinenumbers", CONFIG_U8, &_show_linenr },
+	{ "ShowWhitespace", CONFIG_U8, &_show_whitespace }
 };
 
 static void config_write_defaults(FILE *fp)
 {
-
 }
 
 static void config_write(void)
@@ -37,9 +39,79 @@ static void config_write(void)
 	fclose(fp);
 }
 
+static u32 isnumber(char *s)
+{
+	for(u32 c; (c = *s); ++s)
+	{
+		if(!isdigit(c))
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static u32 parse_value(char *value, u32 *val)
+{
+	if(!strcmp(value, "true"))
+	{
+		*val = 1;
+		return 0;
+	}
+
+	if(!strcmp(value, "false"))
+	{
+		*val = 0;
+		return 0;
+	}
+
+	if(isnumber(value))
+	{
+		*val = atoi(value);
+		return 0;
+	}
+
+	return 1;
+}
+
+static void apply_value(ConfigItem *item, char *value)
+{
+	u32 n = 0;
+	if(parse_value(value, &n))
+	{
+		fprintf(stderr, "Invalid value %s\n", value);
+		return;
+	}
+
+	switch(item->Type)
+	{
+	case CONFIG_U8:
+		printf("set value to %d\n", n);
+		*(u8 *)(item->Addr) = n;
+		break;
+	
+	case CONFIG_U32:
+		*(u32 *)item->Addr = n;
+		break;
+	}
+}
+
 static void process_kv(char *key, char *value)
 {
 	printf("Key: %s - Value: %s\n", key, value);
+
+	for(size_t i = 0; i < ARRLEN(_config_items); ++i)
+	{
+		ConfigItem *item = _config_items + i;
+		if(!strcmp(key, item->Name))
+		{
+			apply_value(item, value);
+			return;
+		}
+	}
+
+	fprintf(stderr, "Invalid key: %s\n", key);
 }
 
 static void config_read(FILE *fp)
@@ -50,7 +122,13 @@ static void config_read(FILE *fp)
 	{
 		++line;
 
-		printf("Read: %s", buf);
+		char *e = strchr(buf, '\n');
+		if(e)
+		{
+			*e = '\0';
+		}
+
+		printf("Read: %s\n", buf);
 		int c = buf[0];
 		if(c == ';' || c == '\n' || c == '\0')
 		{
