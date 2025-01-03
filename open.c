@@ -1,13 +1,15 @@
 static void op_filter(void)
 {
-	char *s = tf_str(&_fld);
+	vec *term = tf_buf(&_fld);
 	vec_clear(&_filt_dir);
 	u32 cnt = 0;
-	for(u32 i = 0; i < _dir_count; ++i)
+	u32 len = vec_num_vecs(&_dir_list);
+	for(u32 i = 0; i < len; ++i)
 	{
-		if(starts_with(_dir_list[i], s))
+		vec *str = vec_get_vec(&_dir_list, i);
+		if(starts_with(str, term))
 		{
-			vec_push(&_filt_dir, sizeof(char *), _dir_list + i);
+			vec_push(&_filt_dir, sizeof(vec *), &str);
 			++cnt;
 		}
 	}
@@ -18,25 +20,27 @@ static void op_filter(void)
 static void op_tab(void)
 {
 	u32 sl = 0;
-	char *fs = NULL;
-	char *s = tf_str(&_fld);
+	vec *fs = NULL;
+	vec *s = tf_buf(&_fld);
 	u32 first = 1;
-	for(u32 i = 0; i < _dir_count; ++i)
+	u32 count = vec_num_vecs(&_dir_list);
+	for(u32 i = 0; i < count; ++i)
 	{
-		char *cur = _dir_list[i];
+		vec *cur = vec_get_vec(&_dir_list, i);
 		if(starts_with(cur, s))
 		{
 			if(first)
 			{
 				first = 0;
 				fs = cur;
-				sl = strlen(fs);
+				sl = fs->len;
 			}
 			else
 			{
-				u32 len;
-				char *p = fs;
-				for(len = 0; len < sl && *p == *cur; ++len, ++p, ++cur) {}
+				u32 len = 0;
+				char *p = vec_str(fs);
+				char *q = vec_str(cur);
+				for(; len < sl && *p == *q; ++len, ++p, ++q) {}
 				sl = len;
 			}
 		}
@@ -44,14 +48,15 @@ static void op_tab(void)
 
 	if(!first)
 	{
-		tf_set(&_fld, fs, sl);
+		tf_set(&_fld, vec_str(fs), sl);
 	}
 }
 
 static void op_dir_reload(void)
 {
-	_free(_dir_list);
-	_dir_list = dir_sorted(&_path_buf, &_dir_count);
+	// TODO: Check error!!
+	vec_destroy(&_dir_list);
+	dir_sorted(&_path_buf, &_dir_list);
 	op_filter();
 }
 
@@ -64,23 +69,23 @@ static void mode_open(void)
 
 static void op_return(void)
 {
-	char *cur = ((char **)vec_data(&_filt_dir))[_dd.pos];
-	if(!strcmp(cur, "../"))
+	vec *cur = ((vec **)_filt_dir.data)[_dd.pos];
+	if(!strcmp(vec_cstr(cur), "../"))
 	{
 		path_parent_dir(&_path_buf);
 		tf_clear(&_fld);
 		op_dir_reload();
 	}
-	else if(path_is_dir(cur))
+	else if(path_is_dir(vec_cstr(cur)))
 	{
-		vec_cstrcat(&_path_buf, cur);
+		vec_strcat(&_path_buf, cur);
 		tf_clear(&_fld);
 		op_dir_reload();
 	}
 	else
 	{
 		vec_strcpy(&_fname_buf, &_path_buf);
-		vec_cstrcat(&_fname_buf, cur);
+		vec_strcat(&_fname_buf, cur);
 		ed_load(&_fname_buf);
 	}
 }
@@ -103,11 +108,12 @@ static void op_key(u32 key, u32 c)
 
 static u32 op_dir_render(u32 y)
 {
-	char **list = vec_data(&_filt_dir);
+	vec **list = (vec **)_filt_dir.data;
 	u32 end = umin(_dd.offset + DD_PAGE, _dd.count);
 	for(u32 i = _dd.offset; i < end; ++i, ++y)
 	{
-		ed_render_line_str(list[i], 0, y, dd_color(&_dd, i), COLOR_GRAY);
+		char *s = vec_cstr(list[i]);
+		ed_render_line_str(s, 0, y, dd_color(&_dd, i), COLOR_GRAY);
 	}
 
 	return y;

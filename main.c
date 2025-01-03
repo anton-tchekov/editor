@@ -16,6 +16,17 @@
 #include "types.h"
 #include "keys.h"
 #include "alloc.c"
+
+static u32 umin(u32 a, u32 b)
+{
+	return a < b ? a : b;
+}
+
+static u32 umax(u32 a, u32 b)
+{
+	return a > b ? a : b;
+}
+
 #include "vector.c"
 #include "file.c"
 #include "colors.c"

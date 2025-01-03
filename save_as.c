@@ -2,9 +2,9 @@ static u8 _sv_focus;
 
 static void sv_dir_reload(void)
 {
-	_free(_dir_list);
-	_dir_list = dir_sorted(&_path_buf, &_dir_count);
-	dd_reset(&_dd, _dir_count);
+	vec_destroy(&_dir_list);
+	dir_sorted(&_path_buf, &_dir_list);
+	dd_reset(&_dd, vec_num_vecs(&_dir_list));
 	_sv_focus = 1;
 }
 
@@ -69,21 +69,21 @@ static void sv_path(void)
 
 static void sv_dir_return(void)
 {
-	char *cur = _dir_list[_dd.pos];
-	if(!strcmp(cur, "../"))
+	vec *cur = vec_get_vec(&_dir_list, _dd.pos);
+	if(!strcmp(vec_cstr(cur), "../"))
 	{
 		path_parent_dir(&_path_buf);
 		sv_dir_reload();
 	}
-	else if(path_is_dir(cur))
+	else if(path_is_dir(vec_cstr(cur)))
 	{
-		vec_cstrcat(&_path_buf, cur);
+		vec_strcat(&_path_buf, cur);
 		sv_dir_reload();
 	}
 	else
 	{
 		vec_strcpy(&_fname_buf, &_path_buf);
-		vec_cstrcat(&_fname_buf, cur);
+		vec_strcat(&_fname_buf, cur);
 		sv_path();
 	}
 }
@@ -163,19 +163,12 @@ static u32 sv_dir_render(u32 y)
 {
 	u32 i = _dd.offset;
 	u32 end = umin(i + DD_PAGE, _dd.count);
-	if(_sv_focus)
+	for(; i < end; ++i, ++y)
 	{
-		for(; i < end; ++i, ++y)
-		{
-			ed_render_line_str(_dir_list[i], 0, y, COLOR_FG, COLOR_GRAY);
-		}
-	}
-	else
-	{
-		for(; i < end; ++i, ++y)
-		{
-			ed_render_line_str(_dir_list[i], 0, y, dd_color(&_dd, i), COLOR_GRAY);
-		}
+		char *s = vec_cstr(vec_get_vec(&_dir_list, i));
+		ed_render_line_str(s, 0, y,
+			_sv_focus ? COLOR_FG : dd_color(&_dd, i),
+			COLOR_GRAY);
 	}
 
 	return y;

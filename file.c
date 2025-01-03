@@ -28,6 +28,7 @@ static u32 file_read(char *filename, char **out, u32 *len)
 			break;
 		}
 
+		// TODO: Exponention increase
 		vec_reserve(&v, v.len + FILE_CHUNK);
 	}
 
@@ -99,7 +100,7 @@ static u32 file_exists(char *fname)
 
 static int dir_sort_callback(const void *a, const void *b)
 {
-	return strcmp(*(const char **)a, *(const char **)b);
+	return vec_strcmp((vec *)a, (vec *)b);
 }
 
 static int is_dir(char *path)
@@ -113,20 +114,16 @@ static int is_dir(char *path)
 	return S_ISDIR(statbuf.st_mode);
 }
 
-// TODO: Use vec
-static char **dir_sorted(vec *path, u32 *len)
+static u32 dir_sorted(vec *path, vec *list)
 {
-	vec v = vec_init(1024);
-
-	DIR *dir;
-	if(!(dir = opendir(vec_cstr(path))))
+	DIR *dir = opendir(vec_cstr(path));
+	if(!dir)
 	{
-		return NULL;
+		return 1;
 	}
 
-	vec curfile = vec_init(1024);
-
-	u32 count = 0;
+	*list = vec_init(128 * sizeof(vec));
+	vec curfile = vec_copy(path);
 	struct dirent *dp;
 	while((dp = readdir(dir)))
 	{
@@ -136,31 +133,21 @@ static char **dir_sorted(vec *path, u32 *len)
 		}
 
 		u32 namelen = strlen(dp->d_name);
+		vec v = vec_init(namelen + 2);
 		vec_push(&v, namelen, dp->d_name);
-		vec_strcpy(&curfile, path);
+
+		curfile.len = path->len;
 		vec_push(&curfile, namelen, dp->d_name);
 		if(is_dir(vec_cstr(&curfile)))
 		{
 			vec_pushbyte(&v, '/');
 		}
 
-		vec_pushbyte(&v, '\0');
-		++count;
+		vec_push(list, sizeof(vec), &v);
 	}
 
 	vec_destroy(&curfile);
-
 	closedir(dir);
-	vec_makespace(&v, 0, count * sizeof(char *));
-	char *strs = (char *)v.data + count * sizeof(char *);
-	char **ptrs = v.data;
-	for(u32 i = 0; i < count; ++i)
-	{
-		ptrs[i] = strs;
-		strs += strlen(strs) + 1;
-	}
-
-	qsort(ptrs, count, sizeof(char *), dir_sort_callback);
-	*len = count;
-	return ptrs;
+	qsort(list->data, vec_num_vecs(list), sizeof(vec), dir_sort_callback);
+	return 0;
 }

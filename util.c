@@ -148,12 +148,9 @@ static char *path_file(char *s)
 
 static char *get_file_ext(char *s)
 {
-	u32 c;
-	char *p, *f;
-
-	f = path_file(s);
-	p = NULL;
-	for(; (c = *f); ++f)
+	char *f = path_file(s);
+	char *p = NULL;
+	for(u32 c; (c = *f); ++f)
 	{
 		if(c == '.')
 		{
@@ -206,17 +203,10 @@ static u32 path_is_dir(char *s)
 	return last_char_is(s, '/');
 }
 
-static u32 starts_with(char *str, char *prefix)
+static u32 starts_with(vec *str, vec *prefix)
 {
-	while(*prefix)
-	{
-		if(*prefix++ != *str++)
-		{
-			return 0;
-		}
-	}
-
-	return 1;
+	return (prefix->len <= str->len &&
+		!memcmp(str->data, prefix->data, prefix->len));
 }
 
 static u32 match_part(char *str, char *cmp, u32 len)
@@ -290,16 +280,6 @@ static i32 escape_seq(char *out, char *s)
 	return p - out;
 }
 
-static u32 umin(u32 a, u32 b)
-{
-	return a < b ? a : b;
-}
-
-static u32 umax(u32 a, u32 b)
-{
-	return a > b ? a : b;
-}
-
 static void uppercase(char *s, u32 len)
 {
 	for(char *end = s + len; s < end; ++s) { *s = toupper(*s); }
@@ -327,69 +307,67 @@ static void kebabcase(char *s, u32 len)
 
 static void snakecase(char *s, u32 len)
 {
-	/*
-
+/*
 public static string ToSnakeCase(this string text)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return text;
-            }
+{
+	if (string.IsNullOrEmpty(text))
+	{
+		return text;
+	}
 
-            var builder = new StringBuilder(text.Length + Math.Min(2, text.Length / 5));
-            var previousCategory = default(UnicodeCategory?);
+	var builder = new StringBuilder(text.Length + Math.Min(2, text.Length / 5));
+	var previousCategory = default(UnicodeCategory?);
 
-            for (var currentIndex = 0; currentIndex < text.Length; currentIndex++)
-            {
-                var currentChar = text[currentIndex];
-                if (currentChar == '_')
-                {
-                    builder.Append('_');
-                    previousCategory = null;
-                    continue;
-                }
+	for (var currentIndex = 0; currentIndex < text.Length; currentIndex++)
+	{
+		var currentChar = text[currentIndex];
+		if (currentChar == '_')
+		{
+			builder.Append('_');
+			previousCategory = null;
+			continue;
+		}
 
-                var currentCategory = char.GetUnicodeCategory(currentChar);
-                switch (currentCategory)
-                {
-                    case UnicodeCategory.UppercaseLetter:
-                    case UnicodeCategory.TitlecaseLetter:
-                        if (previousCategory == UnicodeCategory.SpaceSeparator ||
-                            previousCategory == UnicodeCategory.LowercaseLetter ||
-                            previousCategory != UnicodeCategory.DecimalDigitNumber &&
-                            previousCategory != null &&
-                            currentIndex > 0 &&
-                            currentIndex + 1 < text.Length &&
-                            char.IsLower(text[currentIndex + 1]))
-                        {
-                            builder.Append('_');
-                        }
+		var currentCategory = char.GetUnicodeCategory(currentChar);
+		switch (currentCategory)
+		{
+			case UnicodeCategory.UppercaseLetter:
+			case UnicodeCategory.TitlecaseLetter:
+				if (previousCategory == UnicodeCategory.SpaceSeparator ||
+					previousCategory == UnicodeCategory.LowercaseLetter ||
+					previousCategory != UnicodeCategory.DecimalDigitNumber &&
+					previousCategory != null &&
+					currentIndex > 0 &&
+					currentIndex + 1 < text.Length &&
+					char.IsLower(text[currentIndex + 1]))
+				{
+					builder.Append('_');
+				}
 
-                        currentChar = char.ToLower(currentChar, CultureInfo.InvariantCulture);
-                        break;
+				currentChar = char.ToLower(currentChar, CultureInfo.InvariantCulture);
+				break;
 
-                    case UnicodeCategory.LowercaseLetter:
-                    case UnicodeCategory.DecimalDigitNumber:
-                        if (previousCategory == UnicodeCategory.SpaceSeparator)
-                        {
-                            builder.Append('_');
-                        }
-                        break;
+			case UnicodeCategory.LowercaseLetter:
+			case UnicodeCategory.DecimalDigitNumber:
+				if (previousCategory == UnicodeCategory.SpaceSeparator)
+				{
+					builder.Append('_');
+				}
+				break;
 
-                    default:
-                        if (previousCategory != null)
-                        {
-                            previousCategory = UnicodeCategory.SpaceSeparator;
-                        }
-                        continue;
-                }
+			default:
+				if (previousCategory != null)
+				{
+					previousCategory = UnicodeCategory.SpaceSeparator;
+				}
+				continue;
+		}
 
-                builder.Append(currentChar);
-                previousCategory = currentCategory;
-            }
+		builder.Append(currentChar);
+		previousCategory = currentCategory;
+	}
 
-            return builder.ToString();
-        }
-
-	 */
+	return builder.ToString();
+}
+*/
 }

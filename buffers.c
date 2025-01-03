@@ -71,7 +71,7 @@ static u32 bf_switch_name(vec *name)
 	for(u32 i = 0; i < len; ++i)
 	{
 		textbuf *cur = bf_get(i);
-		if(vec_strcmp(&cur->filename, name))
+		if(vec_eq(&cur->filename, name))
 		{
 			_cur_buf = i;
 			_tb = cur;
@@ -128,7 +128,7 @@ static u32 bf_opened_and_modified(vec *name)
 	for(u32 i = 0; i < len; ++i)
 	{
 		textbuf *cur = bf_get(i);
-		if(vec_strcmp(&cur->filename, name))
+		if(vec_eq(&cur->filename, name))
 		{
 			return cur->modified;
 		}
@@ -142,7 +142,7 @@ static void bf_close_other(vec *name, u32 id)
 	u32 len = bf_count();
 	for(u32 i = 0; i < len; ++i)
 	{
-		if(vec_strcmp(&bf_get(i)->filename, name) && i != id)
+		if(vec_eq(&bf_get(i)->filename, name) && i != id)
 		{
 			bf_discard(i);
 			return;

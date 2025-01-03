@@ -259,3 +259,8 @@ static char *str_heapcopy(char *s)
 	memcpy(p, s, len);
 	return p;
 }
+
+static void vec_cstrcat(vec *to, char *from)
+{
+	vec_push(to, strlen(from), from);
+}

@@ -161,11 +161,6 @@ static void vec_strcat(vec *to, vec *from)
 	vec_push(to, from->len, from->data);
 }
 
-static void vec_cstrcat(vec *to, char *from)
-{
-	vec_push(to, strlen(from), from);
-}
-
 static char *vec_cstr(vec *v)
 {
 	vec_reserve(v, v->len + 1);
@@ -173,7 +168,7 @@ static char *vec_cstr(vec *v)
 	return v->data;
 }
 
-static u32 vec_strcmp(vec *a, vec *b)
+static u32 vec_eq(vec *a, vec *b)
 {
 	if(a->len != b->len)
 	{
@@ -183,9 +178,24 @@ static u32 vec_strcmp(vec *a, vec *b)
 	return !memcmp(a->data, b->data, a->len);
 }
 
+static u32 vec_strcmp(vec *a, vec *b)
+{
+	return memcmp(a->data, b->data, umin(a->len, b->len));
+}
+
 static vec vec_copy(vec *v)
 {
 	vec to = vec_init(v->len);
 	vec_strcpy(&to, v);
 	return to;
+}
+
+static vec *vec_get_vec(vec *v, u32 i)
+{
+	return ((vec *)v->data) + i;
+}
+
+static u32 vec_num_vecs(vec *v)
+{
+	return v->len / sizeof(vec);
 }
