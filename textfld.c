@@ -27,7 +27,6 @@ static void tf_set(tf *t, char *s, u32 len)
 {
 	vec_clear(&t->v);
 	vec_push(&t->v, len, s);
-	vec_push(&t->v, 1, "");
 	t->pos = len;
 	tf_sel_to_pos(t);
 }
@@ -49,7 +48,7 @@ static u32 tf_bufsiz(tf *t)
 
 static u32 tf_len(tf *t)
 {
-	return tf_bufsiz(t) - 1;
+	return tf_bufsiz(t);
 }
 
 static char *tf_str(tf *t)

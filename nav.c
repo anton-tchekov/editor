@@ -16,7 +16,7 @@ static void nav_init(void)
 
 static void nav_destroy(void)
 {
-	vec_destroy(&_dir_list);
+	vec_of_vecs_destroy(&_dir_list);
 	vec_destroy(&_filt_dir);
 	vec_destroy(&_path_buf);
 	vec_destroy(&_fname_buf);

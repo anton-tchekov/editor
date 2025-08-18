@@ -54,8 +54,8 @@ static void op_tab(void)
 
 static void op_dir_reload(void)
 {
-	// TODO: Check error!!
-	vec_destroy(&_dir_list);
+	// TODO: Check error of dir_sorted!!
+	vec_of_vecs_destroy(&_dir_list);
 	dir_sorted(&_path_buf, &_dir_list);
 	op_filter();
 }
@@ -70,13 +70,13 @@ static void mode_open(void)
 static void op_return(void)
 {
 	vec *cur = ((vec **)_filt_dir.data)[_dd.pos];
-	if(!strcmp(vec_cstr(cur), "../"))
+	if(vec_cstr_eq(cur, "../"))
 	{
 		path_parent_dir(&_path_buf);
 		tf_clear(&_fld);
 		op_dir_reload();
 	}
-	else if(path_is_dir(vec_cstr(cur)))
+	else if(path_is_dir(cur))
 	{
 		vec_strcat(&_path_buf, cur);
 		tf_clear(&_fld);

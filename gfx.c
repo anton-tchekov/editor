@@ -10,7 +10,7 @@ static u32 _quit;
 static char *_font_name = "terminus.ttf";
 static u32 _font_size = 16;
 static u32 _char_width = 16, _char_height = 29;
-static i32 _line_height = 35;
+static i32 _line_spacing = 5;
 static u32 _gfx_width, _gfx_height;
 static u32 _screen_width, _screen_height, _full_height;
 static u32 _triple_click, _dbl_click;
@@ -19,6 +19,8 @@ static int _down;
 static SDL_Texture *_font;
 static SDL_Window *_window;
 static SDL_Renderer *_renderer;
+
+static void config_load(void);
 
 static void event_dblclick(u32 x, u32 y);
 static void event_tripleclick(u32 x, u32 y);
@@ -36,7 +38,7 @@ static u32 event_exit(void);
 static void update_dim(void)
 {
 	_screen_width = _gfx_width / _char_width;
-	_full_height = _gfx_height / _line_height;
+	_full_height = _gfx_height / (_char_height + _line_spacing);
 	_screen_height = _full_height - 1;
 }
 
@@ -139,7 +141,6 @@ static int font_load(char *font, i32 size)
 		}
 	}
 
-	_line_height = (((_line_height << 8) / _char_height) * max_h) >> 8;
 	_char_width = max_w;
 	_char_height = max_h;
 
@@ -270,6 +271,7 @@ static void init(void)
 		goto fail_ttf_init;
 	}
 
+	config_load();
 	if(font_load(_font_name, _font_size))
 	{
 		printf("Loading font failed: %s\n", SDL_GetError());
@@ -331,14 +333,14 @@ static void render_char(u32 x, u32 y, u32 c, u32 fg, u32 bg)
 {
 	if(bg != COLOR_BG)
 	{
-		fastrect(x * _char_width, y * _line_height, _char_width, _line_height, bg);
+		fastrect(x * _char_width, y * (_char_height + _line_spacing), _char_width, _char_height + _line_spacing, bg);
 	}
 
 	if(c != ' ')
 	{
-		u32 pad = (_line_height - _char_height) / 2;
+		u32 pad = _line_spacing / 2;
 		SDL_Rect src = { (c & 0x0F) * _char_width, (c >> 4) * _char_height, _char_width, _char_height };
-		SDL_Rect dst = { x * _char_width, y * _line_height + pad, _char_width, _char_height };
+		SDL_Rect dst = { x * _char_width, y * (_char_height + _line_spacing) + pad, _char_width, _char_height };
 
 		SDL_SetTextureColorMod(_font,
 			color_r(fg), color_g(fg), color_b(fg));
@@ -350,7 +352,8 @@ static void render_cursor(u32 x, u32 y, u32 color)
 {
 	u32 thick = _char_height / 8;
 	if(!thick) { thick = 1; }
-	fastrect(x * _char_width, y * _line_height, thick, _line_height, color);
+	fastrect(x * _char_width, y * (_char_height + _line_spacing),
+		thick, _char_height + _line_spacing, color);
 }
 
 static u32 convert_key(i32 scancode, i32 mod)
@@ -366,7 +369,7 @@ static u32 convert_key(i32 scancode, i32 mod)
 		key |= MOD_ALT;
 	}
 
-	if(mod & KMOD_RALT)
+	if(mod & (KMOD_RALT | KMOD_MODE))
 	{
 		key |= MOD_ALT_GR;
 	}
@@ -506,7 +509,7 @@ static void handle_mousedown(void)
 	SDL_GetMouseState(&x, &y);
 	time = SDL_GetTicks();
 	x /= _char_width;
-	y /= _line_height;
+	y /= (_char_height + _line_spacing);
 	if(time < _triple_click + DBL_CLICK_MS)
 	{
 		_dbl_click = 0;
@@ -553,7 +556,7 @@ static void handle_mousemove(void)
 		SDL_GetMouseState(&x, &y);
 		if(x >= 0 && y >= 0)
 		{
-			event_mousemove(x / _char_width, y / _line_height);
+			event_mousemove(x / _char_width, y / (_char_height + _line_spacing));
 		}
 	}
 
@@ -572,8 +575,8 @@ static i32 clamp(i32 val, i32 min, i32 max)
 
 static void handle_line_height(i32 y)
 {
-	_line_height += y;
-	_line_height = clamp(_line_height, _char_height, 3 * _char_height / 2);
+	_line_spacing += y;
+	_line_spacing = clamp(_line_spacing, 0, 20);
 	update_dim();
 }
 

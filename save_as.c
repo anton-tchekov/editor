@@ -2,7 +2,7 @@ static u8 _sv_focus;
 
 static void sv_dir_reload(void)
 {
-	vec_destroy(&_dir_list);
+	vec_of_vecs_destroy(&_dir_list);
 	dir_sorted(&_path_buf, &_dir_list);
 	dd_reset(&_dd, vec_num_vecs(&_dir_list));
 	_sv_focus = 1;
@@ -58,9 +58,10 @@ static void sv_path(void)
 		return;
 	}
 
-	if(file_exists(vec_cstr(&_fname_buf)))
+	char *name = vec_cstr(&_fname_buf);
+	if(file_exists(name))
 	{
-		cf_open(sv_confirm, "Overwrite existing %s? [Y/N]", _fname_buf);
+		cf_open(sv_confirm, "Overwrite existing %s? [Y/N]", name);
 		return;
 	}
 
@@ -70,12 +71,12 @@ static void sv_path(void)
 static void sv_dir_return(void)
 {
 	vec *cur = vec_get_vec(&_dir_list, _dd.pos);
-	if(!strcmp(vec_cstr(cur), "../"))
+	if(vec_cstr_eq(cur, "../"))
 	{
 		path_parent_dir(&_path_buf);
 		sv_dir_reload();
 	}
-	else if(path_is_dir(vec_cstr(cur)))
+	else if(path_is_dir(cur))
 	{
 		vec_strcat(&_path_buf, cur);
 		sv_dir_reload();

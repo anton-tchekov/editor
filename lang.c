@@ -13,7 +13,7 @@ static char *lang_str(u32 lang)
 	switch(lang)
 	{
 	case LANGUAGE_UNKNOWN:
-		return "Text";
+		return "Plain Text";
 	case LANGUAGE_C:
 		return "C";
 	case LANGUAGE_ASM6800:
@@ -22,5 +22,5 @@ static char *lang_str(u32 lang)
 		return "65C02 ASM";
 	}
 
-	return "???";
+	return "Unknown";
 }

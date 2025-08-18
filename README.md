@@ -8,40 +8,22 @@ that is optimized for C projects, is performant, and productive.
 ![Screenshot of Editor](scrnshot.png)
 
 ## TODO
+- Command mode ctrl+T
+	- Convert upper, lower, camel snake case automagically
+	- Modify Settings (Remove shortcuts)
+- Make vec faster (Push)
+- Side bar for file manager (Ctrl+b)
+	- Mouse Support in menus
+	- File browser: Open Files
+- Search and replace in file and whole folder
 
-### Today
-- String Library (replace strcat!!)
-- Config File
 
-### Tomorrow
-- Command mode ctrl+t
-- More Tests
-- Make vec faster
+
 - Align defines handle comments
-- Convert upper, lower, camel snake case automagically
 - Indent Selected using Tab (small bug with cursors)
 - Shift tab work with spaces
-- Installation Package Generator, Linux + Windows Release Build 64 bit
-	- Version
-	// mingw-w64-sdl2_ttf
-	Editor-V104-Windows-x86_64.zip
-	Editor-V104-Linux-x86_64.zip
-
-### Think this through
-
-- Side bar for file manager (Ctrl+b)
-	- Menu System Overhaul
-	- Mouse Support in menus
-	- Bottom Line crash bug
-	- Open Files
-	- File browser
-
-### Later
-
-- Search and replace in file and whole folder
 - Undo / Redo
 - Multiple Cursors
-- Minimap
 
 ## Project overview
 

@@ -491,8 +491,8 @@ static void render_col_line(u32 x, u32 sy, u32 ey)
 		return;
 	}
 
-	u32 py = sy * _line_height;
-	u32 h = (ey - sy) * _line_height;
+	u32 py = sy * (_char_height + _line_spacing);
+	u32 h = (ey - sy) * (_char_height + _line_spacing);
 
 	fastrect(px, py, 1, h, COLOR_GRAY);
 }
@@ -606,18 +606,18 @@ static void msg_render(void)
 				int dx = abs(x1 - x2);
 				int dy = abs(y1 - y2) + 1;
 				rlen = snprintf(buf, sizeof(buf),
-					"   [%4d|%4d] [%4d|%4d] [%4d|%4d] [%s]",
-					dy, dx, y1, x1, y2, x2, lang_str(_tb->language));
+					"   Ln %d, Col %d (Sel %d Lns, %d Cols) [%s]",
+					y2, x2, dy, dx, lang_str(_tb->language));
 			}
 			else
 			{
-				rlen = snprintf(buf, sizeof(buf), "   [%4d|%4d] [%s]",
+				rlen = snprintf(buf, sizeof(buf), "   Ln %d, Col %d [%s]",
 					_tb->sel.c[0].y + 1,
 					tb_cursor_pos_x(_tb, _tb->sel.c[0].y, _tb->sel.c[0].x),
 					lang_str(_tb->language));
 			}
 
-			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s [%d Lines]",
+			int len = snprintf(_msg_buf, sizeof(_msg_buf), "%s%s (%d Lines)",
 				vec_cstr(&_tb->filename),
 				_tb->modified ? "*" : "",
 				tb_num_lines(_tb));

@@ -86,7 +86,7 @@ static void ed_load(vec *filename)
 	}
 
 	vec filename_copy = vec_copy(filename);
-	textbuf *t = tb_new(&filename_copy, conv, 1, 
+	textbuf *t = tb_new(&filename_copy, conv, 1,
 		ed_detect_language(vec_cstr(filename)));
 
 	bf_insert_cur(t);
@@ -137,7 +137,6 @@ static void ed_init(void)
 {
 	bf_init();
 	sr_init();
-	config_load();
 	utf8_lut_init();
 	kw_init(&_kw_c);
 	kw_init(&_kw_asm_6800);
@@ -147,6 +146,7 @@ static void ed_init(void)
 
 static void ed_destroy(void)
 {
+	config_write();
 	sr_destroy();
 	bf_destroy();
 	nav_destroy();

@@ -169,38 +169,38 @@ static char *get_file_ext(char *s)
 static void path_parent_dir(vec *v)
 {
 	char *s = vec_str(v);
-	char *prev = NULL;
-	char *slash = NULL;
-	char *p = s;
-	for(u32 c; (c = *p); ++p)
+	i32 prev = -1;
+	i32 slash = -1;
+	for(u32 i = 0; i < v->len; ++i)
 	{
-		if(c == '/')
+		if(s[i] == '/')
 		{
 			prev = slash;
-			slash = p;
+			slash = i;
 		}
 	}
 
-	if(prev)
+	if(prev >= 0)
 	{
-		prev[1] = '\0';
+		v->len = prev + 1;
 	}
 }
 
-static u32 last_char_is(char *s, u32 c)
+static u32 last_char_is(vec *v, u32 c)
 {
-	u32 len = strlen(s);
+	u32 len = vec_len(v);
 	if(len == 0)
 	{
 		return 0;
 	}
 
-	return (u32)s[len - 1] == c;
+	u32 last = vec_str(v)[len - 1];
+	return last == c;
 }
 
-static u32 path_is_dir(char *s)
+static u32 path_is_dir(vec *v)
 {
-	return last_char_is(s, '/');
+	return last_char_is(v, '/');
 }
 
 static u32 starts_with(vec *str, vec *prefix)
@@ -370,4 +370,9 @@ public static string ToSnakeCase(this string text)
 	return builder.ToString();
 }
 */
+}
+
+static char *boolstr(u32 v)
+{
+	return v ? "true" : "false";
 }

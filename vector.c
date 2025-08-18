@@ -111,7 +111,7 @@ static void vec_str_clear(vec *v)
 	vec_reserve(v, 1);
 	char *s = v->data;
 	s[0] = '\0';
-	v->len = 1;
+	v->len = 0;
 }
 
 static u32 vec_len(vec *v)
@@ -178,9 +178,15 @@ static u32 vec_eq(vec *a, vec *b)
 	return !memcmp(a->data, b->data, a->len);
 }
 
-static u32 vec_strcmp(vec *a, vec *b)
+static int vec_strcmp(vec *a, vec *b)
 {
 	return memcmp(a->data, b->data, umin(a->len, b->len));
+}
+
+static int vec_cstr_eq(vec *a, char *s)
+{
+	u32 s_len = strlen(s);
+	return a->len == s_len && !memcmp(a->data, s, s_len);
 }
 
 static vec vec_copy(vec *v)
@@ -198,4 +204,36 @@ static vec *vec_get_vec(vec *v, u32 i)
 static u32 vec_num_vecs(vec *v)
 {
 	return v->len / sizeof(vec);
+}
+
+static void vec_str_debug(vec *v)
+{
+	printf("Debug Vector String (Length = %d, Capacity = %d) %.*s\n", v->len, v->capacity, v->len, vec_str(v));
+}
+
+static void vec_strs_debug(vec *v)
+{
+	printf("Debug vector of string vectors: (Length = %d, Capacity = %d)\n", v->len, v->capacity);
+	u32 len = vec_num_vecs(v);
+	for(u32 i = 0; i < len; ++i)
+	{
+		printf("%2d => ", i);
+		vec_str_debug(vec_get_vec(v, i));
+	}
+}
+
+static void vec_of_vecs_destroy(vec *v)
+{
+	u32 count = vec_num_vecs(v);
+	for(u32 i = 0; i < count; ++i)
+	{
+		vec_destroy(vec_get_vec(v, i));
+	}
+
+	vec_destroy(v);
+}
+
+static void vec_push_cstr(vec *to, char *from)
+{
+	vec_push(to, strlen(from), from);
 }

@@ -1,8 +1,9 @@
-const char *_configfile = "editor.ini";
+static char *_configfile = "editor.ini";
 
 enum
 {
 	CONFIG_U8,
+	CONFIG_BOOL,
 	CONFIG_U32
 };
 
@@ -16,27 +17,47 @@ typedef struct
 static ConfigItem _config_items[] =
 {
 	{ "TabSize", CONFIG_U8, &_tabsize },
-	{ "IndentSpaces", CONFIG_U8, &_usespaces },
-	{ "ShowLinenumbers", CONFIG_U8, &_show_linenr },
-	{ "ShowWhitespace", CONFIG_U8, &_show_whitespace }
+	{ "IndentSpaces", CONFIG_BOOL, &_usespaces },
+	{ "ShowLinenumbers", CONFIG_BOOL, &_show_linenr },
+	{ "ShowWhitespace", CONFIG_BOOL, &_show_whitespace },
+	{ "LongLineMarker", CONFIG_U32, &_col_line },
+	{ "LineSpacing", CONFIG_U32, &_line_spacing },
+	{ "FontSize", CONFIG_U32, &_font_size }
 };
 
-static void config_write_defaults(FILE *fp)
+static void get_value(ConfigItem *item, char *value, size_t len)
 {
+	switch(item->Type)
+	{
+	case CONFIG_U8:
+		snprintf(value, len, "%d", *(u8 *)(item->Addr));
+		break;
+
+	case CONFIG_BOOL:
+		snprintf(value, len, "%s", boolstr(*(u8 *)(item->Addr)));
+		break;
+
+	case CONFIG_U32:
+		snprintf(value, len, "%d", *(u32 *)item->Addr);
+		break;
+	}
 }
 
 static void config_write(void)
 {
-	FILE *fp = fopen(_configfile, "w");
-	if(!fp)
+	char line[64];
+	char buf[32];
+	vec v = vec_init(512);
+	for(size_t i = 0; i < ARRLEN(_config_items); ++i)
 	{
-		fprintf(stderr, "Failed to open config file %s for writing\n",
-			_configfile);
-		return;
+		ConfigItem *item = _config_items + i;
+		get_value(item, buf, sizeof(buf));
+		u32 len = snprintf(line, sizeof(line), "%s=%s\n", item->Name, buf);
+		vec_push(&v, len, line);
 	}
 
-	config_write_defaults(fp);
-	fclose(fp);
+	file_write(_configfile, vec_str(&v), vec_len(&v));
+	vec_destroy(&v);
 }
 
 static u32 isnumber(char *s)
@@ -87,10 +108,13 @@ static void apply_value(ConfigItem *item, char *value)
 	switch(item->Type)
 	{
 	case CONFIG_U8:
-		printf("set value to %d\n", n);
 		*(u8 *)(item->Addr) = n;
 		break;
-	
+
+	case CONFIG_BOOL:
+		*(u8 *)(item->Addr) = n;
+		break;
+
 	case CONFIG_U32:
 		*(u32 *)item->Addr = n;
 		break;
@@ -100,7 +124,6 @@ static void apply_value(ConfigItem *item, char *value)
 static void process_kv(char *key, char *value)
 {
 	printf("Key: %s - Value: %s\n", key, value);
-
 	for(size_t i = 0; i < ARRLEN(_config_items); ++i)
 	{
 		ConfigItem *item = _config_items + i;
@@ -128,7 +151,7 @@ static void config_read(FILE *fp)
 			*e = '\0';
 		}
 
-		printf("Read: %s\n", buf);
+		// printf("Read: %s\n", buf);
 		int c = buf[0];
 		if(c == ';' || c == '\n' || c == '\0')
 		{
@@ -138,8 +161,7 @@ static void config_read(FILE *fp)
 		char *sep = strchr(buf, '=');
 		if(sep == NULL)
 		{
-			fprintf(stderr, "Expected key-value pair on line %d\n",
-				line);
+			fprintf(stderr, "Expected key-value pair on line %d\n", line);
 			return;
 		}
 
